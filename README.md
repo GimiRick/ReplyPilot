@@ -10,6 +10,7 @@
   <a href="https://semver.org"><img src="https://img.shields.io/badge/semver-2.0.0-blue" alt="semver"></a>
   <br>
   <!-- CI / QUALITY -->
+  <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/tests-74%20vitest-brightgreen?logo=vitest&logoColor=white" alt="tests"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/coverage-95.57%25%20v8-brightgreen" alt="coverage"></a>

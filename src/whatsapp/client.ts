@@ -50,7 +50,12 @@ export class WhatsAppClientAdapter {
       });
     });
 
-    await this.client.initialize();
+    try {
+      await this.client.initialize();
+    } catch (error) {
+      await this.client.destroy().catch(() => {});
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {
@@ -68,7 +73,9 @@ export class WhatsAppClientAdapter {
     });
 
     this.client.on('disconnected', (reason) => {
-      this.logger.warn({ reason }, 'WhatsApp client disconnected');
+      if (reason !== 'LOGOUT') {
+        this.logger.warn({ reason }, 'WhatsApp client disconnected');
+      }
     });
   }
 

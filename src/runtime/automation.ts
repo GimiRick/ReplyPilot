@@ -137,5 +137,30 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  await whatsapp.start();
+  try {
+    await whatsapp.start();
+  } catch (error) {
+    console.error('');
+    console.error('ReplyPilot could not connect to WhatsApp.');
+    console.error('');
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (isSessionError(errorMessage)) {
+      console.error('  Your WhatsApp session has expired or is corrupted.');
+      console.error('  To fix this, run:  replypilot logout');
+      console.error('  Then try again with:  replypilot start');
+    } else {
+      console.error(`  Error: ${errorMessage}`);
+      console.error('');
+      console.error('  This could be a missing browser, network issue, or environment problem.');
+      console.error('  If the problem persists, try:  replypilot logout');
+    }
+
+    console.error('');
+    process.exitCode = 1;
+  }
+}
+
+function isSessionError(message: string): boolean {
+  return message.includes('EBUSY') || message.includes('first_party_sets');
 }

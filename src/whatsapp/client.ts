@@ -38,12 +38,15 @@ export class WhatsAppClientAdapter {
 
   onMessage(handler: WhatsAppMessageHandler): void {
     this.messageHandler = handler;
-    this.client.on('message', (message) => {
-      void this.handleMessage(message);
-    });
   }
 
   async start(): Promise<void> {
+    this.client.on('message', (message) => {
+      this.handleMessage(message).catch((error) => {
+        this.logger.error({ error, messageId: message.id?._serialized }, 'WhatsApp message handler failed');
+      });
+    });
+
     await this.client.initialize();
   }
 
@@ -71,7 +74,15 @@ export class WhatsAppClientAdapter {
       return;
     }
 
-    const chat = await message.getChat();
+    let chat: Chat;
+
+    try {
+      chat = await message.getChat();
+    } catch (error) {
+      this.logger.error({ error, messageId: message.id?._serialized }, 'Failed to get chat for incoming message');
+      return;
+    }
+
     await this.messageHandler(toRuntimeMessage(message, chat));
   }
 }

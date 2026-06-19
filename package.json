@@ -4,14 +4,14 @@
   "description": "A TypeScript CLI that automates WhatsApp replies using local or custom OpenAI-compatible LLM providers.",
   "type": "module",
   "license": "MIT",
-  "author": "Gimirick",
-  "homepage": "https://github.com/gimirick/ReplyPilot#readme",
+  "author": "GimiRick",
+  "homepage": "https://github.com/GimiRick/ReplyPilot#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gimirick/ReplyPilot.git"
+    "url": "git+https://github.com/GimiRick/ReplyPilot.git"
   },
   "bugs": {
-    "url": "https://github.com/gimirick/ReplyPilot/issues"
+    "url": "https://github.com/GimiRick/ReplyPilot/issues"
   },
   "keywords": [
     "whatsapp",

@@ -7,7 +7,7 @@ It listens for new direct WhatsApp messages, fetches recent chat history, asks y
 ## Git Clone Users
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/GimiRick/ReplyPilot.git
 cd ReplyPilot
 npm install
 npm run build

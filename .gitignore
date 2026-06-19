@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.wwebjs_auth/
+.wwebjs_cache/
+npm-debug.log*
+*.tsbuildinfo

@@ -1,0 +1,81 @@
+{
+  "name": "gimirick-replypilot-whatsapp",
+  "version": "0.1.0",
+  "description": "A TypeScript CLI that automates WhatsApp replies using local or custom OpenAI-compatible LLM providers.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Gimirick",
+  "homepage": "https://github.com/gimirick/ReplyPilot#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gimirick/ReplyPilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gimirick/ReplyPilot/issues"
+  },
+  "keywords": [
+    "whatsapp",
+    "automation",
+    "llm",
+    "ollama",
+    "lm-studio",
+    "openai-compatible",
+    "replypilot"
+  ],
+  "bin": {
+    "replypilot": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts start",
+    "build": "tsup",
+    "start": "node dist/cli.js start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "8.5.2",
+    "commander": "15.0.0",
+    "conf": "15.1.0",
+    "dotenv": "17.4.2",
+    "openai": "6.44.0",
+    "p-queue": "9.3.0",
+    "pino": "10.3.1",
+    "qrcode-terminal": "0.12.0",
+    "whatsapp-web.js": "1.34.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.10.1",
+    "@types/qrcode-terminal": "0.12.2",
+    "@vitest/coverage-v8": "4.1.9",
+    "eslint": "10.5.0",
+    "prettier": "3.8.4",
+    "tsup": "8.5.1",
+    "tsx": "4.22.4",
+    "typescript-eslint": "8.61.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  }
+}

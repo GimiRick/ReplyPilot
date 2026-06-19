@@ -7,4 +7,9 @@ coverage/
 .wwebjs_auth/
 .wwebjs_cache/
 npm-debug.log*
+*.log
 *.tsbuildinfo
+
+# OS metadata
+.DS_Store
+Thumbs.db

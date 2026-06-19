@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A TypeScript CLI that automates WhatsApp replies using local or custom OpenAI-compatible LLM providers.",
   "type": "module",
-  "license": "MIT",
+  "license": "CC-BY-NC-ND-4.0",
   "author": "GimiRick",
   "homepage": "https://github.com/GimiRick/ReplyPilot#readme",
   "repository": {

@@ -1,5 +1,7 @@
 # ReplyPilot
 
+[![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC_BY--NC--ND_4.0-lightgrey.svg)](LICENSE)
+
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
 It listens for new direct WhatsApp messages, fetches recent chat history, asks your configured model to reply in your tone, and sends the response back through WhatsApp Web.
@@ -140,6 +142,20 @@ npm run test:coverage
 npm run build
 npm run pack:dry-run
 ```
+
+## About
+
+Part of the GimiRick toolchain. We build open source LLMs and AI systems.
+Founded by Mohammad Faiz.
+
+## License
+
+CC BY-NC-ND 4.0: Attribution-NonCommercial-NoDerivatives 4.0 International.
+
+Permission is granted to view and run this code. No modifications, alterations,
+or derivative works are permitted.
+
+See the [LICENSE](LICENSE) file for the full legal text.
 
 ## Disclaimer
 

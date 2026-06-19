@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import 'dotenv/config';
-
 import { pathToFileURL } from 'node:url';
 
 import { version } from '../package.json';
@@ -9,7 +7,7 @@ import { Command } from 'commander';
 
 import { formatDoctorReport, runDoctor } from './doctor/doctor';
 import { startAutomation } from './runtime/automation';
-import { MissingConfigError } from './runtime/errors';
+import { ConfigValidationError, MissingConfigError } from './runtime/errors';
 import { deleteConfig, loadConfig, removeWhatsAppSessionData } from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
@@ -69,12 +67,15 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       try {
         deps.loadConfig();
       } catch (error) {
-        if (!(error instanceof MissingConfigError)) {
+        if (error instanceof MissingConfigError) {
+          deps.output('No saved configuration found. Starting setup first.');
+          await deps.runSetupWizard();
+        } else if (error instanceof ConfigValidationError) {
+          deps.output('Saved configuration is invalid. Starting setup to replace it.');
+          await deps.runSetupWizard();
+        } else {
           throw error;
         }
-
-        deps.output('No saved configuration found. Starting setup first.');
-        await deps.runSetupWizard();
       }
 
       await deps.startAutomation();
@@ -98,7 +99,19 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .command('show')
     .description('Print saved config with secrets redacted.')
     .action(() => {
-      deps.output(JSON.stringify(redactConfig(deps.loadConfig()), null, 2));
+      try {
+        deps.output(JSON.stringify(redactConfig(deps.loadConfig()), null, 2));
+      } catch (error) {
+        if (error instanceof ConfigValidationError) {
+          deps.error(
+            'Saved configuration is invalid. Run replypilot setup to replace it or replypilot config reset to delete it.',
+          );
+          process.exitCode = 1;
+          return;
+        }
+
+        throw error;
+      }
     });
 
   config

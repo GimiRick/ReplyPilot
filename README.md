@@ -12,10 +12,10 @@
   <!-- CI / QUALITY -->
   <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-74%20vitest-brightgreen?logo=vitest&logoColor=white" alt="tests"></a>
-  <a href="package.json"><img src="https://img.shields.io/badge/coverage-95.57%25%20v8-brightgreen" alt="coverage"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-76%20vitest-brightgreen?logo=vitest&logoColor=white" alt="tests"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/coverage-93.88%25%20v8-brightgreen" alt="coverage"></a>
   <a href="SECURITY.md"><img src="https://img.shields.io/badge/security-policy-brightgreen?logo=github&logoColor=white" alt="security"></a>
-  <a href="package.json"><img src="https://img.shields.io/badge/dependencies-10%20direct-brightgreen" alt="dependencies"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/dependencies-9%20direct-brightgreen" alt="dependencies"></a>
   <br>
   <!-- REPO METRICS -->
 <a href="https://github.com/GimiRick/ReplyPilot/stargazers"><img src="https://img.shields.io/github/stars/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="stars"></a>
@@ -58,6 +58,9 @@ replypilot setup
 # Start automation (connects WhatsApp + begins listening)
 replypilot start
 
+# Display installed version
+replypilot version
+
 # Health check (Node version, config validity, provider reachability)
 replypilot doctor
 
@@ -94,6 +97,7 @@ All features via `npx`:
 ```bash
 npx replypilot setup
 npx replypilot start
+npx replypilot version
 npx replypilot doctor
 npx replypilot config show
 npx replypilot config reset
@@ -127,6 +131,7 @@ npm install
 npm run build
 node dist/cli.js setup
 node dist/cli.js start
+node dist/cli.js version
 node dist/cli.js doctor
 node dist/cli.js config show
 node dist/cli.js config reset
@@ -144,6 +149,7 @@ npm start          # node dist/cli.js start
 ```bash
 npm run dev                    # tsx src/cli.ts start
 tsx src/cli.ts setup
+tsx src/cli.ts version
 tsx src/cli.ts doctor
 tsx src/cli.ts config show
 tsx src/cli.ts config reset
@@ -233,6 +239,7 @@ replypilot logout     # Reset WhatsApp session
 | ------- | ------ | ----------- | ----------------- | ----------------- |
 | `setup` | ✓ | ✓ | ✓ | ✓ |
 | `start` | ✓ | ✓ | ✓ `npm start` | ✓ `npm run dev` |
+| `version` | ✓ | ✓ | ✓ | ✓ |
 | `doctor` | ✓ | ✓ | ✓ | ✓ |
 | `config show / reset` | ✓ | ✓ | ✓ | ✓ |
 | `logout` | ✓ | ✓ | ✓ | ✓ |
@@ -415,7 +422,7 @@ replypilot start
 | **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
 | **Runtime** | `logger.ts` | Pino logger with API key redaction |
 | **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
-| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, retry with backoff, timeout race, transient error detection |
+| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race |
 | **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`) |
 | **WhatsApp** | `client.ts` | `WhatsAppClientAdapter` wrapping `whatsapp-web.js`, lifecycle events, message-to-Runtime mapping |
 | **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization |

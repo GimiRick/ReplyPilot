@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildCliProgram, type CliDependencies } from '../../src/cli';
-import { MissingConfigError } from '../../src/runtime/errors';
+import { ConfigValidationError, MissingConfigError } from '../../src/runtime/errors';
 import { makeConfig } from '../fixtures/app-config';
 
 describe('CLI commands', () => {
@@ -28,6 +28,20 @@ describe('CLI commands', () => {
     expect(deps.startAutomation).toHaveBeenCalled();
   });
 
+  it('starts setup before start when saved config is invalid', async () => {
+    const { program, output, deps } = makeProgram({
+      loadConfig: vi.fn(() => {
+        throw new ConfigValidationError('ReplyPilot configuration is invalid.');
+      }),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'start']);
+
+    expect(output[0]).toContain('Saved configuration is invalid');
+    expect(deps.runSetupWizard).toHaveBeenCalled();
+    expect(deps.startAutomation).toHaveBeenCalled();
+  });
+
   it('shows redacted config', async () => {
     const { program, output } = makeProgram({
       loadConfig: vi.fn(() => makeConfig({ llm: { apiKey: 'secret' } })),
@@ -37,6 +51,21 @@ describe('CLI commands', () => {
 
     expect(output.join('\n')).toContain('[redacted]');
     expect(output.join('\n')).not.toContain('secret');
+  });
+
+  it('reports invalid config on config show', async () => {
+    const previousExitCode = process.exitCode;
+    const { program, output } = makeProgram({
+      loadConfig: vi.fn(() => {
+        throw new ConfigValidationError('ReplyPilot configuration is invalid.');
+      }),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'show']);
+
+    expect(output.join('\n')).toContain('Saved configuration is invalid');
+    expect(process.exitCode).toBe(1);
+    process.exitCode = previousExitCode;
   });
 
   it('resets config after confirmation', async () => {

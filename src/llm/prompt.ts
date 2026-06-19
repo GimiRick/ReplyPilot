@@ -13,7 +13,7 @@ export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
       role: 'system',
       content: [
         'You are an AI assistant that replies to WhatsApp messages for the account owner while they are busy.',
-        'Reply in the owner natural voice, short and casual, exactly how they would text.',
+        "Reply in the owner's natural voice, short and casual, exactly how they would text.",
         'Only use emojis when the conversation genuinely calls for one, never force them in.',
         'Do not use dashes of any kind. Use plain text only.',
         'Never mention that you are an AI, that the owner is busy, or that this is automated.',

@@ -3,6 +3,7 @@ import 'dotenv/config';
 
 import { pathToFileURL } from 'node:url';
 
+import { version } from '../package.json';
 import { confirm } from '@inquirer/prompts';
 import { Command } from 'commander';
 
@@ -44,7 +45,14 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
   program
     .name('replypilot')
     .description('Automate WhatsApp replies with local or custom OpenAI-compatible LLMs.')
-    .version('0.1.0');
+    .version(version);
+
+  program
+    .command('version')
+    .description('Display the installed ReplyPilot version.')
+    .action(() => {
+      deps.output(version);
+    });
 
   program
     .command('setup')

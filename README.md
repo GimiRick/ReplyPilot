@@ -18,8 +18,8 @@
   <a href="package.json"><img src="https://img.shields.io/badge/dependencies-10%20direct-brightgreen" alt="dependencies"></a>
   <br>
   <!-- REPO METRICS -->
-  <a href="https://github.com/GimiRick/ReplyPilot/stargazers"><img src="https://img.shields.io/github/stars/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="stars"></a>
-  <a href="https://github.com/GimiRick/ReplyPilot/forks"><img src="https://img.shields.io/github/forks/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="forks"></a>
+<a href="https://github.com/GimiRick/Brave-Search-Scraper/stargazers"><img src="https://img.shields.io/github/stars/GimiRick/Brave-Search-Scraper?logo=github&logoColor=white" alt="stars"></a>
+  <a href="https://github.com/GimiRick/Brave-Search-Scraper/forks"><img src="https://img.shields.io/github/forks/GimiRick/Brave-Search-Scraper?logo=github&logoColor=white" alt="forks"></a>
   <a href="https://github.com/GimiRick/ReplyPilot/graphs/contributors"><img src="https://img.shields.io/github/contributors/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="contributors"></a>
   <a href="https://github.com/GimiRick/ReplyPilot/issues"><img src="https://img.shields.io/github/issues/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="issues"></a>
   <a href="https://github.com/GimiRick/ReplyPilot/pulls"><img src="https://img.shields.io/github/issues-pr/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="pull requests"></a>

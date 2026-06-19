@@ -1,6 +1,39 @@
 # ReplyPilot
 
-[![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC_BY--NC--ND_4.0-lightgrey.svg)](LICENSE)
+<p align="center">
+  <!-- PACKAGE INFO -->
+  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/v/gimirick-replypilot-whatsapp?logo=npm&logoColor=white" alt="npm version"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/repo%20version-0.1.0-blue?logo=git&logoColor=white" alt="repo version"></a>
+  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/dm/gimirick-replypilot-whatsapp?logo=npm&logoColor=white" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/dw/gimirick-replypilot-whatsapp" alt="npm downloads/week"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white" alt="license"></a>
+  <a href="https://semver.org"><img src="https://img.shields.io/badge/semver-2.0.0-blue" alt="semver"></a>
+  <br>
+  <!-- CI / QUALITY -->
+  <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml"><img src="https://github.com/GimiRick/ReplyPilot/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL"></a>
+  <a href="test/"><img src="https://img.shields.io/badge/tests-74%20vitest-brightgreen?logo=vitest&logoColor=white" alt="tests"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/coverage-95.57%25%20v8-brightgreen" alt="coverage"></a>
+  <a href="SECURITY.md"><img src="https://img.shields.io/badge/security-policy-brightgreen?logo=github&logoColor=white" alt="security"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/dependencies-10%20direct-brightgreen" alt="dependencies"></a>
+  <br>
+  <!-- REPO METRICS -->
+  <a href="https://github.com/GimiRick/ReplyPilot/stargazers"><img src="https://img.shields.io/github/stars/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="stars"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/forks"><img src="https://img.shields.io/github/forks/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="forks"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/graphs/contributors"><img src="https://img.shields.io/github/contributors/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="contributors"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/issues"><img src="https://img.shields.io/github/issues/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="issues"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/pulls"><img src="https://img.shields.io/github/issues-pr/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="pull requests"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/commits/main"><img src="https://img.shields.io/github/last-commit/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="last commit"></a>
+  <br>
+  <!-- PROJECT METADATA -->
+  <a href="package.json"><img src="https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white" alt="node"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey" alt="platform"></a>
+  <a href="dist/"><img src="https://img.shields.io/badge/bundle%20size-~60%20kB-brightgreen" alt="bundle size"></a>
+  <a href="src/"><img src="https://img.shields.io/badge/total%20lines-~1.3k-blue" alt="total lines"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/commits/main"><img src="https://img.shields.io/github/commit-activity/m/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="commit activity"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot"><img src="https://img.shields.io/github/repo-size/GimiRick/ReplyPilot?logo=github&logoColor=white" alt="repo size"></a>
+  <a href="https://github.com/GimiRick/ReplyPilot/graphs/contributors"><img src="https://img.shields.io/badge/maintained-yes-brightgreen" alt="maintained"></a>
+</p>
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 

@@ -18,4 +18,6 @@ npm run pack:dry-run
 npm audit --audit-level=moderate
 ```
 
-Inspect the dry-run package output and confirm it includes only `dist`, `README.md`, `LICENSE`, and `docs`.
+Inspect the dry-run package output and confirm it includes `dist/`, `README.md`, `LICENSE`, and `docs/`.
+
+The `prepublishOnly` script runs `npm run build` automatically before `npm publish`, so the CLI binary in `dist/` is always included.

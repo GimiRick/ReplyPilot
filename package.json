@@ -1,6 +1,6 @@
 {
   "name": "gimirick-replypilot",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "A TypeScript CLI that automates WhatsApp replies using local or custom OpenAI-compatible LLM providers.",
   "type": "module",
   "license": "CC-BY-NC-ND-4.0",
@@ -42,6 +42,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts start",
     "build": "tsup",
+    "prepublishOnly": "npm run build",
     "start": "node dist/cli.js start",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -31,6 +31,9 @@ export class WhatsAppClientAdapter {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       },
+      webVersionCache: {
+        type: 'none',
+      },
     });
 
     this.registerLifecycleEvents();

@@ -124,5 +124,18 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
     await automation.handleIncomingMessage(message);
   });
 
+  const shutdown = async () => {
+    logger.info('Shutting down ReplyPilot gracefully...');
+    try {
+      await whatsapp.stop();
+    } catch (error) {
+      logger.error({ error }, 'Error during shutdown');
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+
   await whatsapp.start();
 }

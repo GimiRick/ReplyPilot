@@ -143,9 +143,11 @@ npm run pack:dry-run      # inspect npm tarball
 ### Ollama
 
 1. Install and start Ollama. Pull a model:
+
    ```bash
    ollama pull llama3.1
    ```
+
 2. Run `replypilot setup`, select **Ollama**.
 3. Defaults: Base URL `http://localhost:11434/v1`, API key `ollama`.
 
@@ -161,7 +163,7 @@ replypilot setup           # re-run setup, select Custom
 During setup enter the base URL, API key, and model name for your provider.
 
 | Provider | Base URL | Example model |
-|----------|----------|---------------|
+| -------- | -------- | --------------- |
 | ChatGPT | `https://api.openai.com/v1` | `gpt-4o` |
 | Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
@@ -195,7 +197,7 @@ replypilot logout     # Reset WhatsApp session
 ## Feature Availability
 
 | Feature | Global | Local (npx) | Git Clone (built) | Git Clone (tsx) |
-|---------|--------|-------------|-------------------|-----------------|
+| ------- | ------ | ----------- | ----------------- | ----------------- |
 | `setup` | ✓ | ✓ | ✓ | ✓ |
 | `start` | ✓ | ✓ | ✓ `npm start` | ✓ `npm run dev` |
 | `doctor` | ✓ | ✓ | ✓ | ✓ |
@@ -251,6 +253,141 @@ import { createLogger, type Logger } from 'gimirick-replypilot-whatsapp';
 import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot-whatsapp';
 import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot-whatsapp';
 ```
+
+---
+
+## System Architecture
+
+### High-Level Layers
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│                        CLI (Commander)                        │
+│ setup   start   doctor   config show   config reset   logout  │
+└───────────────────────┬───────────────────────────────────────┘
+                        │
+┌───────────────────────▼────────────────────────────────────────┐
+│                     Config Layer (conf + Zod)                  │
+│          ┌─────────────┐  ┌──────────┐  ┌─────────────┐        │
+│          │ schema.ts   │  │ store.ts │  │ setup.ts    │        │
+│          │ (Zod parse) │  │ (Conf)   │  │ (wizard)    │        │
+│          └─────────────┘  └──────────┘  └─────────────┘        │
+└─────────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼─────────────────────────────────────────┐
+│                     Runtime Orchestration                      │
+│    ┌────────────────┐  ┌──────────────┐  ┌────────────────┐    │
+│    │ ReplyAutomation│  │ MessageQueue │  │ Logger (pino)  │    │
+│    │ (message flow) │  │ (p-queue)    │  │                │    │
+│    └───────┬────────┘  └──────────────┘  └────────────────┘    │
+└──────────┼─────────────────────────────────────────────────────┘
+           │
+     ┌─────┴─────┐
+     ▼           ▼
+┌──────────────┐ ┌──────────────────────────────────────────────┐
+│   WhatsApp   │ │            LLM Provider Layer                │
+│     Layer    │ │  ┌────────────────────────────────────────┐  │
+│   ┌──────┐   │ │  │ OpenAiCompatibleProvider               │  │
+│   │client│   │ │  │  ┌──────────┐  ┌───────────┐           │  │
+│   │.ts   │   │ │  │  │ prompt.ts│  │openai-    │           │  │
+│   ├──────┤   │ │  │  │ (build,  │  │compatible │           │  │
+│   │filter│   │ │  │  │  clean)  │  │.ts        │           │  │
+│   │s.ts  │   │ │  │  └──────────┘  │ (OpenAI   │           │  │
+│   ├──────┤   │ │  │                │  SDK +    │           │  │
+│   │contex│   │ │  │                │  retry/   │           │  │
+│   │t.ts  │   │ │  │                │  timeout) │           │  │
+│   └──────┘   │ │  └────────────────┴───────────┘           │  │
+│              │ │  LlmProvider (interface)                  │  │
+└──────────────┘ └───────────────────────────────────────────┘──┘
+```
+
+### Message Processing Pipeline
+
+Each incoming WhatsApp message flows through these stages:
+
+```text
+WhatsApp Web ──> Client.on('message')
+                       │
+                       ▼
+                ┌───────────────┐
+                │  getIgnoreReason()     filters: self, empty, group, broadcast
+                └───────┬───────┘
+                   [ignored] │ [pass]
+                             ▼
+                     ┌──────────────┐
+                     │ duplicateGuard    checks seen message IDs
+                     └──────┬─────────┘
+                   [ignored] │ [new]
+                             ▼
+                     ┌──────────────┐
+                     │  MessageQueue     per-chat sequential, global-parallel
+                     └──────┬─────────┘
+                            ▼
+                     ┌──────────────┐
+                     │ fetchContext     chat history via whatsapp-web.js
+                     └──────┬─────────┘
+                            ▼
+                     ┌──────────────┐
+                     │ buildReplyPrompt   owner style + context + incoming
+                     └──────┬─────────┘
+                            ▼
+                     ┌──────────────┐
+                     │ llmProvider.generateReply()
+                     │  - withTimeout / retryTransient
+                     │  - cleanGeneratedReply
+                     └──────┬─────────┘
+                            ▼
+                     ┌──────────────┐
+                     │  dryRun? ──yes──> log only (status: 'dry-run')
+                     │  no
+                     ▼
+               chat.sendMessage(reply)  ──> WhatsApp Web
+```
+
+### Concurrency Model
+
+- **Global limit**: max 2 concurrent LLM requests (`globalConcurrency: 2`).
+- **Per-chat serial**: messages in the same chat process one at a time (`perChatConcurrency: 1`).
+- **Chat queues** are created lazily (one `PQueue` per `chatId`).
+- **Duplicate guard** tracks up to 5,000 seen message IDs, pruning oldest entries when full.
+
+### Startup Sequence
+
+```text
+replypilot start
+       │
+       ├── loadConfig()              read + Zod-validate saved config
+       ├── new OpenAiCompatibleProvider()   init OpenAI SDK client
+       ├── new ReplyAutomation()        wire config, provider, queue, logger
+       ├── new WhatsAppClientAdapter()  init whatsapp-web.js (LocalAuth)
+       │       ├── register QR handler
+       │       ├── register ready handler
+       │       └── register disconnect handler
+       ├── whatsapp.onMessage(handler)  register pipeline entry point
+       ├── whatsapp.start()
+       │       ├── client.on('message')  attach raw message listener
+       │       └── client.initialize()   Puppeteer + QR scan
+       └── [waiting for messages]
+```
+
+### Component Responsibilities
+
+| Layer | File | Role |
+| ----- | ---- | ---- |
+| **CLI** | `cli.ts` | Commander program, 6 commands, dependency injection for testability |
+| **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
+| **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
+| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard, 3 provider presets |
+| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` entry point |
+| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
+| **Runtime** | `logger.ts` | Pino logger with API key redaction |
+| **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
+| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, retry with backoff, timeout race, transient error detection |
+| **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`) |
+| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter` wrapping `whatsapp-web.js`, lifecycle events, message-to-Runtime mapping |
+| **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization |
+| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with LRU-style pruning |
+| **Doctor** | `doctor.ts` | `runDoctor` health checks (Node, config, provider reachability) |
 
 ---
 

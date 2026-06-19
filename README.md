@@ -6,108 +6,169 @@ ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, O
 
 It listens for new direct WhatsApp messages, fetches recent chat history, asks your configured model to reply in your tone, and sends the response back through WhatsApp Web.
 
-## Git Clone Users
+---
+
+## Installation & Usage
+
+### 1. NPM Global Install
+
+```bash
+npm i -g gimirick-replypilot-whatsapp
+```
+
+`replypilot` becomes a system-wide command.
+
+```bash
+# Setup wizard (required before first start)
+replypilot setup
+
+# Start automation (connects WhatsApp + begins listening)
+replypilot start
+
+# Health check (Node version, config validity, provider reachability)
+replypilot doctor
+
+# View current config (API key redacted)
+replypilot config show
+
+# Reset config (prompts confirmation)
+replypilot config reset
+
+# Remove WhatsApp session data (prompts confirmation)
+replypilot logout
+```
+
+Programmatic API (any `.js` / `.mjs` file):
+
+```ts
+import { startAutomation, loadConfig, type AppConfig } from 'gimirick-replypilot-whatsapp';
+
+await startAutomation();
+await startAutomation({ safety: { dryRun: true } });
+const config: AppConfig = loadConfig();
+```
+
+---
+
+### 2. NPM Local Install
+
+```bash
+npm i gimirick-replypilot-whatsapp
+```
+
+All features via `npx`:
+
+```bash
+npx replypilot setup
+npx replypilot start
+npx replypilot doctor
+npx replypilot config show
+npx replypilot config reset
+npx replypilot logout
+```
+
+Programmatic API in your project:
+
+```ts
+import { startAutomation, loadConfig, runDoctor } from 'gimirick-replypilot-whatsapp';
+import { ReplyAutomation, OpenAiCompatibleProvider } from 'gimirick-replypilot-whatsapp';
+import { runSetupWizard, createConfigStore } from 'gimirick-replypilot-whatsapp';
+import { MissingConfigError, ReplyPilotError } from 'gimirick-replypilot-whatsapp';
+
+await startAutomation();
+```
+
+---
+
+### 3. Git Clone (Source / Development)
 
 ```bash
 git clone https://github.com/GimiRick/ReplyPilot.git
 cd ReplyPilot
 npm install
+```
+
+#### Built binary (production-like)
+
+```bash
 npm run build
-npm start
+node dist/cli.js setup
+node dist/cli.js start
+node dist/cli.js doctor
+node dist/cli.js config show
+node dist/cli.js config reset
+node dist/cli.js logout
 ```
 
-Development mode:
+Or via npm scripts:
 
 ```bash
-npm run dev
+npm start          # node dist/cli.js start
 ```
 
-## npm Global Users
+#### Development mode (tsx — no build needed)
 
 ```bash
-npm i -g gimirick-replypilot-whatsapp
-replypilot setup
-replypilot start
+npm run dev                    # tsx src/cli.ts start
+tsx src/cli.ts setup
+tsx src/cli.ts doctor
+tsx src/cli.ts config show
+tsx src/cli.ts config reset
+tsx src/cli.ts logout
 ```
 
-## npm Local Package Users
+#### Tests & quality
 
 ```bash
-npm i gimirick-replypilot-whatsapp
-npx replypilot setup
-npx replypilot start
+npm test                  # vitest run
+npm run test:watch        # vitest (watch)
+npm run test:coverage     # vitest run --coverage
+npm run typecheck         # tsc --noEmit
+npm run lint              # eslint .
+npm run format            # prettier --write .
+npm run build             # tsup (ESM + .d.ts)
+npm run pack:dry-run      # inspect npm tarball
 ```
 
-## npx Users
-
-```bash
-npx --package gimirick-replypilot-whatsapp replypilot setup
-npx --package gimirick-replypilot-whatsapp replypilot start
-```
-
-## CLI Commands
-
-```bash
-replypilot setup
-replypilot start
-replypilot doctor
-replypilot config show
-replypilot config reset
-replypilot logout
-```
-
-`start` automatically launches setup first when no saved config exists. `config show` redacts secrets before printing.
+---
 
 ## Provider Setup
 
 ### LM Studio
 
-1. Open LM Studio.
-2. Load a chat model.
-3. Start the local OpenAI-compatible server.
-4. Use these defaults in `replypilot setup`:
-   - Base URL: `http://localhost:1234/v1`
-   - API key: `lm-studio`
-   - Model name: the model loaded in LM Studio
+1. Open LM Studio, load a chat model, start the local OpenAI-compatible server.
+2. Run `replypilot setup`, select **LM Studio**.
+3. Defaults: Base URL `http://localhost:1234/v1`, API key `lm-studio`.
 
 ### Ollama
 
-1. Install and start Ollama.
-2. Pull a model, for example:
-
-```bash
-ollama pull llama3.1
-```
-
-3. Use these defaults in `replypilot setup`:
-   - Base URL: `http://localhost:11434/v1`
-   - API key: `ollama`
-   - Model name: `llama3.1`, `qwen2.5`, or another locally available model
+1. Install and start Ollama. Pull a model:
+   ```bash
+   ollama pull llama3.1
+   ```
+2. Run `replypilot setup`, select **Ollama**.
+3. Defaults: Base URL `http://localhost:11434/v1`, API key `ollama`.
 
 ### Custom OpenAI-Compatible Provider
 
-Choose the custom provider option and enter:
+1. Run `replypilot setup`, select **Custom**.
+2. Enter your base URL (ending in `/v1`), API key, model name, and label.
 
-- Base URL ending in `/v1`
-- API key
-- Model name
-- Human-readable model label
+---
 
 ## WhatsApp Login
-
-Run:
 
 ```bash
 replypilot start
 ```
 
-ReplyPilot shows a QR code in the terminal. Open WhatsApp on your phone, go to linked devices, and scan the QR code. Keep the terminal process running while ReplyPilot is active.
-
-To reset the WhatsApp session:
+Scan the terminal QR code from WhatsApp on your phone (Linked Devices). Keep the terminal process running while active.
 
 ```bash
-replypilot logout
+replypilot logout     # Reset WhatsApp session
 ```
+
+---
 
 ## Safety Defaults
 
@@ -117,44 +178,77 @@ replypilot logout
 - Status and broadcast auto-replies are disabled by default.
 - Dry-run can be enabled during setup to log replies without sending them.
 
-## Programmatic API
+---
+
+## Feature Availability
+
+| Feature | Global | Local (npx) | Git Clone (built) | Git Clone (tsx) |
+|---------|--------|-------------|-------------------|-----------------|
+| `setup` | ✓ | ✓ | ✓ | ✓ |
+| `start` | ✓ | ✓ | ✓ `npm start` | ✓ `npm run dev` |
+| `doctor` | ✓ | ✓ | ✓ | ✓ |
+| `config show / reset` | ✓ | ✓ | ✓ | ✓ |
+| `logout` | ✓ | ✓ | ✓ | ✓ |
+| Programmatic API | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
+| TypeScript types | ✓ auto | ✓ auto | ✓ from `dist/` | ✓ from `src/` |
+| Run tests | — | — | — | ✓ `npm test` |
+| Hot-reload | — | — | — | ✓ `tsx --watch` |
+
+---
+
+## Programmatic API (Full Reference)
 
 ```ts
-import {
-  loadConfig,
-  saveConfig,
-  startAutomation,
-  type AppConfig,
-  type GenerateReplyInput,
-  type GenerateReplyResult,
-  type LlmProvider,
-} from 'gimirick-replypilot-whatsapp';
+// Core automation
+import { startAutomation, ReplyAutomation, processIncomingMessage } from 'gimirick-replypilot-whatsapp';
+import { type AutomationResult, type ReplyAutomationOptions } from 'gimirick-replypilot-whatsapp';
+import { type RuntimeIncomingMessage } from 'gimirick-replypilot-whatsapp';
 
-await startAutomation();
+// LLM provider
+import { OpenAiCompatibleProvider, type OpenAiCompatibleProviderOptions } from 'gimirick-replypilot-whatsapp';
+import { type LlmProvider, type GenerateReplyInput, type GenerateReplyResult } from 'gimirick-replypilot-whatsapp';
+import { type ChatContextMessage, type PromptMessage } from 'gimirick-replypilot-whatsapp';
+import { buildReplyPrompt, cleanGeneratedReply, formatChatContext, trimContextMessages } from 'gimirick-replypilot-whatsapp';
+
+// Config
+import { loadConfig, saveConfig, deleteConfig, tryLoadConfig, hasConfig } from 'gimirick-replypilot-whatsapp';
+import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot-whatsapp';
+import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot-whatsapp';
+import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot-whatsapp';
+import { type PromptAdapter, type SetupAnswers } from 'gimirick-replypilot-whatsapp';
+import { parseAppConfig, mergeAppConfig, redactConfig } from 'gimirick-replypilot-whatsapp';
+import { type AppConfig, type PartialAppConfig, type LlmProviderName } from 'gimirick-replypilot-whatsapp';
+import { CONFIG_VERSION, DEFAULT_APP_CONFIG, PROVIDER_DEFAULTS } from 'gimirick-replypilot-whatsapp';
+import { appConfigSchema, providerSchema, logLevelSchema } from 'gimirick-replypilot-whatsapp';
+
+// Doctor / health
+import { runDoctor, formatDoctorReport, checkProviderReachability } from 'gimirick-replypilot-whatsapp';
+import { isSupportedNodeVersion, type DoctorReport, type DoctorCheck } from 'gimirick-replypilot-whatsapp';
+
+// WhatsApp
+import { fetchChatContext, normalizeChatMessage, normalizeChatMessages } from 'gimirick-replypilot-whatsapp';
+import { type WhatsAppRawChat, type WhatsAppRawMessage } from 'gimirick-replypilot-whatsapp';
+import { DuplicateMessageGuard, getIgnoreReason, shouldProcessMessage } from 'gimirick-replypilot-whatsapp';
+import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-replypilot-whatsapp';
+
+// Queue & Logger
+import { MessageQueue, type MessageQueueOptions } from 'gimirick-replypilot-whatsapp';
+import { createLogger, type Logger } from 'gimirick-replypilot-whatsapp';
+
+// Errors
+import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot-whatsapp';
+import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot-whatsapp';
 ```
 
-## Quality Commands
-
-```bash
-npm run typecheck
-npm run lint
-npm run test:coverage
-npm run build
-npm run pack:dry-run
-```
+---
 
 ## About
 
-Part of the GimiRick toolchain. We build open source LLMs and AI systems.
-Founded by Mohammad Faiz.
+Part of the GimiRick toolchain. Founded by Mohammad Faiz.
 
 ## License
 
-CC BY-NC-ND 4.0: Attribution-NonCommercial-NoDerivatives 4.0 International.
-
-Permission is granted to view and run this code. No modifications, alterations,
-or derivative works are permitted.
-
+CC BY-NC-ND 4.0 — Attribution-NonCommercial-NoDerivatives 4.0 International.
 See the [LICENSE](LICENSE) file for the full legal text.
 
 ## Disclaimer

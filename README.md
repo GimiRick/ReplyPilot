@@ -151,21 +151,8 @@ npm run pack:dry-run      # inspect npm tarball
 
 ### Custom OpenAI-Compatible Provider
 
-Works with any OpenAI-compatible API — including ChatGPT, Gemini, Groq, Together AI, Perplexity, and more.
-
 1. Run `replypilot setup`, select **Custom**.
-2. Enter the base URL, API key, model name, and label.
-
-| Provider | Base URL | Model example |
-|----------|----------|---------------|
-| **ChatGPT (OpenAI)** | `https://api.openai.com/v1` | `gpt-4o`, `gpt-4o-mini` |
-| **Gemini (Google)** | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash`, `gemini-2.0-pro` |
-| **Groq** | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
-| **Together AI** | `https://api.together.xyz/v1` | `mistralai/Mixtral-8x22B-Instruct-v0.1` |
-| **Perplexity** | `https://api.perplexity.ai` | `sonar-pro` |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | `anthropic/claude-3.5-sonnet` |
-
-Select **Custom** during setup and enter the values for your chosen provider. The API key prompt masks input for all custom providers.
+2. Enter your base URL (ending in `/v1`), API key, model name, and label.
 
 ---
 

@@ -39,11 +39,15 @@ ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, O
 
 It listens for new direct WhatsApp messages, fetches recent chat history, asks your configured model to reply in your tone, and sends the response back through WhatsApp Web.
 
+**npm package:** [gimirick-replypilot](https://www.npmjs.com/package/gimirick-replypilot)
+
 ---
 
 ## Installation & Usage
 
 ### 1. NPM Global Install
+
+Install from [npm](https://www.npmjs.com/package/gimirick-replypilot):
 
 ```bash
 npm i -g gimirick-replypilot
@@ -87,6 +91,8 @@ const config: AppConfig = loadConfig();
 ---
 
 ### 2. NPM Local Install
+
+Install from [npm](https://www.npmjs.com/package/gimirick-replypilot):
 
 ```bash
 npm i gimirick-replypilot

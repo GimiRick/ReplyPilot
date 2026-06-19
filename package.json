@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/node": "24.10.1",
+    "@types/node": "26.0.0",
     "@types/qrcode-terminal": "0.12.2",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "10.5.0",

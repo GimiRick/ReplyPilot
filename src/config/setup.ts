@@ -94,7 +94,17 @@ export async function promptForConfig(
   const baseUrl = await prompts.input({
     message: 'LLM base URL',
     default: providerDefaults?.baseUrl,
-    validate: (value) => (value.trim() ? true : 'Base URL is required'),
+    validate: (value) => {
+      if (!value.trim()) {
+        return 'Base URL is required';
+      }
+      try {
+        new URL(value.trim());
+        return true;
+      } catch {
+        return 'LLM base URL must be a valid URL';
+      }
+    },
   });
 
   const apiKey =
@@ -127,6 +137,9 @@ export async function promptForConfig(
     validate: (value) => {
       if (value === undefined) {
         return true;
+      }
+      if (!Number.isInteger(value)) {
+        return 'Value must be an integer';
       }
 
       return value >= 1 && value <= 200 ? true : 'Choose a value from 1 to 200';

@@ -37,6 +37,25 @@ describe('WhatsApp chat context', () => {
     ).toEqual(['first', 'second']);
   });
 
+  it('preserves input order when timestamps are equal', () => {
+    expect(
+      normalizeChatMessages([
+        { id: '1', body: 'first', timestamp: 100 },
+        { id: '2', body: 'second', timestamp: 100 },
+      ]).map((message) => message.body),
+    ).toEqual(['first', 'second']);
+  });
+
+  it('handles mixed undefined and defined timestamps stably', () => {
+    expect(
+      normalizeChatMessages([
+        { id: '1', body: 'first', timestamp: 10 },
+        { id: '2', body: 'second' },
+        { id: '3', body: 'third', timestamp: 5 },
+      ]).map((message) => message.body),
+    ).toEqual(['third', 'first', 'second']);
+  });
+
   it('drops empty non-media messages', () => {
     expect(normalizeChatMessage({ id: 'm1', body: '   ' })).toBeUndefined();
   });

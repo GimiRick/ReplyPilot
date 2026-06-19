@@ -47,7 +47,7 @@ describe('startAutomation', () => {
 
   it('prints session expiry message on EBUSY error', async () => {
     const previousExitCode = process.exitCode;
-    const error = new Error('EBUSY: resource busy or locked, unlink \'...first_party_sets.db\'');
+    const error = new Error("EBUSY: resource busy or locked, unlink '...first_party_sets.db'");
     mocks.start.mockRejectedValue(error);
 
     const errors: string[] = [];

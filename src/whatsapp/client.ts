@@ -46,7 +46,10 @@ export class WhatsAppClientAdapter {
   async start(): Promise<void> {
     this.client.on('message', (message) => {
       this.handleMessage(message).catch((error) => {
-        this.logger.error({ error, messageId: message.id?._serialized }, 'WhatsApp message handler failed');
+        this.logger.error(
+          { error, messageId: message.id?._serialized },
+          'WhatsApp message handler failed',
+        );
       });
     });
 
@@ -89,7 +92,10 @@ export class WhatsAppClientAdapter {
     try {
       chat = await message.getChat();
     } catch (error) {
-      this.logger.error({ error, messageId: message.id?._serialized }, 'Failed to get chat for incoming message');
+      this.logger.error(
+        { error, messageId: message.id?._serialized },
+        'Failed to get chat for incoming message',
+      );
       return;
     }
 

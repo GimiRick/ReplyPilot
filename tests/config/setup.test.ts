@@ -120,7 +120,10 @@ describe('setup wizard config creation', () => {
     const numberOptions = getFirstPromptOptions(prompts.number);
 
     expect(baseUrlOptions.validate?.('')).toBe('Base URL is required');
+    expect(baseUrlOptions.validate?.('not-a-url')).toBe('LLM base URL must be a valid URL');
+    expect(baseUrlOptions.validate?.('http://localhost:1234/v1')).toBe(true);
     expect(numberOptions.validate?.(undefined)).toBe(true);
+    expect(numberOptions.validate?.(30.5)).toBe('Value must be an integer');
     expect(numberOptions.validate?.(300)).toBe('Choose a value from 1 to 200');
   });
 

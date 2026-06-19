@@ -60,14 +60,17 @@ export function trimContextMessages(
 export function cleanGeneratedReply(rawText: string): string {
   let text = rawText.replace(/\r\n/g, '\n').trim();
 
-  text = text.replace(/^(assistant|reply|response|owner)\s*:\s*/i, '').trim();
-
-  if (
-    (text.startsWith('"') && text.endsWith('"')) ||
-    (text.startsWith("'") && text.endsWith("'"))
-  ) {
-    text = text.slice(1, -1).trim();
-  }
+  let prevText: string;
+  do {
+    prevText = text;
+    text = text.replace(/^(assistant|reply|response|owner)\s*:\s*/i, '').trim();
+    if (
+      (text.startsWith('"') && text.endsWith('"')) ||
+      (text.startsWith("'") && text.endsWith("'"))
+    ) {
+      text = text.slice(1, -1).trim();
+    }
+  } while (text !== prevText);
 
   return text;
 }

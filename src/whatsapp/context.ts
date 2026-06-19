@@ -21,15 +21,26 @@ export async function fetchChatContext(
 }
 
 export function normalizeChatMessages(messages: WhatsAppRawMessage[]): ChatContextMessage[] {
-  return [...messages]
-    .sort((a, b) => {
-      if (a.timestamp === undefined || b.timestamp === undefined) {
-        return 0;
-      }
+  let lastTimestamp = 0;
+  const messagesWithTime = messages.map((msg) => {
+    let timestamp = msg.timestamp;
+    if (timestamp !== undefined) {
+      lastTimestamp = timestamp;
+    } else {
+      timestamp = lastTimestamp;
+    }
+    return { ...msg, timestamp };
+  });
 
-      return a.timestamp - b.timestamp;
+  return messagesWithTime
+    .map((message, index) => ({ message, index }))
+    .sort((a, b) => {
+      if (a.message.timestamp !== b.message.timestamp) {
+        return (a.message.timestamp ?? 0) - (b.message.timestamp ?? 0);
+      }
+      return a.index - b.index;
     })
-    .map(normalizeChatMessage)
+    .map(({ message }) => normalizeChatMessage(message))
     .filter((message): message is ChatContextMessage => Boolean(message));
 }
 

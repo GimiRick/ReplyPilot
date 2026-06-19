@@ -68,6 +68,21 @@ describe('CLI commands', () => {
     process.exitCode = previousExitCode;
   });
 
+  it('reports missing config on config show', async () => {
+    const previousExitCode = process.exitCode;
+    const { program, output } = makeProgram({
+      loadConfig: vi.fn(() => {
+        throw new MissingConfigError();
+      }),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'show']);
+
+    expect(output.join('\n')).toContain('No saved configuration found');
+    expect(process.exitCode).toBe(1);
+    process.exitCode = previousExitCode;
+  });
+
   it('resets config after confirmation', async () => {
     const { program, deps } = makeProgram({
       confirm: vi.fn(async () => true),

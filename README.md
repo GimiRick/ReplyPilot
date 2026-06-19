@@ -199,11 +199,11 @@ replypilot setup           # re-run setup, select Custom
 
 During setup enter the base URL, API key, and model name for your provider.
 
-| Provider | Base URL | Example model |
-| -------- | -------- | --------------- |
-| ChatGPT | `https://api.openai.com/v1` | `gpt-4o` |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Provider | Base URL                                                   | Example model             |
+| -------- | ---------------------------------------------------------- | ------------------------- |
+| ChatGPT  | `https://api.openai.com/v1`                                | `gpt-4o`                  |
+| Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash`        |
+| Groq     | `https://api.groq.com/openai/v1`                           | `llama-3.3-70b-versatile` |
 
 ---
 
@@ -233,18 +233,18 @@ replypilot logout     # Reset WhatsApp session
 
 ## Feature Availability
 
-| Feature | Global | Local (npx) | Git Clone (built) | Git Clone (tsx) |
-| ------- | ------ | ----------- | ----------------- | ----------------- |
-| `setup` | ✓ | ✓ | ✓ | ✓ |
-| `start` | ✓ | ✓ | ✓ `npm start` | ✓ `npm run dev` |
-| `version` | ✓ | ✓ | ✓ | ✓ |
-| `doctor` | ✓ | ✓ | ✓ | ✓ |
-| `config show / reset` | ✓ | ✓ | ✓ | ✓ |
-| `logout` | ✓ | ✓ | ✓ | ✓ |
-| Programmatic API | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
-| TypeScript types | ✓ auto | ✓ auto | ✓ from `dist/` | ✓ from `src/` |
-| Run tests | — | — | — | ✓ `npm test` |
-| Hot-reload | — | — | — | ✓ `tsx --watch` |
+| Feature               | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
+| --------------------- | ------------------- | ------------------- | ---------------------- | --------------------- |
+| `setup`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| `start`               | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
+| `version`             | ✓                   | ✓                   | ✓                      | ✓                     |
+| `doctor`              | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config show / reset` | ✓                   | ✓                   | ✓                      | ✓                     |
+| `logout`              | ✓                   | ✓                   | ✓                      | ✓                     |
+| Programmatic API      | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
+| TypeScript types      | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
+| Run tests             | —                   | —                   | —                      | ✓ `npm test`          |
+| Hot-reload            | —                   | —                   | —                      | ✓ `tsx --watch`       |
 
 ---
 
@@ -257,13 +257,31 @@ import { type AutomationResult, type ReplyAutomationOptions } from 'gimirick-rep
 import { type RuntimeIncomingMessage } from 'gimirick-replypilot';
 
 // LLM provider
-import { OpenAiCompatibleProvider, type OpenAiCompatibleProviderOptions } from 'gimirick-replypilot';
-import { type LlmProvider, type GenerateReplyInput, type GenerateReplyResult } from 'gimirick-replypilot';
+import {
+  OpenAiCompatibleProvider,
+  type OpenAiCompatibleProviderOptions,
+} from 'gimirick-replypilot';
+import {
+  type LlmProvider,
+  type GenerateReplyInput,
+  type GenerateReplyResult,
+} from 'gimirick-replypilot';
 import { type ChatContextMessage, type PromptMessage } from 'gimirick-replypilot';
-import { buildReplyPrompt, cleanGeneratedReply, formatChatContext, trimContextMessages } from 'gimirick-replypilot';
+import {
+  buildReplyPrompt,
+  cleanGeneratedReply,
+  formatChatContext,
+  trimContextMessages,
+} from 'gimirick-replypilot';
 
 // Config
-import { loadConfig, saveConfig, deleteConfig, tryLoadConfig, hasConfig } from 'gimirick-replypilot';
+import {
+  loadConfig,
+  saveConfig,
+  deleteConfig,
+  tryLoadConfig,
+  hasConfig,
+} from 'gimirick-replypilot';
 import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot';
 import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot';
 import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot';
@@ -410,22 +428,22 @@ replypilot start
 
 ### Component Responsibilities
 
-| Layer | File | Role |
-| ----- | ---- | ---- |
-| **CLI** | `cli.ts` | Commander program, 6 commands, dependency injection for testability |
-| **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
-| **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
-| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard, 3 provider presets |
-| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` entry point |
-| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
-| **Runtime** | `logger.ts` | Pino logger with API key redaction |
-| **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
-| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race |
-| **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`) |
-| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter` wrapping `whatsapp-web.js`, lifecycle events, message-to-Runtime mapping |
-| **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization |
-| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with LRU-style pruning |
-| **Doctor** | `doctor.ts` | `runDoctor` health checks (Node, config, provider reachability) |
+| Layer        | File                   | Role                                                                                             |
+| ------------ | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| **CLI**      | `cli.ts`               | Commander program, 6 commands, dependency injection for testability                              |
+| **Config**   | `schema.ts`            | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation                              |
+| **Config**   | `store.ts`             | Persistent JSON store via `conf`, session dir management                                         |
+| **Config**   | `setup.ts`             | Interactive `@inquirer/prompts` wizard, 3 provider presets                                       |
+| **Runtime**  | `automation.ts`        | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` entry point          |
+| **Runtime**  | `queue.ts`             | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues                                    |
+| **Runtime**  | `logger.ts`            | Pino logger with API key redaction                                                               |
+| **LLM**      | `provider.ts`          | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types                       |
+| **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race                                      |
+| **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`)                 |
+| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter` wrapping `whatsapp-web.js`, lifecycle events, message-to-Runtime mapping |
+| **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization                                   |
+| **WhatsApp** | `filters.ts`           | `getIgnoreReason`, `DuplicateMessageGuard` with LRU-style pruning                                |
+| **Doctor**   | `doctor.ts`            | `runDoctor` health checks (Node, config, provider reachability)                                  |
 
 ---
 

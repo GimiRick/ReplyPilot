@@ -17,11 +17,13 @@ export class MessageQueue {
 
   add<T>(chatId: string, task: () => Promise<T>): Promise<T> {
     const chatQueue = this.getChatQueue(chatId);
-    return chatQueue.add(() => this.globalQueue.add(task)).finally(() => {
-      if (chatQueue.size === 0 && chatQueue.pending === 0) {
-        this.chatQueues.delete(chatId);
-      }
-    }) as Promise<T>;
+    return chatQueue
+      .add(() => this.globalQueue.add(task))
+      .finally(() => {
+        if (chatQueue.size === 0 && chatQueue.pending === 0) {
+          this.chatQueues.delete(chatId);
+        }
+      }) as Promise<T>;
   }
 
   onIdle(): Promise<void> {

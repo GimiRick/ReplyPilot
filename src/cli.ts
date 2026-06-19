@@ -102,6 +102,12 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       try {
         deps.output(JSON.stringify(redactConfig(deps.loadConfig()), null, 2));
       } catch (error) {
+        if (error instanceof MissingConfigError) {
+          deps.error('No saved configuration found. Run replypilot setup to create one.');
+          process.exitCode = 1;
+          return;
+        }
+
         if (error instanceof ConfigValidationError) {
           deps.error(
             'Saved configuration is invalid. Run replypilot setup to replace it or replypilot config reset to delete it.',

@@ -51,5 +51,9 @@ describe('prompt builder', () => {
 
   it('cleans obvious reply labels and wrapping quotes', () => {
     expect(cleanGeneratedReply('Reply: "Sure, sounds good."')).toBe('Sure, sounds good.');
+    expect(cleanGeneratedReply('"Reply: Sure, sounds good."')).toBe('Sure, sounds good.');
+    expect(cleanGeneratedReply('owner: "assistant: Sure, sounds good."')).toBe(
+      'Sure, sounds good.',
+    );
   });
 });

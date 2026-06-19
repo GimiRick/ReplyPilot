@@ -151,8 +151,20 @@ npm run pack:dry-run      # inspect npm tarball
 
 ### Custom OpenAI-Compatible Provider
 
-1. Run `replypilot setup`, select **Custom**.
-2. Enter your base URL (ending in `/v1`), API key, model name, and label.
+Works with ChatGPT, Gemini, or any OpenAI-compatible API. To switch providers:
+
+```bash
+replypilot config reset    # clear current config
+replypilot setup           # re-run setup, select Custom
+```
+
+During setup enter the base URL, API key, and model name for your provider.
+
+| Provider | Base URL | Example model |
+|----------|----------|---------------|
+| ChatGPT | `https://api.openai.com/v1` | `gpt-4o` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 
 ---
 

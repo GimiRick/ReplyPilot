@@ -44,4 +44,38 @@ describe('startAutomation', () => {
     expect(mocks.onMessage).toHaveBeenCalledWith(expect.any(Function));
     expect(mocks.start).toHaveBeenCalled();
   });
+
+  it('prints session expiry message on EBUSY error', async () => {
+    const previousExitCode = process.exitCode;
+    const error = new Error('EBUSY: resource busy or locked, unlink \'...first_party_sets.db\'');
+    mocks.start.mockRejectedValue(error);
+
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
+
+    const { startAutomation } = await import('../../src/runtime/automation');
+    await startAutomation();
+
+    expect(errors.join('\n')).toContain('Your WhatsApp session has expired or is corrupted.');
+    expect(errors.join('\n')).toContain('replypilot logout');
+    expect(process.exitCode).toBe(1);
+    process.exitCode = previousExitCode;
+  });
+
+  it('prints generic error message on non-session failure', async () => {
+    const previousExitCode = process.exitCode;
+    const error = new Error('Failed to launch browser process');
+    mocks.start.mockRejectedValue(error);
+
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
+
+    const { startAutomation } = await import('../../src/runtime/automation');
+    await startAutomation();
+
+    expect(errors.join('\n')).toContain('Failed to launch browser process');
+    expect(errors.join('\n')).not.toContain('Your WhatsApp session has expired');
+    expect(process.exitCode).toBe(1);
+    process.exitCode = previousExitCode;
+  });
 });

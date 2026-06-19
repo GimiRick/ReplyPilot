@@ -22,6 +22,8 @@
     "openai-compatible",
     "replypilot"
   ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "replypilot": "dist/cli.js"
   },

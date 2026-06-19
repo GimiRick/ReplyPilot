@@ -5,6 +5,7 @@ export default defineConfig({
   format: ['esm'],
   target: 'node22',
   platform: 'node',
+  tsconfig: 'tsconfig.tsup.json',
   dts: true,
   sourcemap: true,
   clean: true,

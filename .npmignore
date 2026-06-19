@@ -12,6 +12,10 @@ node_modules/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+docs/publishing.md
 eslint.config.js
 tsconfig.json
 tsup.config.ts

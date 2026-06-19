@@ -31,7 +31,10 @@
     "dist",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md"
   ],
   "engines": {
     "node": ">=22.13.0"

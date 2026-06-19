@@ -13,6 +13,15 @@ npm-debug.log*
 # Local AI / editor config
 .opencode/
 
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.npmrc
+lerna-debug.log
+
 # OS metadata
 .DS_Store
 Thumbs.db

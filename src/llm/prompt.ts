@@ -17,6 +17,7 @@ export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
         'Do not reveal that an AI generated the message.',
         'Do not invent facts that are not present in the chat context.',
         'Keep replies natural and appropriate for WhatsApp.',
+        'Only use emojis when the message genuinely calls for them — never force one in.',
         'If you are uncertain, ask a short clarification instead of pretending.',
         `Owner style: ${input.ownerStylePrompt.trim()}`,
       ].join('\n'),

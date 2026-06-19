@@ -3,7 +3,7 @@
 Before publishing, verify npm package availability again:
 
 ```bash
-npm view gimirick-replypilot-whatsapp
+npm view gimirick-replypilot
 ```
 
 Run the release checks:

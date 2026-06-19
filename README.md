@@ -2,10 +2,10 @@
 
 <p align="center">
   <!-- PACKAGE INFO -->
-  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/v/gimirick-replypilot-whatsapp?logo=npm&logoColor=white" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/gimirick-replypilot"><img src="https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white" alt="npm version"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/repo%20version-0.1.0-blue?logo=git&logoColor=white" alt="repo version"></a>
-  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/dm/gimirick-replypilot-whatsapp?logo=npm&logoColor=white" alt="npm downloads"></a>
-  <a href="https://www.npmjs.com/package/gimirick-replypilot-whatsapp"><img src="https://img.shields.io/npm/dw/gimirick-replypilot-whatsapp" alt="npm downloads/week"></a>
+  <a href="https://www.npmjs.com/package/gimirick-replypilot"><img src="https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/gimirick-replypilot"><img src="https://img.shields.io/npm/dw/gimirick-replypilot" alt="npm downloads/week"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white" alt="license"></a>
   <a href="https://semver.org"><img src="https://img.shields.io/badge/semver-2.0.0-blue" alt="semver"></a>
   <br>
@@ -45,7 +45,7 @@ It listens for new direct WhatsApp messages, fetches recent chat history, asks y
 ### 1. NPM Global Install
 
 ```bash
-npm i -g gimirick-replypilot-whatsapp
+npm i -g gimirick-replypilot
 ```
 
 `replypilot` becomes a system-wide command.
@@ -73,7 +73,7 @@ replypilot logout
 Programmatic API (any `.js` / `.mjs` file):
 
 ```ts
-import { startAutomation, loadConfig, type AppConfig } from 'gimirick-replypilot-whatsapp';
+import { startAutomation, loadConfig, type AppConfig } from 'gimirick-replypilot';
 
 await startAutomation();
 await startAutomation({ safety: { dryRun: true } });
@@ -85,7 +85,7 @@ const config: AppConfig = loadConfig();
 ### 2. NPM Local Install
 
 ```bash
-npm i gimirick-replypilot-whatsapp
+npm i gimirick-replypilot
 ```
 
 All features via `npx`:
@@ -102,10 +102,10 @@ npx replypilot logout
 Programmatic API in your project:
 
 ```ts
-import { startAutomation, loadConfig, runDoctor } from 'gimirick-replypilot-whatsapp';
-import { ReplyAutomation, OpenAiCompatibleProvider } from 'gimirick-replypilot-whatsapp';
-import { runSetupWizard, createConfigStore } from 'gimirick-replypilot-whatsapp';
-import { MissingConfigError, ReplyPilotError } from 'gimirick-replypilot-whatsapp';
+import { startAutomation, loadConfig, runDoctor } from 'gimirick-replypilot';
+import { ReplyAutomation, OpenAiCompatibleProvider } from 'gimirick-replypilot';
+import { runSetupWizard, createConfigStore } from 'gimirick-replypilot';
+import { MissingConfigError, ReplyPilotError } from 'gimirick-replypilot';
 
 await startAutomation();
 ```
@@ -246,44 +246,44 @@ replypilot logout     # Reset WhatsApp session
 
 ```ts
 // Core automation
-import { startAutomation, ReplyAutomation, processIncomingMessage } from 'gimirick-replypilot-whatsapp';
-import { type AutomationResult, type ReplyAutomationOptions } from 'gimirick-replypilot-whatsapp';
-import { type RuntimeIncomingMessage } from 'gimirick-replypilot-whatsapp';
+import { startAutomation, ReplyAutomation, processIncomingMessage } from 'gimirick-replypilot';
+import { type AutomationResult, type ReplyAutomationOptions } from 'gimirick-replypilot';
+import { type RuntimeIncomingMessage } from 'gimirick-replypilot';
 
 // LLM provider
-import { OpenAiCompatibleProvider, type OpenAiCompatibleProviderOptions } from 'gimirick-replypilot-whatsapp';
-import { type LlmProvider, type GenerateReplyInput, type GenerateReplyResult } from 'gimirick-replypilot-whatsapp';
-import { type ChatContextMessage, type PromptMessage } from 'gimirick-replypilot-whatsapp';
-import { buildReplyPrompt, cleanGeneratedReply, formatChatContext, trimContextMessages } from 'gimirick-replypilot-whatsapp';
+import { OpenAiCompatibleProvider, type OpenAiCompatibleProviderOptions } from 'gimirick-replypilot';
+import { type LlmProvider, type GenerateReplyInput, type GenerateReplyResult } from 'gimirick-replypilot';
+import { type ChatContextMessage, type PromptMessage } from 'gimirick-replypilot';
+import { buildReplyPrompt, cleanGeneratedReply, formatChatContext, trimContextMessages } from 'gimirick-replypilot';
 
 // Config
-import { loadConfig, saveConfig, deleteConfig, tryLoadConfig, hasConfig } from 'gimirick-replypilot-whatsapp';
-import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot-whatsapp';
-import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot-whatsapp';
-import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot-whatsapp';
-import { type PromptAdapter, type SetupAnswers } from 'gimirick-replypilot-whatsapp';
-import { parseAppConfig, mergeAppConfig, redactConfig } from 'gimirick-replypilot-whatsapp';
-import { type AppConfig, type PartialAppConfig, type LlmProviderName } from 'gimirick-replypilot-whatsapp';
-import { CONFIG_VERSION, DEFAULT_APP_CONFIG, PROVIDER_DEFAULTS } from 'gimirick-replypilot-whatsapp';
-import { appConfigSchema, providerSchema, logLevelSchema } from 'gimirick-replypilot-whatsapp';
+import { loadConfig, saveConfig, deleteConfig, tryLoadConfig, hasConfig } from 'gimirick-replypilot';
+import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot';
+import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot';
+import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot';
+import { type PromptAdapter, type SetupAnswers } from 'gimirick-replypilot';
+import { parseAppConfig, mergeAppConfig, redactConfig } from 'gimirick-replypilot';
+import { type AppConfig, type PartialAppConfig, type LlmProviderName } from 'gimirick-replypilot';
+import { CONFIG_VERSION, DEFAULT_APP_CONFIG, PROVIDER_DEFAULTS } from 'gimirick-replypilot';
+import { appConfigSchema, providerSchema, logLevelSchema } from 'gimirick-replypilot';
 
 // Doctor / health
-import { runDoctor, formatDoctorReport, checkProviderReachability } from 'gimirick-replypilot-whatsapp';
-import { isSupportedNodeVersion, type DoctorReport, type DoctorCheck } from 'gimirick-replypilot-whatsapp';
+import { runDoctor, formatDoctorReport, checkProviderReachability } from 'gimirick-replypilot';
+import { isSupportedNodeVersion, type DoctorReport, type DoctorCheck } from 'gimirick-replypilot';
 
 // WhatsApp
-import { fetchChatContext, normalizeChatMessage, normalizeChatMessages } from 'gimirick-replypilot-whatsapp';
-import { type WhatsAppRawChat, type WhatsAppRawMessage } from 'gimirick-replypilot-whatsapp';
-import { DuplicateMessageGuard, getIgnoreReason, shouldProcessMessage } from 'gimirick-replypilot-whatsapp';
-import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-replypilot-whatsapp';
+import { fetchChatContext, normalizeChatMessage, normalizeChatMessages } from 'gimirick-replypilot';
+import { type WhatsAppRawChat, type WhatsAppRawMessage } from 'gimirick-replypilot';
+import { DuplicateMessageGuard, getIgnoreReason, shouldProcessMessage } from 'gimirick-replypilot';
+import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-replypilot';
 
 // Queue & Logger
-import { MessageQueue, type MessageQueueOptions } from 'gimirick-replypilot-whatsapp';
-import { createLogger, type Logger } from 'gimirick-replypilot-whatsapp';
+import { MessageQueue, type MessageQueueOptions } from 'gimirick-replypilot';
+import { createLogger, type Logger } from 'gimirick-replypilot';
 
 // Errors
-import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot-whatsapp';
-import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot-whatsapp';
+import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot';
+import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot';
 ```
 
 ---

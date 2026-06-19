@@ -120,8 +120,8 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
   const { WhatsAppClientAdapter } = await import('../whatsapp/client');
   const whatsapp = new WhatsAppClientAdapter(config, logger);
 
-  whatsapp.onMessage((message) => {
-    void automation.handleIncomingMessage(message);
+  whatsapp.onMessage(async (message) => {
+    await automation.handleIncomingMessage(message);
   });
 
   await whatsapp.start();

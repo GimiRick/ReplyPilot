@@ -68,12 +68,9 @@ export class DuplicateMessageGuard {
       return;
     }
 
-    const oldestIds = Array.from(this.seen.entries())
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, this.seen.size - this.maxEntries);
-
-    for (const [id] of oldestIds) {
-      this.seen.delete(id);
+    const oldestId = this.seen.keys().next().value;
+    if (oldestId !== undefined) {
+      this.seen.delete(oldestId);
     }
   }
 }

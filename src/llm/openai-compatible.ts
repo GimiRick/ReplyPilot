@@ -121,6 +121,11 @@ function isTransientProviderError(error: unknown): boolean {
     return true;
   }
 
+  const name = getErrorString(error, 'name');
+  if (name === 'APITimeoutError') {
+    return true;
+  }
+
   const status = getErrorNumber(error, 'status') ?? getErrorNumber(error, 'statusCode');
   if (status !== undefined) {
     return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;

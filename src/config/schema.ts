@@ -134,7 +134,7 @@ function deepMerge<T extends Record<string, unknown>>(
   const output: Record<string, unknown> = { ...base };
 
   for (const [key, value] of Object.entries(overrides)) {
-    if (value === undefined) {
+    if (value === undefined || key === '__proto__' || key === 'constructor') {
       continue;
     }
 

@@ -28,6 +28,7 @@ describe('doctor checks', () => {
     const report = await runDoctor({
       config: makeConfig(),
       providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
     });
 
     expect(report.ok).toBe(true);
@@ -43,6 +44,7 @@ describe('doctor checks', () => {
     const report = await runDoctor({
       config: { ...makeConfig(), llm: { ...makeConfig().llm, modelName: '' } },
       providerReachabilityCheck: async () => false,
+      nodeVersionCheck: () => true,
     });
 
     expect(report.ok).toBe(false);

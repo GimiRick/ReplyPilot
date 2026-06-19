@@ -17,11 +17,13 @@ export type DoctorReport = {
 export type DoctorOptions = {
   config?: AppConfig | null;
   providerReachabilityCheck?: (config: AppConfig) => Promise<boolean>;
+  nodeVersionCheck?: (version: string) => boolean;
 };
 
 export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorReport> {
   const checks: DoctorCheck[] = [];
-  const nodeOk = isSupportedNodeVersion(process.versions.node);
+  const checkNode = options.nodeVersionCheck ?? isSupportedNodeVersion;
+  const nodeOk = checkNode(process.versions.node);
   checks.push({
     name: 'Node.js',
     status: nodeOk ? 'pass' : 'fail',

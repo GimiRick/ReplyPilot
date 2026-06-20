@@ -87,7 +87,7 @@ describe('WhatsApp message filters', () => {
     const guard = new DuplicateMessageGuard(0);
     const originalKeys = Map.prototype.keys;
     Map.prototype.keys = function() {
-      return { next: () => ({ value: undefined, done: true }) } as any;
+      return { next: () => ({ value: undefined, done: true }) } as IterableIterator<string>;
     };
     
     try {

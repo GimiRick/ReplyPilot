@@ -90,7 +90,7 @@ describe('WhatsApp chat context', () => {
   });
 
   it('returns empty array if fetchMessages is missing', async () => {
-    const context = await fetchChatContext({} as any, 2);
+    const context = await fetchChatContext({} as { fetchMessages?: undefined }, 2);
     expect(context).toEqual([]);
   });
 

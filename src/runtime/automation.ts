@@ -132,7 +132,7 @@ export async function processIncomingMessageBatch(options: {
   
   const allContext = await lastMessage.fetchContext(config.context.messageCount + messages.length);
   const batchedIds = new Set(messages.map(m => m.id));
-  const context = allContext.filter(c => c.id && !batchedIds.has(c.id)).slice(-config.context.messageCount);
+  const context = allContext.filter(c => !c.id || !batchedIds.has(c.id)).slice(-config.context.messageCount);
 
   const combinedBody = messages.map(m => m.body).filter(Boolean).join('\n');
   const quotedMessage = firstMessage.quotedMessage

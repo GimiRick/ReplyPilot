@@ -43,7 +43,7 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
       settle(() => reject(new Error(`ffmpeg spawn failed: ${err.message}`)));
     });
 
-    ffmpeg.on('exit', (code, signal) => {
+    ffmpeg.on('close', (code, signal) => {
       settle(() => {
         if (code === null) {
           reject(new Error(`ffmpeg was killed by signal ${signal}`));

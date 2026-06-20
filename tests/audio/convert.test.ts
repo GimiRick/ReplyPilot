@@ -8,7 +8,7 @@ function createMockFfmpeg() {
   const dataHandlers: Array<(chunk: Buffer) => void> = [];
   const endHandlers: Array<() => void> = [];
   const errorHandlers: Array<(err: Error) => void> = [];
-  const exitHandlers: Array<(code: number | null, signal: string | null) => void> = [];
+  const closeHandlers: Array<(code: number | null, signal: string | null) => void> = [];
 
   const stdout = {
     on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
@@ -30,8 +30,8 @@ function createMockFfmpeg() {
       if (event === 'error') {
         errorHandlers.push(handler as (err: Error) => void);
       }
-      if (event === 'exit') {
-        exitHandlers.push(handler as (code: number | null, signal: string | null) => void);
+      if (event === 'close') {
+        closeHandlers.push(handler as (code: number | null, signal: string | null) => void);
       }
     }),
     kill: vi.fn(),
@@ -55,8 +55,8 @@ function createMockFfmpeg() {
         h(err);
       }
     },
-    emitExit(code: number | null, signal: string | null) {
-      for (const h of exitHandlers) {
+    emitClose(code: number | null, signal: string | null) {
+      for (const h of closeHandlers) {
         h(code, signal);
       }
     },
@@ -74,7 +74,7 @@ describe('oggToMp3', () => {
 
     ff.emitData(outputBuffer);
     ff.emitEnd();
-    ff.emitExit(0, null);
+    ff.emitClose(0, null);
 
     const result = await promise;
 
@@ -95,7 +95,7 @@ describe('oggToMp3', () => {
     const promise = oggToMp3('aW5wdXQ=');
 
     ff.emitEnd();
-    ff.emitExit(1, null);
+    ff.emitClose(1, null);
 
     await expect(promise).rejects.toThrow('ffmpeg exited with code 1');
   });
@@ -106,7 +106,7 @@ describe('oggToMp3', () => {
     const promise = oggToMp3('aW5wdXQ=');
 
     ff.emitEnd();
-    ff.emitExit(null, 'SIGKILL');
+    ff.emitClose(null, 'SIGKILL');
 
     await expect(promise).rejects.toThrow('ffmpeg was killed by signal SIGKILL');
   });
@@ -129,7 +129,7 @@ describe('oggToMp3', () => {
 
     ff.emitData(outputBuffer);
     ff.emitEnd();
-    ff.emitExit(1, null);
+    ff.emitClose(1, null);
 
     await expect(promise).rejects.toThrow('ffmpeg exited with code 1');
   });

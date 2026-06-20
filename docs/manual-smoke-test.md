@@ -16,3 +16,4 @@ Use this checklist before publishing or before trusting a new environment.
 10. Confirm the generated reply is sent.
 11. Enable dry-run in config and confirm no WhatsApp message is sent.
 12. Run `replypilot logout`.
+13. Run `replypilot cache` to clear the WhatsApp web client cache.

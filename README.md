@@ -93,6 +93,9 @@ replypilot config reset
 
 # Remove WhatsApp session data (prompts confirmation)
 replypilot logout
+
+# Clear WhatsApp web client cache (prompts confirmation)
+replypilot cache
 ```
 
 Programmatic API (any `.js` / `.mjs` file):
@@ -125,6 +128,7 @@ npx replypilot doctor
 npx replypilot config show
 npx replypilot config reset
 npx replypilot logout
+npx replypilot cache
 ```
 
 Programmatic API in your project:
@@ -159,6 +163,7 @@ node dist/cli.js doctor
 node dist/cli.js config show
 node dist/cli.js config reset
 node dist/cli.js logout
+node dist/cli.js cache
 ```
 
 Or via npm scripts:
@@ -177,6 +182,7 @@ tsx src/cli.ts doctor
 tsx src/cli.ts config show
 tsx src/cli.ts config reset
 tsx src/cli.ts logout
+tsx src/cli.ts cache
 ```
 
 #### Tests & quality
@@ -244,6 +250,7 @@ Scan the terminal QR code from WhatsApp on your phone (Linked Devices). Keep the
 
 ```bash
 replypilot logout     # Reset WhatsApp session
+replypilot cache      # Clear .wwebjs_cache
 ```
 
 ---
@@ -269,6 +276,7 @@ replypilot logout     # Reset WhatsApp session
 | `doctor`              | ✓                   | ✓                   | ✓                      | ✓                     |
 | `config show / reset` | ✓                   | ✓                   | ✓                      | ✓                     |
 | `logout`              | ✓                   | ✓                   | ✓                      | ✓                     |
+| `cache`               | ✓                   | ✓                   | ✓                      | ✓                     |
 | Programmatic API      | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
 | TypeScript types      | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
 | Run tests             | —                   | —                   | —                      | ✓ `npm test`          |

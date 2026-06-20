@@ -112,7 +112,7 @@ describe('OpenAiCompatibleProvider', () => {
 
   it('retries when error is ProviderTimeoutError', async () => {
     const create = vi.fn()
-      .mockRejectedValueOnce(new ProviderTimeoutError('timeout'))
+      .mockRejectedValueOnce(new ProviderTimeoutError(1000))
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
     const provider = makeProvider(create, { maxRetries: 1 });
     await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered' });

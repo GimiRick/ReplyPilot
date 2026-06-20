@@ -97,7 +97,7 @@ describe('startAutomation', () => {
 
   it('registers graceful shutdown handler and calls stop on client', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
-    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as (code?: number) => void);
+    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
 
     const stopMock = vi.fn().mockResolvedValue(undefined);
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
@@ -129,7 +129,7 @@ describe('startAutomation', () => {
 
   it('handles errors during graceful shutdown', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
-    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as (code?: number) => void);
+    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
 
     const stopMock = vi.fn().mockRejectedValue(new Error('stop failed'));
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {

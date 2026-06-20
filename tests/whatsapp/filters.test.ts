@@ -86,8 +86,8 @@ describe('WhatsApp message filters', () => {
   it('handles empty iterator safely during prune', () => {
     const guard = new DuplicateMessageGuard(0);
     const originalKeys = Map.prototype.keys;
-    Map.prototype.keys = function() {
-      return { next: () => ({ value: undefined, done: true }) } as IterableIterator<string>;
+    (Map.prototype as { keys: () => { next: () => IteratorResult<string> } }).keys = function() {
+      return { next: () => ({ value: undefined, done: true }) };
     };
     
     try {

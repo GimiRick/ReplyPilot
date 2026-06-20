@@ -8,8 +8,8 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-98%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-94.75%25%20v8-brightgreen)](package.json)
+[![tests](https://img.shields.io/badge/tests-121%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![coverage](https://img.shields.io/badge/coverage-92.34%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
@@ -40,7 +40,7 @@ npm i gimirick-replypilot
 ReplyPilot requires these runtime packages (auto-installed by `npm install`):
 
 | Package | Purpose |
-|---|---|
+| --- | --- |
 | `whatsapp-web.js` | WhatsApp Web client library |
 | `openai` | OpenAI-compatible LLM provider client |
 | `commander` | CLI command parsing |
@@ -53,7 +53,10 @@ ReplyPilot requires these runtime packages (auto-installed by `npm install`):
 
 Plus development tooling (TypeScript, Vitest, ESLint, Prettier, tsup, tsx) installed automatically as devDependencies.
 
-The only external requirement is a **local or remote OpenAI-compatible chat completions API** (LM Studio, Ollama, OpenAI, etc.).
+External requirements:
+
+- A **local or remote OpenAI-compatible chat completions API** (LM Studio, Ollama, OpenAI, etc.).
+- **ffmpeg** on `PATH` (required only when voice note processing is enabled).
 
 ---
 
@@ -193,6 +196,8 @@ npm run pack:dry-run      # inspect npm tarball
 
 ## Provider Setup
 
+The setup wizard also configures optional voice note handling — transcription via Whisper Cloud API, a local whisper.cpp server, or native audio passthrough to a multimodal LLM. See [Voice Note Processing](#voice-note-processing-detail) for details.
+
 ### LM Studio
 
 1. Open LM Studio, load a chat model, start the local OpenAI-compatible server.
@@ -249,6 +254,7 @@ replypilot logout     # Reset WhatsApp session
 - Messages sent by you are ignored.
 - Group auto-replies are disabled by default.
 - Status and broadcast auto-replies are disabled by default.
+- Voice notes are ignored by default (`ignore` mode).
 - Dry-run can be enabled during setup to log replies without sending them.
 
 ---
@@ -323,6 +329,10 @@ import { type WhatsAppRawChat, type WhatsAppRawMessage } from 'gimirick-replypil
 import { DuplicateMessageGuard, getIgnoreReason, shouldProcessMessage } from 'gimirick-replypilot';
 import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-replypilot';
 
+// Audio (voice note transcription)
+import { oggToMp3 } from 'gimirick-replypilot';
+import { transcribeCloud, transcribeLocal } from 'gimirick-replypilot';
+
 // Queue & Logger
 import { MessageQueue, type MessageQueueOptions } from 'gimirick-replypilot';
 import { createLogger, type Logger } from 'gimirick-replypilot';
@@ -339,45 +349,56 @@ import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot
 ### High-Level Layers
 
 ```text
-┌───────────────────────────────────────────────────────────────┐
-│                        CLI (Commander)                        │
-│ setup   start   doctor   config show   config reset   logout  │
-└───────────────────────┬───────────────────────────────────────┘
-                        │
-┌───────────────────────▼────────────────────────────────────────┐
-│                     Config Layer (conf + Zod)                  │
-│          ┌─────────────┐  ┌──────────┐  ┌─────────────┐        │
-│          │ schema.ts   │  │ store.ts │  │ setup.ts    │        │
-│          │ (Zod parse) │  │ (Conf)   │  │ (wizard)    │        │
-│          └─────────────┘  └──────────┘  └─────────────┘        │
-└─────────────────────────┬──────────────────────────────────────┘
-                          │
-┌─────────────────────────▼──────────────────────────────────────┐
-│                     Runtime Orchestration                      │
-│    ┌────────────────┐  ┌──────────────┐  ┌────────────────┐    │
-│    │ ReplyAutomation│  │ MessageQueue │  │ Logger (pino)  │    │
-│    │ (message flow) │  │ (p-queue)    │  │                │    │
-│    └───────┬────────┘  └──────────────┘  └────────────────┘    │
-└────────────┼───────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                        CLI (Commander)                            │
+│ setup   start   doctor   config show   config reset   logout      │
+└────────────────────────┬──────────────────────────────────────────┘
+                         │
+┌────────────────────────▼──────────────────────────────────────────┐
+│                     Config Layer (conf + Zod)                     │
+│          ┌─────────────┐  ┌──────────┐  ┌─────────────┐           │
+│          │ schema.ts   │  │ store.ts │  │ setup.ts    │           │
+│          │ (Zod parse) │  │ (Conf)   │  │ (wizard)    │           │
+│          └─────────────┘  └──────────┘  └─────────────┘           │
+└──────────────────────────┬────────────────────────────────────────┘
+                           │
+┌──────────────────────────▼────────────────────────────────────────┐
+│                     Runtime Orchestration                         │
+│    ┌────────────────┐  ┌──────────────┐  ┌────────────────┐       │
+│    │ ReplyAutomation│  │ MessageQueue │  │ Logger (pino)  │       │
+│    │ (message flow) │  │ (p-queue)    │  │                │       │
+│    └───────┬────────┘  └──────────────┘  └────────────────┘       │
+└────────────┼───────────────────────────────────────────────────────┘
              │
-       ┌─────┴─────┐
-       ▼           ▼
-┌──────────────┐ ┌──────────────────────────────────────────────┐
-│   WhatsApp   │ │            LLM Provider Layer                │
-│     Layer    │ │  ┌────────────────────────────────────────┐  │
-│   ┌──────┐   │ │  │ OpenAiCompatibleProvider               │  │
-│   │client│   │ │  │  ┌──────────┐  ┌───────────┐           │  │
-│   │.ts   │   │ │  │  │ prompt.ts│  │openai-    │           │  │
-│   ├──────┤   │ │  │  │ (build,  │  │compatible │           │  │
-│   │filter│   │ │  │  │  clean)  │  │.ts        │           │  │
-│   │s.ts  │   │ │  │  └──────────┘  │ (OpenAI   │           │  │
-│   ├──────┤   │ │  │                │  SDK +    │           │  │
-│   │contex│   │ │  │                │  retry/   │           │  │
-│   │t.ts  │   │ │  │                │  timeout) │           │  │
-│   └──────┘   │ │  └────────────────┴───────────┘           │  │
-│              │ │  LlmProvider (interface)                  │  │
-└──────────────┘ └───────────────────────────────────────────┘──┘
+       ┌─────┴─────────────────────────────────┐
+       ▼                                       ▼
+┌──────────────┐                   ┌───────────────────────────────────┐
+│   WhatsApp   │                   │         LLM Provider Layer        │
+│     Layer    │                   │  ┌────────────────────────────┐   │
+│   ┌──────┐   │                   │  │ OpenAiCompatibleProvider   │   │
+│   │client│   │                   │  │  ┌──────────┐  ┌───────┐   │   │
+│   │.ts   │───┼───┐               │  │  │ prompt.ts│  │openai │   │   │
+│   ├──────┤   │   │               │  │  │ (build,  │  │-compa │   │   │
+│   │filter│   │   │               │  │  │  clean)  │  │tible. │   │   │
+│   │s.ts  │   │   │               │  │  └──────────┘  │ts     │   │   │
+│   ├──────┤   │   │               │  │                │(OPenAI│   │   │
+│   │contex│   │   ▼               │  │                │ SDK + │   │   │
+│   │t.ts  │   │ ┌──────────┐      │  │                │ retry)│   │   │
+│   └──────┘   │ │  Audio   │      │  └────────────────┴───────┘   │   │
+│              │ │  Layer   │      │  LlmProvider (interface)      │   │
+│              │ │┌────────┐│      └───────────────────────────────┘───┘
+│              │ ││convert ││
+│              │ ││.ts     ││
+│              │ │├────────┤│
+│              │ ││transcri││
+│              │ ││ber.ts  ││
+│              │ │└────────┘│
+│              │ └──────────┘
+└──────────────┘
 ```
+
+The WhatsApp layer transcribes voice notes (via the Audio layer) or passes raw audio
+to the LLM before the message enters the main pipeline.
 
 ### Message Processing Pipeline
 
@@ -387,15 +408,50 @@ Each incoming WhatsApp message flows through these stages:
 WhatsApp Web ──> Client.on('message')
                        │
                        ▼
-                ┌───────────────┐
-                │  getIgnoreReason()     filters: self, empty, group, broadcast
+                ╔═══════════════════╗
+                ║  toRuntimeMessage ║   raw Message + Chat → RuntimeIncomingMessage
+                ╚═══════╤═══════════╝
+                        │
+                  ┌─────┴─────┐
+                  │           │
+                  ▼           ▼
+          ╔══════════════╗  ╔═══════════════════╗
+          ║ image/sticker║  ║   voice note?     ║
+          ║ → download   ║  ║ (message.type===' ║
+          ║ → imageData  ║  ║       ptt')       ║
+          ╚══════════════╝  ╚═══╤═══╤═══╤═══╤═══╝
+                                │   │   │   │   │
+                  mode: ignore  │   │   │   │   │
+                  ──────────────┘   │   │   │   │
+                  mode: whisper_cloud   │   │   │
+                  → oggToMp3()      │   │   │   │
+                  → transcribeCloud()───┘   │   │
+                  mode: whisper_local       │   │
+                  → oggToMp3()      │       │   │
+                  → transcribeLocal()───────┘   │
+                  mode: native_audio│           │
+                  → oggToMp3()      │           │
+                  → audioData       ────────────┘
+                        │
+                        ▼
+           body = voiceBody ?? (message text or media label)
+           audioData passed through if native_audio
+                        │
+                        ▼
+                 ╔═══════════════════╗
+                 ║     Filtering     ║
+                 ╚═══════╤═══════════╝
+                         │
+                 ┌───────┴───────┐
+                 │               │
+                 ▼               ▼
+         getIgnoreReason()    duplicateGuard
+         {self, empty,        {seen IDs}
+          group, broadcast,
+          voice_note_ignored}
+                │               │
                 └───────┬───────┘
                    [ignored] │ [pass]
-                             ▼
-                     ┌──────────────┐
-                     │ duplicateGuard    checks seen message IDs
-                     └──────┬─────────┘
-                   [ignored] │ [new]
                              ▼
                      ┌──────────────┐
                      │  MessageQueue     per-chat sequential, global-parallel
@@ -407,11 +463,14 @@ WhatsApp Web ──> Client.on('message')
                             ▼
                      ┌──────────────┐
                      │ buildReplyPrompt   owner style + context + incoming
+                     │ (may include       + optional image/audio content parts
+                     │  input_audio part  → UserContentPart[])
                      └──────┬─────────┘
                             ▼
                      ┌──────────────┐
                      │ llmProvider.generateReply()
                      │  - withTimeout / retryTransient
+                     │  - ProviderTimeoutError if no response
                      │  - cleanGeneratedReply
                      └──────┬─────────┘
                             ▼
@@ -421,6 +480,21 @@ WhatsApp Web ──> Client.on('message')
                      ▼
                chat.sendMessage(reply)  ──> WhatsApp Web
 ```
+
+### Voice Note Processing Detail
+
+Three modes are available, configured during `replypilot setup`:
+
+| Mode | Audio Flow | LLM Receives |
+| --- | --- | --- |
+| `whisper_cloud` | OGG→MP3 → `POST /v1/audio/transcriptions` → transcription text | Transcribed text as message body |
+| `whisper_local` | OGG→MP3 → `POST /inference` (whisper.cpp) → transcription text | Transcribed text as message body |
+| `native_audio` | OGG→MP3 → attached as `{type:"input_audio", input_audio:{data,format:"mp3"}}` | Raw audio content part (multimodal model required) |
+| `ignore` | Skipped entirely | Message labeled `[voice note]` |
+
+Whisper models available for cloud mode: `whisper-1` (default), `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, or a custom model name.
+
+OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 120-second timeout. Conversion failures are caught and logged; the voice note is replaced with `[voice note]` text.
 
 ### Concurrency Model
 
@@ -450,22 +524,25 @@ replypilot start
 
 ### Component Responsibilities
 
-| Layer        | File                   | Role                                                                                             |
-| ------------ | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| **CLI**      | `cli.ts`               | Commander program, 6 commands, dependency injection for testability                              |
-| **Config**   | `schema.ts`            | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation                              |
-| **Config**   | `store.ts`             | Persistent JSON store via `conf`, session dir management                                         |
-| **Config**   | `setup.ts`             | Interactive `@inquirer/prompts` wizard, 3 provider presets                                       |
-| **Runtime**  | `automation.ts`        | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` entry point          |
-| **Runtime**  | `queue.ts`             | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues                                    |
-| **Runtime**  | `logger.ts`            | Pino logger with API key redaction                                                               |
-| **LLM**      | `provider.ts`          | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types                       |
-| **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race                                      |
-| **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`)                 |
-| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter` wrapping `whatsapp-web.js`, lifecycle events, message-to-Runtime mapping |
-| **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization                                   |
-| **WhatsApp** | `filters.ts`           | `getIgnoreReason`, `DuplicateMessageGuard` with LRU-style pruning                                |
-| **Doctor**   | `doctor.ts`            | `runDoctor` health checks (Node, config, provider reachability)                                  |
+| Layer | File | Role |
+| --- | --- | --- |
+| **CLI** | `cli.ts` | Commander program, 6 commands, dependency injection for testability |
+| **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
+| **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
+| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (3 providers + voice note flow) |
+| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` |
+| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
+| **Runtime** | `logger.ts` | Pino logger with API key redaction |
+| **Runtime** | `errors.ts` | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.) |
+| **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
+| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race |
+| **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |
+| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
+| **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization, media type labels |
+| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with LRU pruning |
+| **Audio** | `convert.ts` | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout |
+| **Audio** | `transcriber.ts` | Cloud (`transcribeCloud`) and local (`transcribeLocal`) Whisper transcription |
+| **Doctor** | `doctor.ts` | `runDoctor` health checks (Node, config, provider reachability, ffmpeg availability) |
 
 ---
 

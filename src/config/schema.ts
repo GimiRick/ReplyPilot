@@ -53,6 +53,13 @@ export const appConfigSchema = z
     context: z.object({
       messageCount: z.number().int().min(1).max(200).default(30),
     }),
+    voiceNote: z.object({
+      mode: z.enum(['ignore', 'whisper_cloud', 'whisper_local', 'native_audio']).default('ignore'),
+      whisperBaseUrl: z.string().trim().url().optional(),
+      whisperApiKey: z.string().optional(),
+      whisperModel: z.string().trim().min(1).default('whisper-1'),
+      localWhisperUrl: z.string().trim().url().optional(),
+    }).default({ mode: 'ignore', whisperModel: 'whisper-1' }),
     safety: z.object({
       dryRun: z.boolean().default(false),
       ignoreSelf: z.boolean().default(true),
@@ -92,6 +99,10 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   context: {
     messageCount: 30,
   },
+  voiceNote: {
+    mode: 'ignore',
+    whisperModel: 'whisper-1',
+  },
   safety: {
     dryRun: false,
     ignoreSelf: true,
@@ -125,6 +136,10 @@ export function redactConfig(config: AppConfig): AppConfig {
     llm: {
       ...config.llm,
       apiKey: config.llm.apiKey ? '[redacted]' : '',
+    },
+    voiceNote: {
+      ...config.voiceNote,
+      ...(config.voiceNote.whisperApiKey && { whisperApiKey: '[redacted]' }),
     },
   };
 }

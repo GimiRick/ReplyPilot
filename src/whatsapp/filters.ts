@@ -7,9 +7,10 @@ export type FilterableWhatsAppMessage = {
   isGroup?: boolean;
   isBroadcast?: boolean;
   hasMedia?: boolean;
+  messageType?: string;
 };
 
-export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate';
+export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate' | 'voice_note_ignored';
 
 export function getIgnoreReason(
   message: FilterableWhatsAppMessage,
@@ -29,6 +30,10 @@ export function getIgnoreReason(
 
   if (message.isBroadcast && !config.whatsapp.allowBroadcasts) {
     return 'broadcast';
+  }
+
+  if (message.hasMedia && message.messageType === 'ptt' && config.voiceNote?.mode === 'ignore') {
+    return 'voice_note_ignored';
   }
 
   return undefined;

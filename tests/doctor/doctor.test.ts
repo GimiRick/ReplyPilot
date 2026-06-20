@@ -97,6 +97,46 @@ describe('doctor checks', () => {
     }
   });
 
+  it('reports ffmpeg availability when voice notes are enabled', async () => {
+    const report = await runDoctor({
+      config: makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperModel: 'whisper-1' } }),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
+    });
+
+    expect(report.checks.some((c) => c.name === 'FFmpeg')).toBe(true);
+  });
+
+  it('reports ffmpeg for whisper_local mode', async () => {
+    const report = await runDoctor({
+      config: makeConfig({ voiceNote: { mode: 'whisper_local', whisperModel: 'whisper-1' } }),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
+    });
+
+    expect(report.checks.some((c) => c.name === 'FFmpeg')).toBe(true);
+  });
+
+  it('reports ffmpeg for native_audio mode', async () => {
+    const report = await runDoctor({
+      config: makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } }),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
+    });
+
+    expect(report.checks.some((c) => c.name === 'FFmpeg')).toBe(true);
+  });
+
+  it('does not check ffmpeg when voice note mode is ignore', async () => {
+    const report = await runDoctor({
+      config: makeConfig({ voiceNote: { mode: 'ignore', whisperModel: 'whisper-1' } }),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
+    });
+
+    expect(report.checks.some((c) => c.name === 'FFmpeg')).toBe(false);
+  });
+
   it('formats failure icons', () => {
     expect(
       formatDoctorReport({

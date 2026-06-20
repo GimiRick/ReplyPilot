@@ -1,3 +1,5 @@
+import { execSync } from 'node:child_process';
+
 import { type AppConfig, parseAppConfig } from '../config/schema';
 import { tryLoadConfig } from '../config/store';
 
@@ -93,6 +95,18 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorRepo
     message: 'Package metadata and runtime modules are available.',
   });
 
+  const voiceMode = config.voiceNote?.mode;
+  if (voiceMode && voiceMode !== 'ignore') {
+    const ffmpegOk = checkFfmpeg();
+    checks.push({
+      name: 'FFmpeg',
+      status: ffmpegOk ? 'pass' : 'warn',
+      message: ffmpegOk
+        ? 'ffmpeg is available for audio conversion.'
+        : 'ffmpeg not found. Voice note processing requires ffmpeg.',
+    });
+  }
+
   return {
     ok: checks.every((check) => check.status !== 'fail'),
     checks,
@@ -141,6 +155,15 @@ export function isSupportedNodeVersion(version: string): boolean {
   }
 
   return minor === 13;
+}
+
+function checkFfmpeg(): boolean {
+  try {
+    execSync('ffmpeg -version', { stdio: 'ignore', timeout: 5_000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function ensureTrailingSlash(value: string): string {

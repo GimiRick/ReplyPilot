@@ -11,7 +11,7 @@ export type WhatsAppRawMessage = {
 };
 
 export type WhatsAppRawChat = {
-  fetchMessages(options: { limit: number }): Promise<WhatsAppRawMessage[]>;
+  fetchMessages?(options: { limit: number }): Promise<WhatsAppRawMessage[]>;
 };
 
 export async function fetchChatContext(
@@ -92,6 +92,8 @@ export function mediaTypeLabel(type?: string): string {
       return '[document]';
     case 'sticker':
       return '[sticker]';
+    case 'ptt':
+      return '[voice note]';
     case 'location':
       return '[location]';
     case 'vcard':

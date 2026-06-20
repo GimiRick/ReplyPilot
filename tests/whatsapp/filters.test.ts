@@ -48,6 +48,20 @@ describe('WhatsApp message filters', () => {
     ).toBe(true);
   });
 
+  it('ignores voice notes when voiceNote mode is ignore', () => {
+    expect(
+      getIgnoreReason({ id: '1', body: '', hasMedia: true, messageType: 'ptt' }, makeConfig()),
+    ).toBe('voice_note_ignored');
+  });
+
+  it('passes voice notes when voiceNote mode is not ignore', () => {
+    const config = makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } });
+
+    expect(
+      shouldProcessMessage({ id: '1', body: '', hasMedia: true, messageType: 'ptt' }, config),
+    ).toBe(true);
+  });
+
   it('guards duplicate message IDs', () => {
     const guard = new DuplicateMessageGuard();
 

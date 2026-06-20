@@ -2,7 +2,8 @@ import { type ChatContextMessage, type GenerateReplyInput } from './provider';
 
 export type UserContentPart =
   | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string } };
+  | { type: 'image_url'; image_url: { url: string } }
+  | { type: 'input_audio'; input_audio: { data: string; format: string } };
 
 export type PromptMessage = {
   role: 'system' | 'user';
@@ -39,11 +40,25 @@ function buildUserContent(input: GenerateReplyInput): string | UserContentPart[]
 
   const textContent = userParts.join('\n');
 
-  if (input.imageData) {
+  if (input.imageData || input.audioData) {
     const parts: UserContentPart[] = [
       { type: 'text', text: textContent },
-      { type: 'image_url', image_url: { url: `data:${input.imageData.mimeType};base64,${input.imageData.base64}` } },
     ];
+
+    if (input.imageData) {
+      parts.push({
+        type: 'image_url',
+        image_url: { url: `data:${input.imageData.mimeType};base64,${input.imageData.base64}` },
+      });
+    }
+
+    if (input.audioData) {
+      parts.push({
+        type: 'input_audio',
+        input_audio: { data: input.audioData.base64, format: input.audioData.format },
+      });
+    }
+
     return parts;
   }
 

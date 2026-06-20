@@ -116,4 +116,73 @@ describe('config schema', () => {
   it('validates the base config when no overrides are provided', () => {
     expect(mergeAppConfig(makeConfig())).toEqual(makeConfig());
   });
+
+  it('accepts voiceNote config with whisper_cloud mode', () => {
+    const config = makeConfig({
+      voiceNote: {
+        mode: 'whisper_cloud',
+        whisperBaseUrl: 'https://whisper.example/v1',
+        whisperApiKey: 'key',
+        whisperModel: 'whisper-1',
+      },
+    });
+
+    const parsed = parseAppConfig(config);
+    expect(parsed.voiceNote?.mode).toBe('whisper_cloud');
+    expect(parsed.voiceNote?.whisperModel).toBe('whisper-1');
+  });
+
+  it('accepts voiceNote config with native_audio mode', () => {
+    const config = makeConfig({
+      voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' },
+    });
+
+    const parsed = parseAppConfig(config);
+    expect(parsed.voiceNote?.mode).toBe('native_audio');
+  });
+
+  it('accepts voiceNote config with whisper_local mode', () => {
+    const config = makeConfig({
+      voiceNote: {
+        mode: 'whisper_local',
+        localWhisperUrl: 'http://localhost:9000/inference',
+      },
+    });
+
+    const parsed = parseAppConfig(config);
+    expect(parsed.voiceNote?.mode).toBe('whisper_local');
+    expect(parsed.voiceNote?.localWhisperUrl).toBe('http://localhost:9000/inference');
+  });
+
+  it('defaults voiceNote mode to ignore when omitted', () => {
+    const parsed = parseAppConfig(DEFAULT_APP_CONFIG);
+
+    expect(parsed.voiceNote?.mode).toBe('ignore');
+  });
+
+  it('redacts whisperApiKey in config show', () => {
+    const redacted = redactConfig(
+      makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-whisper', whisperModel: 'whisper-1' } }),
+    );
+
+    expect(redacted.voiceNote?.whisperApiKey).toBe('[redacted]');
+  });
+
+  it('rejects invalid voiceNote mode values', () => {
+    expect(() =>
+      parseAppConfig({
+        ...DEFAULT_APP_CONFIG,
+        voiceNote: { mode: 'invalid_mode' } as never,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects invalid localWhisperUrl', () => {
+    expect(() =>
+      parseAppConfig({
+        ...DEFAULT_APP_CONFIG,
+        voiceNote: { mode: 'whisper_local', localWhisperUrl: 'not-a-url' },
+      }),
+    ).toThrow();
+  });
 });

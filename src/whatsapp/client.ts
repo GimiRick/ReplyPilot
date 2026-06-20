@@ -7,12 +7,14 @@ import { type AppConfig } from '../config/schema';
 import { getWhatsAppSessionDir } from '../config/store';
 import { type RuntimeIncomingMessage } from '../runtime/automation';
 import { type Logger } from '../runtime/logger';
+import { oggToMp3 } from '../audio/convert';
+import { transcribeCloud, transcribeLocal } from '../audio/transcriber';
 import { fetchChatContext, mediaTypeLabel } from './context';
 
 const require = createRequire(import.meta.url);
 const { Client, LocalAuth } = require('whatsapp-web.js') as typeof import('whatsapp-web.js');
 
-const CHROME_VERSION = '149.0.7827.115';
+const CHROME_VERSION = '149.0.7827.156';
 
 function getPlatformUserAgent(): string {
   switch (process.platform) {
@@ -114,11 +116,16 @@ export class WhatsAppClientAdapter {
       return;
     }
 
-    await this.messageHandler(await toRuntimeMessage(message, chat));
+    await this.messageHandler(await toRuntimeMessage(message, chat, this.config, this.logger));
   }
 }
 
-async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIncomingMessage> {
+async function toRuntimeMessage(
+  message: Message,
+  chat: Chat,
+  config: AppConfig,
+  logger: Logger,
+): Promise<RuntimeIncomingMessage> {
   const rawChatSerialized = chat.id?._serialized;
   const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : (message.from ?? '');
 
@@ -127,7 +134,7 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
   if (message.hasQuotedMsg) {
     try {
       const quoted = await message.getQuotedMessage();
-      const quotedBody = (typeof quoted.body === 'string' ? quoted.body.trim() : '') || (quoted.hasMedia ? '[media]' : '');
+      const quotedBody = (typeof quoted.body === 'string' ? quoted.body.trim() : '') || (quoted.hasMedia ? mediaTypeLabel(quoted.type) : '');
       if (quotedBody) {
         quotedMessage = {
           id: typeof quoted.id?._serialized === 'string' ? quoted.id._serialized : undefined,
@@ -135,8 +142,8 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
           fromMe: quoted.fromMe,
         };
       }
-    } catch {
-      // quoted message fetch failed, continue without it
+    } catch (error) {
+      logger.warn({ error }, 'Failed to fetch quoted message, continuing without it');
     }
   }
 
@@ -145,21 +152,42 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
     try {
       const media = await message.downloadMedia();
       imageData = { base64: media.data, mimeType: media.mimetype };
-    } catch {
-      // media download failed, continue without image data
+    } catch (error) {
+      logger.warn({ error }, 'Image/sticker media download failed, continuing without image data');
+    }
+  }
+
+  let audioData: RuntimeIncomingMessage['audioData'] | undefined;
+  let voiceBody: string | undefined;
+
+  if (message.hasMedia && message.type === 'ptt' && config.voiceNote?.mode !== 'ignore') {
+    try {
+      const media = await message.downloadMedia();
+      const mp3Base64 = await oggToMp3(media.data);
+
+      if (config.voiceNote?.mode === 'whisper_cloud') {
+        voiceBody = await transcribeCloud(mp3Base64, config);
+      } else if (config.voiceNote?.mode === 'whisper_local') {
+        voiceBody = await transcribeLocal(mp3Base64, config);
+      } else if (config.voiceNote?.mode === 'native_audio') {
+        audioData = { base64: mp3Base64, format: 'mp3' };
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Voice note processing failed, falling back to text label');
     }
   }
 
   return {
     id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
-    body: (typeof message.body === 'string' ? message.body.trim() : '') || (message.hasMedia ? mediaTypeLabel(message.type) : ''),
+    body: voiceBody ?? ((typeof message.body === 'string' ? message.body.trim() : '') || (message.hasMedia ? mediaTypeLabel(message.type) : '')),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),
     hasMedia: message.hasMedia,
     messageType: message.type,
     imageData,
+    audioData,
     quotedMessage,
     chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),

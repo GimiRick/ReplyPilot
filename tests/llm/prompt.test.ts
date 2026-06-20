@@ -115,6 +115,66 @@ describe('prompt builder', () => {
     expect(cleanGeneratedReply("'Reply: See you.'")).toBe('See you.');
   });
 
+  it('returns content array when image data is present', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Friendly tone.',
+      messages: [],
+      incomingMessage: 'Check this photo',
+      imageData: { base64: 'img-data', mimeType: 'image/jpeg' },
+    });
+
+    const content = prompt[1].content;
+    expect(Array.isArray(content)).toBe(true);
+
+    const parts = content as unknown as Array<Record<string, unknown>>;
+    expect(parts.some((part) => part.type === 'image_url')).toBe(true);
+    expect(parts.some((part) => part.type === 'text')).toBe(true);
+  });
+
+  it('includes both image and audio when both are present', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Friendly tone.',
+      messages: [],
+      incomingMessage: 'Media message',
+      imageData: { base64: 'img-data', mimeType: 'image/jpeg' },
+      audioData: { base64: 'audio-data', format: 'mp3' },
+    });
+
+    const content = prompt[1].content;
+    expect(Array.isArray(content)).toBe(true);
+
+    const parts = content as unknown as Array<Record<string, unknown>>;
+    expect(parts.some((part) => part.type === 'image_url')).toBe(true);
+    expect(parts.some((part) => part.type === 'input_audio')).toBe(true);
+    expect(parts.some((part) => part.type === 'text')).toBe(true);
+  });
+
+  it('includes audio data as input_audio content part', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Friendly tone.',
+      messages: [],
+      incomingMessage: '[voice note]',
+      audioData: { base64: 'fake-audio-data', format: 'mp3' },
+    });
+
+    const content = prompt[1].content;
+    expect(Array.isArray(content)).toBe(true);
+
+    const parts = content as unknown as Array<Record<string, unknown>>;
+    const audioPart = parts.find((part) => part.type === 'input_audio');
+    expect(audioPart).toBeDefined();
+    expect((audioPart as { input_audio: { data: string; format: string } }).input_audio).toEqual({
+      data: 'fake-audio-data',
+      format: 'mp3',
+    });
+  });
+
   it('includes author name in context when provided', () => {
     const context = formatChatContext([
       { direction: 'owner', body: 'On my way' },

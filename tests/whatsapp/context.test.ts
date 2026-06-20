@@ -62,6 +62,7 @@ describe('WhatsApp chat context', () => {
     ['audio', '[audio]'],
     ['document', '[document]'],
     ['sticker', '[sticker]'],
+    ['ptt', '[voice note]'],
     ['location', '[location]'],
     ['vcard', '[contact card]'],
     ['unknown', '[media message]'],

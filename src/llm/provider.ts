@@ -11,6 +11,11 @@ export type ImageData = {
   mimeType: string;
 };
 
+export type AudioData = {
+  base64: string;
+  format: string;
+};
+
 export type GenerateReplyInput = {
   model: string;
   modelLabel: string;
@@ -19,6 +24,7 @@ export type GenerateReplyInput = {
   incomingMessage: string;
   incomingMessageQuoted?: { body: string; direction: 'owner' | 'contact' };
   imageData?: ImageData;
+  audioData?: AudioData;
   isGroup?: boolean;
   chatName?: string;
 };

@@ -69,6 +69,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -91,6 +92,7 @@ describe('setup wizard config creation', () => {
       false,
       true,
       true,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -115,6 +117,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
     ]);
 
     await promptForConfig(prompts);
@@ -130,6 +133,107 @@ describe('setup wizard config creation', () => {
     expect(numberOptions.validate?.(300)).toBe('Choose a value from 1 to 200');
   });
 
+  it('lets users configure Whisper Cloud voice transcription', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      true,
+      'whisper_cloud',
+      'https://whisper.example/v1',
+      'sk-whisper-key',
+      'whisper-1',
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.voiceNote?.mode).toBe('whisper_cloud');
+    expect(config.voiceNote?.whisperBaseUrl).toBe('https://whisper.example/v1');
+    expect(config.voiceNote?.whisperApiKey).toBe('sk-whisper-key');
+    expect(config.voiceNote?.whisperModel).toBe('whisper-1');
+  });
+
+  it('lets users pick a custom Whisper model for cloud transcription', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      true,
+      'whisper_cloud',
+      'https://whisper.example/v1',
+      'sk-whisper-key',
+      '__custom__',
+      'whisper-large-v3-turbo',
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.voiceNote?.whisperModel).toBe('whisper-large-v3-turbo');
+  });
+
+  it('lets users configure Whisper Local voice transcription', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      true,
+      'whisper_local',
+      'http://localhost:9000/transcribe',
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.voiceNote?.mode).toBe('whisper_local');
+    expect(config.voiceNote?.localWhisperUrl).toBe('http://localhost:9000/transcribe');
+  });
+
+  it('lets users configure Native Audio voice handling', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      true,
+      'native_audio',
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.voiceNote?.mode).toBe('native_audio');
+    expect(config.llm.provider).toBe('lmstudio');
+  });
+
   it('saves setup output to the config store', async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
     const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
@@ -143,6 +247,7 @@ describe('setup wizard config creation', () => {
       44,
       'Short and friendly.',
       true,
+      false,
       false,
       false,
     ]);

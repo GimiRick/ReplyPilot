@@ -49,12 +49,15 @@ export {
   type UserContentPart,
 } from './llm/prompt';
 export {
+  type AudioData,
   type ChatContextMessage,
   type GenerateReplyInput,
   type GenerateReplyResult,
   type ImageData,
   type LlmProvider,
 } from './llm/provider';
+export { oggToMp3 } from './audio/convert';
+export { transcribeCloud, transcribeLocal } from './audio/transcriber';
 export {
   ReplyAutomation,
   processIncomingMessage,

@@ -16,6 +16,11 @@ export type SetupAnswers = {
   modelName: string;
   modelLabel?: string;
   visionSupport?: boolean;
+  voiceNoteMode?: 'ignore' | 'whisper_cloud' | 'whisper_local' | 'native_audio';
+  whisperBaseUrl?: string;
+  whisperApiKey?: string;
+  whisperModel?: string;
+  localWhisperUrl?: string;
   messageCount?: number;
   ownerStylePrompt?: string;
   dryRun?: boolean;
@@ -65,6 +70,13 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       ownerStylePrompt:
         answers.ownerStylePrompt?.trim() ||
         'Reply naturally, concisely, and in my usual WhatsApp style.',
+    },
+    voiceNote: {
+      mode: answers.voiceNoteMode ?? 'ignore',
+      whisperBaseUrl: answers.whisperBaseUrl,
+      whisperApiKey: answers.whisperApiKey,
+      whisperModel: answers.whisperModel,
+      localWhisperUrl: answers.localWhisperUrl,
     },
     context: {
       messageCount: answers.messageCount ?? 30,
@@ -174,6 +186,83 @@ export async function promptForConfig(
     default: false,
   });
 
+  const interactVoiceNotes = await prompts.confirm({
+    message: 'Do you want the LLM to interact with voice notes?',
+    default: false,
+  });
+
+  let voiceNoteMode: SetupAnswers['voiceNoteMode'] = 'ignore';
+  let whisperBaseUrl: string | undefined;
+  let whisperApiKey: string | undefined;
+  let whisperModel: string | undefined;
+  let localWhisperUrl: string | undefined;
+
+  if (interactVoiceNotes) {
+    const mode = await prompts.select<'whisper_cloud' | 'whisper_local' | 'native_audio'>({
+      message: 'How do you want to handle voice notes?',
+      choices: [
+        { name: 'Whisper Cloud (transcribe via cloud API)', value: 'whisper_cloud' },
+        { name: 'Whisper Local (transcribe via local server)', value: 'whisper_local' },
+        { name: 'Native Audio (send audio directly to LLM)', value: 'native_audio' },
+      ],
+    });
+
+    voiceNoteMode = mode;
+
+    if (mode === 'whisper_cloud') {
+      whisperBaseUrl = await prompts.input({
+        message: 'Whisper base URL',
+        validate: (value) => {
+          if (!value.trim()) {
+            return 'Base URL is required';
+          }
+          try {
+            new URL(value.trim());
+            return true;
+          } catch {
+            return 'Base URL must be a valid URL';
+          }
+        },
+      });
+      whisperApiKey = await prompts.password({
+        message: 'Whisper API key',
+        mask: '*',
+        validate: (value) => (value.trim() ? true : 'API key is required'),
+      });
+      whisperModel = await prompts.select({
+        message: 'Whisper model',
+        choices: [
+          { name: 'whisper-1 — OpenAI open-source Whisper V2', value: 'whisper-1' },
+          { name: 'gpt-4o-mini-transcribe — GPT-4o mini transcription', value: 'gpt-4o-mini-transcribe' },
+          { name: 'gpt-4o-transcribe — GPT-4o transcription (best accuracy)', value: 'gpt-4o-transcribe' },
+          { name: 'Custom', value: '__custom__' },
+        ],
+      });
+      if (whisperModel === '__custom__') {
+        whisperModel = await prompts.input({
+          message: 'Custom Whisper model name',
+          validate: (value) => (value.trim() ? true : 'Model name is required'),
+        });
+      }
+    } else if (mode === 'whisper_local') {
+      localWhisperUrl = await prompts.input({
+        message: 'Local Whisper URL',
+        default: 'http://localhost:8080/inference',
+        validate: (value) => {
+          if (!value.trim()) {
+            return 'URL is required';
+          }
+          try {
+            new URL(value.trim());
+            return true;
+          } catch {
+            return 'Local Whisper URL must be a valid URL';
+          }
+        },
+      });
+    }
+  }
+
   return createConfigFromSetupAnswers({
     provider,
     baseUrl,
@@ -181,6 +270,11 @@ export async function promptForConfig(
     modelName,
     modelLabel,
     visionSupport,
+    voiceNoteMode,
+    whisperBaseUrl,
+    whisperApiKey,
+    whisperModel,
+    localWhisperUrl,
     messageCount,
     ownerStylePrompt,
     dryRun,

@@ -1,7 +1,7 @@
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
 import { loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
-import { type ChatContextMessage, type ImageData, type LlmProvider } from '../llm/provider';
+import { type AudioData, type ChatContextMessage, type ImageData, type LlmProvider } from '../llm/provider';
 import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../whatsapp/filters';
 import { createLogger, type Logger } from './logger';
 import { MessageQueue } from './queue';
@@ -16,12 +16,12 @@ export type RuntimeIncomingMessage = {
   hasMedia?: boolean;
   messageType?: string;
   imageData?: ImageData;
+  audioData?: AudioData;
   quotedMessage?: { id?: string; body: string; fromMe?: boolean };
   chatName?: string;
   fetchContext(limit: number): Promise<ChatContextMessage[]>;
   sendMessage(text: string): Promise<void>;
 };
-
 export type AutomationResult =
   | { status: 'ignored'; reason: IgnoreReason }
   | { status: 'queued' }
@@ -99,6 +99,8 @@ export async function processIncomingMessage(options: {
     : undefined;
 
   const imageData = config.llm.visionSupport ? message.imageData : undefined;
+  const audioData =
+    config.voiceNote?.mode === 'native_audio' ? message.audioData : undefined;
 
   const reply = await llmProvider.generateReply({
     model: config.llm.modelName,
@@ -108,6 +110,7 @@ export async function processIncomingMessage(options: {
     incomingMessage: message.body,
     incomingMessageQuoted: quotedMessage,
     imageData,
+    audioData,
     isGroup: message.isGroup,
     chatName: message.chatName,
   });

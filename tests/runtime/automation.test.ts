@@ -5,7 +5,7 @@ import {
   processIncomingMessage,
   type RuntimeIncomingMessage,
 } from '../../src/runtime/automation';
-import { type LlmProvider } from '../../src/llm/provider';
+import { type GenerateReplyInput, type LlmProvider } from '../../src/llm/provider';
 import { MessageQueue } from '../../src/runtime/queue';
 import { makeConfig } from '../fixtures/app-config';
 
@@ -115,6 +115,48 @@ describe('runtime message processing', () => {
     ]);
 
     expect(events).toEqual(['start:one', 'finish:one', 'start:two', 'finish:two']);
+  });
+
+  it('passes audioData to LLM when voiceNote mode is native_audio', async () => {
+    const sendMessage = vi.fn(async () => undefined);
+    const generateReply = vi.fn(async (input: GenerateReplyInput) => ({
+      text: 'I heard your voice note',
+      provider: 'test',
+      model: input.model,
+    }));
+    const provider: LlmProvider = { generateReply };
+
+    const result = await processIncomingMessage({
+      message: makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } }),
+      config: makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } }),
+      llmProvider: provider,
+    });
+
+    expect(result.status).toBe('sent');
+    expect(generateReply).toHaveBeenCalledWith(
+      expect.objectContaining({ audioData: { base64: 'abc', format: 'mp3' } }),
+    );
+  });
+
+  it('strips audioData when voiceNote mode is not native_audio', async () => {
+    const sendMessage = vi.fn(async () => undefined);
+    const generateReply = vi.fn(async (input: GenerateReplyInput) => ({
+      text: 'ok',
+      provider: 'test',
+      model: input.model,
+    }));
+    const provider: LlmProvider = { generateReply };
+
+    const result = await processIncomingMessage({
+      message: makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } }),
+      config: makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperModel: 'whisper-1' } }),
+      llmProvider: provider,
+    });
+
+    expect(result.status).toBe('sent');
+    expect(generateReply).toHaveBeenCalledWith(
+      expect.not.objectContaining({ audioData: expect.anything() }),
+    );
   });
 
   it('allows different chats to run concurrently up to the global limit', async () => {

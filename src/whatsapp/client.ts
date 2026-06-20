@@ -141,7 +141,7 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
   }
 
   let imageData: RuntimeIncomingMessage['imageData'] | undefined;
-  if (message.hasMedia && message.type === 'image') {
+  if (message.hasMedia && (message.type === 'image' || message.type === 'sticker')) {
     try {
       const media = await message.downloadMedia();
       imageData = { base64: media.data, mimeType: media.mimetype };

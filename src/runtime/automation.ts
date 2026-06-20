@@ -112,6 +112,28 @@ export class ReplyAutomation {
       }, this.config.automation.debounceMs);
     });
   }
+
+  async stop(): Promise<void> {
+    for (const [chatId, batch] of this.activeBatches.entries()) {
+      clearTimeout(batch.timer);
+      this.activeBatches.delete(chatId);
+
+      this.queue.add(chatId, () =>
+        processIncomingMessageBatch({
+          messages: batch.messages,
+          config: this.config,
+          llmProvider: this.llmProvider,
+          logger: this.logger,
+        }).catch((error) => {
+          this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
+          return { status: 'failed' as const, error };
+        }),
+      ).then((result) => {
+        batch.resolvers.forEach((r) => r(result));
+      });
+    }
+    await this.queue.onIdle();
+  }
 }
 
 export async function processIncomingMessageBatch(options: {
@@ -190,6 +212,7 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
   const shutdown = async () => {
     logger.info('Shutting down ReplyPilot gracefully...');
     try {
+      await automation.stop();
       await whatsapp.stop();
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');

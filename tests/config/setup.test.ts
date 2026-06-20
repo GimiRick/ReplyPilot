@@ -117,20 +117,41 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
-      false,
+      true,
+      'whisper_cloud',
+      'https://whisper.example/v1',
+      'sk-whisper-key',
+      'whisper-1',
     ]);
 
     await promptForConfig(prompts);
 
-    const baseUrlOptions = getFirstPromptOptions(prompts.input);
-    const numberOptions = getFirstPromptOptions(prompts.number);
+    const getValidate = (msg: string) => {
+      const call = vi.mocked(prompts.input).mock.calls.find(
+        (c) => (c[0] as { message: string }).message.includes(msg)
+      )!;
+      return (call[0] as { validate: (v: unknown) => true | string }).validate;
+    };
 
-    expect(baseUrlOptions.validate?.('')).toBe('Base URL is required');
-    expect(baseUrlOptions.validate?.('not-a-url')).toBe('LLM base URL must be a valid URL');
-    expect(baseUrlOptions.validate?.('http://localhost:1234/v1')).toBe(true);
+    const baseUrlValidate = getValidate('LLM base URL');
+    const ownerStyleValidate = getValidate('Owner personality and style prompt');
+    const whisperBaseUrlValidate = getValidate('Whisper base URL');
+
+    expect(baseUrlValidate('')).toBe('Base URL is required');
+    expect(baseUrlValidate('not-a-url')).toBe('LLM base URL must be a valid URL');
+    expect(baseUrlValidate('http://localhost:1234/v1')).toBe(true);
+
+    const numberOptions = getFirstPromptOptions(prompts.number);
     expect(numberOptions.validate?.(undefined)).toBe(true);
     expect(numberOptions.validate?.(30.5)).toBe('Value must be an integer');
     expect(numberOptions.validate?.(300)).toBe('Choose a value from 1 to 200');
+
+    expect(ownerStyleValidate('   ')).toBe('Owner style prompt is required');
+    expect(ownerStyleValidate('test')).toBe(true);
+
+    expect(whisperBaseUrlValidate('   ')).toBe(true);
+    expect(whisperBaseUrlValidate('not-a-url')).toBe('Base URL must be a valid URL');
+    expect(whisperBaseUrlValidate('http://localhost:1234/v1')).toBe(true);
   });
 
   it('lets users configure Whisper Cloud voice transcription', async () => {

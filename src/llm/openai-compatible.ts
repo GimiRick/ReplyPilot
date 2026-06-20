@@ -102,6 +102,7 @@ async function retryTransient<T>(
 
       attempt += 1;
       logger?.warn({ attempt, error }, 'Retrying transient LLM provider failure');
+      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
     }
   }
 }

@@ -85,16 +85,17 @@ describe('WhatsApp message filters', () => {
 
   it('handles empty iterator safely during prune', () => {
     const guard = new DuplicateMessageGuard(0);
-    const originalKeys = Map.prototype.keys;
-    (Map.prototype as { keys: () => { next: () => IteratorResult<string> } }).keys = function() {
-      return { next: () => ({ value: undefined, done: true }) };
+    const seenMap = (guard as unknown as { seen: Map<string, number> }).seen;
+    const originalKeys = seenMap.keys;
+    seenMap.keys = function() {
+      return { next: () => ({ value: undefined, done: true }) } as unknown as MapIterator<string>;
     };
     
     try {
       guard.markIfNew('test');
       expect(guard.has('test')).toBe(true);
     } finally {
-      Map.prototype.keys = originalKeys;
+      seenMap.keys = originalKeys;
     }
   });
 });

@@ -142,7 +142,7 @@ describe('transcribeCloud', () => {
 
   it('aborts on timeout', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn(async (url, init) => new Promise((_, reject) => {
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => new Promise((_, reject) => {
       init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
     })));
 
@@ -249,7 +249,7 @@ describe('transcribeLocal', () => {
 
   it('aborts on timeout', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn(async (url, init) => new Promise((_, reject) => {
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => new Promise((_, reject) => {
       init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
     })));
 

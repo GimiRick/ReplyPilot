@@ -8,8 +8,8 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-121%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-92.34%25%20v8-brightgreen)](package.json)
+[![tests](https://img.shields.io/badge/tests-157%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![coverage](https://img.shields.io/badge/coverage-97.21%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
@@ -280,7 +280,7 @@ replypilot logout     # Reset WhatsApp session
 
 ```ts
 // Core automation
-import { startAutomation, ReplyAutomation, processIncomingMessage } from 'gimirick-replypilot';
+import { startAutomation, ReplyAutomation, processIncomingMessageBatch } from 'gimirick-replypilot';
 import { type AutomationResult, type ReplyAutomationOptions } from 'gimirick-replypilot';
 import { type RuntimeIncomingMessage } from 'gimirick-replypilot';
 
@@ -496,10 +496,11 @@ Whisper models available for cloud mode: `whisper-1` (default), `gpt-4o-mini-tra
 
 OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 120-second timeout. Conversion failures are caught and logged; the voice note is replaced with `[voice note]` text.
 
-### Concurrency Model
+### Concurrency & Batching
 
 - **Global limit**: max 2 concurrent LLM requests (`globalConcurrency: 2`).
 - **Per-chat serial**: messages in the same chat process one at a time (`perChatConcurrency: 1`).
+- **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining.
 - **Chat queues** are created lazily (one `PQueue` per `chatId`).
 - **Duplicate guard** tracks up to 5,000 seen message IDs, pruning oldest entries when full.
 
@@ -530,7 +531,7 @@ replypilot start
 | **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
 | **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
 | **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (3 providers + voice note flow) |
-| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator, `processIncomingMessage`, `startAutomation` |
+| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation` |
 | **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
 | **Runtime** | `logger.ts` | Pino logger with API key redaction |
 | **Runtime** | `errors.ts` | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.) |

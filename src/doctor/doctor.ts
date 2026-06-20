@@ -126,7 +126,7 @@ export function formatDoctorReport(report: DoctorReport): string {
 }
 
 export function isSupportedNodeVersion(version: string): boolean {
-  const [major = 0, minor = 0, patch = 0] = version.split('.').map((v) => parseInt(v, 10));
+  const [major = 0, minor = 0] = version.split('.').map((v) => parseInt(v, 10));
 
   if (major > 22) {
     return true;
@@ -140,7 +140,7 @@ export function isSupportedNodeVersion(version: string): boolean {
     return true;
   }
 
-  return minor === 13 && patch >= 0;
+  return minor === 13;
 }
 
 function ensureTrailingSlash(value: string): string {

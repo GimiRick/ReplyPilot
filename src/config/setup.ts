@@ -15,6 +15,7 @@ export type SetupAnswers = {
   apiKey?: string;
   modelName: string;
   modelLabel?: string;
+  visionSupport?: boolean;
   messageCount?: number;
   ownerStylePrompt?: string;
   dryRun?: boolean;
@@ -55,7 +56,8 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       baseUrl: answers.baseUrl ?? providerDefaults?.baseUrl,
       apiKey: answers.apiKey ?? providerDefaults?.apiKey,
       modelName: answers.modelName,
-      modelLabel: modelLabel || providerDefaults?.modelLabel,
+      modelLabel,
+      visionSupport: answers.visionSupport ?? false,
       timeoutMs: 60_000,
       maxRetries: 1,
     },
@@ -131,6 +133,11 @@ export async function promptForConfig(
     validate: (value) => (value.trim() ? true : 'Model label is required'),
   });
 
+  const visionSupport = await prompts.confirm({
+    message: 'Does your LLM support vision (image understanding)?',
+    default: false,
+  });
+
   const messageCount = await prompts.number({
     message: 'Chat context message count',
     default: 30,
@@ -173,6 +180,7 @@ export async function promptForConfig(
     apiKey,
     modelName,
     modelLabel,
+    visionSupport,
     messageCount,
     ownerStylePrompt,
     dryRun,

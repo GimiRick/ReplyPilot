@@ -1,7 +1,7 @@
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
 import { loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
-import { type ChatContextMessage, type LlmProvider } from '../llm/provider';
+import { type ChatContextMessage, type ImageData, type LlmProvider } from '../llm/provider';
 import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../whatsapp/filters';
 import { createLogger, type Logger } from './logger';
 import { MessageQueue } from './queue';
@@ -15,6 +15,7 @@ export type RuntimeIncomingMessage = {
   isBroadcast?: boolean;
   hasMedia?: boolean;
   messageType?: string;
+  imageData?: ImageData;
   quotedMessage?: { id?: string; body: string; fromMe?: boolean };
   chatName?: string;
   fetchContext(limit: number): Promise<ChatContextMessage[]>;
@@ -97,6 +98,8 @@ export async function processIncomingMessage(options: {
       }
     : undefined;
 
+  const imageData = config.llm.visionSupport ? message.imageData : undefined;
+
   const reply = await llmProvider.generateReply({
     model: config.llm.modelName,
     modelLabel: config.llm.modelLabel,
@@ -104,6 +107,7 @@ export async function processIncomingMessage(options: {
     messages: context,
     incomingMessage: message.body,
     incomingMessageQuoted: quotedMessage,
+    imageData,
     isGroup: message.isGroup,
     chatName: message.chatName,
   });

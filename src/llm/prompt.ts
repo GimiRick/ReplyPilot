@@ -1,11 +1,15 @@
 import { type ChatContextMessage, type GenerateReplyInput } from './provider';
 
+export type UserContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export type PromptMessage = {
   role: 'system' | 'user';
-  content: string;
+  content: string | UserContentPart[];
 };
 
-export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
+function buildUserContent(input: GenerateReplyInput): string | UserContentPart[] {
   const contextBlock = formatChatContext(input.messages);
 
   const userParts: string[] = [
@@ -33,6 +37,20 @@ export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
   userParts.push('');
   userParts.push('Write only the next WhatsApp reply from the owner. Do not prefix it with a label.');
 
+  const textContent = userParts.join('\n');
+
+  if (input.imageData) {
+    const parts: UserContentPart[] = [
+      { type: 'text', text: textContent },
+      { type: 'image_url', image_url: { url: `data:${input.imageData.mimeType};base64,${input.imageData.base64}` } },
+    ];
+    return parts;
+  }
+
+  return textContent;
+}
+
+export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
   return [
     {
       role: 'system',
@@ -49,7 +67,7 @@ export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
     },
     {
       role: 'user',
-      content: userParts.join('\n'),
+      content: buildUserContent(input),
     },
   ];
 }

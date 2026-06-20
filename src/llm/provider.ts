@@ -6,6 +6,11 @@ export type ChatContextMessage = {
   authorName?: string;
 };
 
+export type ImageData = {
+  base64: string;
+  mimeType: string;
+};
+
 export type GenerateReplyInput = {
   model: string;
   modelLabel: string;
@@ -13,6 +18,7 @@ export type GenerateReplyInput = {
   messages: ChatContextMessage[];
   incomingMessage: string;
   incomingMessageQuoted?: { body: string; direction: 'owner' | 'contact' };
+  imageData?: ImageData;
   isGroup?: boolean;
   chatName?: string;
 };

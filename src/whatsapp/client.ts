@@ -120,7 +120,7 @@ export class WhatsAppClientAdapter {
 
 async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIncomingMessage> {
   const rawChatSerialized = chat.id?._serialized;
-  const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : message.from;
+  const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : (message.from ?? '');
 
   let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
 
@@ -140,6 +140,16 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
     }
   }
 
+  let imageData: RuntimeIncomingMessage['imageData'] | undefined;
+  if (message.hasMedia && message.type === 'image') {
+    try {
+      const media = await message.downloadMedia();
+      imageData = { base64: media.data, mimeType: media.mimetype };
+    } catch {
+      // media download failed, continue without image data
+    }
+  }
+
   return {
     id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
@@ -149,6 +159,7 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
     isBroadcast: isBroadcastMessage(message, chatId),
     hasMedia: message.hasMedia,
     messageType: message.type,
+    imageData,
     quotedMessage,
     chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),

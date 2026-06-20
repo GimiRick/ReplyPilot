@@ -46,11 +46,13 @@ export {
   formatChatContext,
   trimContextMessages,
   type PromptMessage,
+  type UserContentPart,
 } from './llm/prompt';
 export {
   type ChatContextMessage,
   type GenerateReplyInput,
   type GenerateReplyResult,
+  type ImageData,
   type LlmProvider,
 } from './llm/provider';
 export {

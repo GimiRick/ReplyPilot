@@ -236,26 +236,30 @@ describe('setup wizard config creation', () => {
 
   it('saves setup output to the config store', async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
-    const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
-    const prompts = makePromptAdapter([
-      'ollama',
-      'http://localhost:11434/v1',
-      'ollama',
-      'qwen2.5',
-      'Qwen Local',
-      false,
-      44,
-      'Short and friendly.',
-      true,
-      false,
-      false,
-      false,
-    ]);
+    try {
+      const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
+      const prompts = makePromptAdapter([
+        'ollama',
+        'http://localhost:11434/v1',
+        'ollama',
+        'qwen2.5',
+        'Qwen Local',
+        false,
+        44,
+        'Short and friendly.',
+        true,
+        false,
+        false,
+        false,
+      ]);
 
-    await runSetupWizard({ prompts, store });
+      await runSetupWizard({ prompts, store });
 
-    expect(loadConfig(store).context.messageCount).toBe(44);
-    expect(loadConfig(store).safety.dryRun).toBe(true);
+      expect(loadConfig(store).context.messageCount).toBe(44);
+      expect(loadConfig(store).safety.dryRun).toBe(true);
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
   });
 });
 

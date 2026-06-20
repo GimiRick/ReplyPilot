@@ -138,7 +138,6 @@ describe('oggToMp3', () => {
     const timeoutCallback: Array<() => void> = [];
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
       cb: () => void,
-      _ms?: number,
     ) => {
       timeoutCallback.push(cb);
       return { unref: vi.fn() } as unknown as NodeJS.Timeout;

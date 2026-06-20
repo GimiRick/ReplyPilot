@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ReplyAutomation,
-  processIncomingMessage,
+  processIncomingMessageBatch,
   type RuntimeIncomingMessage,
 } from '../../src/runtime/automation';
 import { type GenerateReplyInput, type LlmProvider } from '../../src/llm/provider';
@@ -14,8 +14,8 @@ describe('runtime message processing', () => {
     const sendMessage = vi.fn(async () => undefined);
     const provider = makeProvider('Sure, see you.');
 
-    const result = await processIncomingMessage({
-      message: makeMessage({ sendMessage }),
+    const result = await processIncomingMessageBatch({
+      messages: [makeMessage({ sendMessage })],
       config: makeConfig(),
       llmProvider: provider,
     });
@@ -28,8 +28,8 @@ describe('runtime message processing', () => {
     const sendMessage = vi.fn(async () => undefined);
     const logger = { info: vi.fn() };
 
-    const result = await processIncomingMessage({
-      message: makeMessage({ sendMessage }),
+    const result = await processIncomingMessageBatch({
+      messages: [makeMessage({ sendMessage })],
       config: makeConfig({ safety: { dryRun: true } }),
       llmProvider: makeProvider('Dry reply'),
       logger,
@@ -52,6 +52,8 @@ describe('runtime message processing', () => {
       logger: makeLogger(),
       queue: new MessageQueue(),
     });
+    
+    automation['config'].automation.debounceMs = 0;
 
     const result = await automation.handleIncomingMessage(makeMessage({ sendMessage }));
 
@@ -66,6 +68,8 @@ describe('runtime message processing', () => {
       llmProvider: makeProvider('Reply'),
       logger: makeLogger(),
     });
+    
+    automation['config'].automation.debounceMs = 0;
 
     const result = await automation.handleIncomingMessage(
       makeMessage({ fromMe: true, sendMessage }),
@@ -82,6 +86,8 @@ describe('runtime message processing', () => {
       llmProvider: makeProvider('Reply'),
       logger: makeLogger(),
     });
+    
+    automation['config'].automation.debounceMs = 0;
 
     await automation.handleIncomingMessage(makeMessage({ id: 'same', sendMessage }));
     const duplicate = await automation.handleIncomingMessage(
@@ -92,7 +98,7 @@ describe('runtime message processing', () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 
-  it('runs same-chat messages sequentially', async () => {
+  it('batches same-chat messages sent within debounce window', async () => {
     const events: string[] = [];
     const provider: LlmProvider = {
       generateReply: vi.fn(async (input) => {
@@ -108,13 +114,44 @@ describe('runtime message processing', () => {
       logger: makeLogger(),
       queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
     });
+    
+    automation['config'].automation.debounceMs = 0;
 
     await Promise.all([
       automation.handleIncomingMessage(makeMessage({ id: '1', body: 'one', chatId: 'chat-a' })),
       automation.handleIncomingMessage(makeMessage({ id: '2', body: 'two', chatId: 'chat-a' })),
     ]);
 
-    expect(events).toEqual(['start:one', 'finish:one', 'start:two', 'finish:two']);
+    expect(events).toEqual(['start:one\ntwo', 'finish:one\ntwo']);
+  });
+
+  it('chronologically reorders out-of-order messages in a batch', async () => {
+    const events: string[] = [];
+    const provider: LlmProvider = {
+      generateReply: vi.fn(async (input) => {
+        events.push(`start:${input.incomingMessage}`);
+        return { text: input.incomingMessage, provider: 'test', model: input.model };
+      }),
+    };
+    const automation = new ReplyAutomation({
+      config: makeConfig(),
+      llmProvider: provider,
+      logger: makeLogger(),
+      queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
+    });
+    
+    automation['config'].automation.debounceMs = 0;
+
+    // Simulate arriving out-of-order due to async parsing:
+    // Message 'two' (timestamp 200) arrives to `handleIncomingMessage` FIRST.
+    // Message 'one' (timestamp 100) arrives to `handleIncomingMessage` SECOND.
+    await Promise.all([
+      automation.handleIncomingMessage(makeMessage({ id: '2', timestamp: 200, body: 'two', chatId: 'chat-a' })),
+      automation.handleIncomingMessage(makeMessage({ id: '1', timestamp: 100, body: 'one', chatId: 'chat-a' })),
+    ]);
+
+    // The batcher should sort by timestamp, resulting in "one\ntwo"
+    expect(events).toEqual(['start:one\ntwo']);
   });
 
   it('passes audioData to LLM when voiceNote mode is native_audio', async () => {
@@ -126,8 +163,8 @@ describe('runtime message processing', () => {
     }));
     const provider: LlmProvider = { generateReply };
 
-    const result = await processIncomingMessage({
-      message: makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } }),
+    const result = await processIncomingMessageBatch({
+      messages: [makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } })],
       config: makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } }),
       llmProvider: provider,
     });
@@ -147,8 +184,8 @@ describe('runtime message processing', () => {
     }));
     const provider: LlmProvider = { generateReply };
 
-    const result = await processIncomingMessage({
-      message: makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } }),
+    const result = await processIncomingMessageBatch({
+      messages: [makeMessage({ sendMessage, audioData: { base64: 'abc', format: 'mp3' } })],
       config: makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperModel: 'whisper-1' } }),
       llmProvider: provider,
     });
@@ -177,6 +214,8 @@ describe('runtime message processing', () => {
       logger: makeLogger(),
       queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
     });
+    
+    automation['config'].automation.debounceMs = 0;
 
     await Promise.all([
       automation.handleIncomingMessage(makeMessage({ id: '1', body: 'one', chatId: 'chat-a' })),
@@ -202,6 +241,7 @@ function makeMessage(overrides: Partial<RuntimeIncomingMessage> = {}): RuntimeIn
   return {
     id: 'message-1',
     chatId: 'chat-1',
+    timestamp: Date.now() / 1000,
     body: 'Hello?',
     fetchContext: vi.fn(async () => [{ direction: 'contact' as const, body: 'Hello?' }]),
     sendMessage: vi.fn(async () => undefined),

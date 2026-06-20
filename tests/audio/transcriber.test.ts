@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { transcribeCloud, transcribeLocal } from '../../src/audio/transcriber';
 import { makeConfig } from '../fixtures/app-config';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('transcribeCloud', () => {
   it('sends audio to the correct URL and returns transcription text', async () => {

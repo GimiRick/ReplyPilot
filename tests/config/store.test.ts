@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   createConfigStore,
@@ -64,7 +64,17 @@ describe('config store', () => {
   });
 });
 
+let tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  tempDirs = [];
+});
+
 function createTempStore() {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-store-'));
+  tempDirs.push(cwd);
   return createConfigStore({ cwd, projectName: 'replypilot-test' });
 }

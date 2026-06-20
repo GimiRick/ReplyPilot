@@ -60,7 +60,7 @@ export { oggToMp3 } from './audio/convert';
 export { transcribeCloud, transcribeLocal } from './audio/transcriber';
 export {
   ReplyAutomation,
-  processIncomingMessage,
+  processIncomingMessageBatch,
   startAutomation,
   type AutomationResult,
   type ReplyAutomationOptions,

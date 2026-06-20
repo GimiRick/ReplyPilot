@@ -180,6 +180,7 @@ async function toRuntimeMessage(
   return {
     id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
+    timestamp: message.timestamp,
     body: voiceBody ?? ((typeof message.body === 'string' ? message.body.trim() : '') || (message.hasMedia ? mediaTypeLabel(message.type) : '')),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),

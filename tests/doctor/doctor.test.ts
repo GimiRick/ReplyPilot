@@ -57,15 +57,18 @@ describe('doctor checks', () => {
     const fetchMock = vi.fn(async () => ({ ok: true })) as unknown as typeof fetch;
     globalThis.fetch = fetchMock;
 
-    await expect(checkProviderReachability(makeConfig())).resolves.toBe(true);
+    try {
+      await expect(checkProviderReachability(makeConfig())).resolves.toBe(true);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      new URL('http://localhost:1234/v1/models'),
-      expect.objectContaining({
-        headers: { Authorization: 'Bearer lm-studio' },
-      }),
-    );
-    globalThis.fetch = originalFetch;
+      expect(fetchMock).toHaveBeenCalledWith(
+        new URL('http://localhost:1234/v1/models'),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer lm-studio' },
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it('returns false when provider reachability throws', async () => {
@@ -74,9 +77,11 @@ describe('doctor checks', () => {
       throw new Error('offline');
     }) as unknown as typeof fetch;
 
-    await expect(checkProviderReachability(makeConfig())).resolves.toBe(false);
-
-    globalThis.fetch = originalFetch;
+    try {
+      await expect(checkProviderReachability(makeConfig())).resolves.toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it('handles tryLoadConfig throwing an error', async () => {

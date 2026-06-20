@@ -54,12 +54,16 @@ describe('startAutomation', () => {
     vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    await startAutomation();
+    
+    try {
+      await startAutomation();
 
-    expect(errors.join('\n')).toContain('Your WhatsApp session has expired or is corrupted.');
-    expect(errors.join('\n')).toContain('replypilot logout');
-    expect(process.exitCode).toBe(1);
-    process.exitCode = previousExitCode;
+      expect(errors.join('\n')).toContain('Your WhatsApp session has expired or is corrupted.');
+      expect(errors.join('\n')).toContain('replypilot logout');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 
   it('prints generic error message on non-session failure', async () => {
@@ -71,11 +75,15 @@ describe('startAutomation', () => {
     vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    await startAutomation();
+    
+    try {
+      await startAutomation();
 
-    expect(errors.join('\n')).toContain('Failed to launch browser process');
-    expect(errors.join('\n')).not.toContain('Your WhatsApp session has expired');
-    expect(process.exitCode).toBe(1);
-    process.exitCode = previousExitCode;
+      expect(errors.join('\n')).toContain('Failed to launch browser process');
+      expect(errors.join('\n')).not.toContain('Your WhatsApp session has expired');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 });

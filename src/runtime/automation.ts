@@ -6,9 +6,16 @@ import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../wh
 import { createLogger, type Logger } from './logger';
 import { MessageQueue } from './queue';
 
+type ChatBatch = {
+  messages: RuntimeIncomingMessage[];
+  timer: NodeJS.Timeout;
+  resolvers: ((result: AutomationResult) => void)[];
+};
+
 export type RuntimeIncomingMessage = {
   id: string;
   chatId: string;
+  timestamp: number;
   body: string;
   fromMe?: boolean;
   isGroup?: boolean;
@@ -43,6 +50,7 @@ export class ReplyAutomation {
   private readonly logger: Logger;
   private readonly queue: MessageQueue;
   private readonly duplicateGuard: DuplicateMessageGuard;
+  private readonly activeBatches = new Map<string, ChatBatch>();
 
   constructor(options: ReplyAutomationOptions) {
     this.config = options.config;
@@ -68,59 +76,94 @@ export class ReplyAutomation {
       return Promise.resolve({ status: 'ignored', reason: 'duplicate' });
     }
 
-    return this.queue.add(message.chatId, () =>
-      processIncomingMessage({
-        message,
-        config: this.config,
-        llmProvider: this.llmProvider,
-        logger: this.logger,
-      }).catch((error) => {
-        this.logger.error({ error, messageId: message.id }, 'Message processing failed');
-        return { status: 'failed', error };
-      }),
-    );
+    const chatId = message.chatId;
+    let batch = this.activeBatches.get(chatId);
+
+    return new Promise((resolve) => {
+      if (batch) {
+        clearTimeout(batch.timer);
+        batch.messages.push(message);
+        batch.resolvers.push(resolve);
+      } else {
+        batch = {
+          messages: [message],
+          timer: undefined as unknown as NodeJS.Timeout,
+          resolvers: [resolve],
+        };
+        this.activeBatches.set(chatId, batch);
+      }
+
+      batch.timer = setTimeout(() => {
+        this.activeBatches.delete(chatId);
+        
+        this.queue.add(chatId, () =>
+          processIncomingMessageBatch({
+            messages: batch!.messages,
+            config: this.config,
+            llmProvider: this.llmProvider,
+            logger: this.logger,
+          }).catch((error) => {
+            this.logger.error({ error, chatId }, 'Message processing failed');
+            return { status: 'failed' as const, error };
+          }),
+        ).then((result) => {
+          batch!.resolvers.forEach((r) => r(result));
+        });
+      }, this.config.automation.debounceMs);
+    });
   }
 }
 
-export async function processIncomingMessage(options: {
-  message: RuntimeIncomingMessage;
+export async function processIncomingMessageBatch(options: {
+  messages: RuntimeIncomingMessage[];
   config: AppConfig;
   llmProvider: LlmProvider;
   logger?: Pick<Logger, 'info'>;
 }): Promise<AutomationResult> {
-  const { message, config, llmProvider, logger } = options;
-  const context = await message.fetchContext(config.context.messageCount);
+  const { config, llmProvider, logger } = options;
+  const messages = [...options.messages].sort((a, b) => a.timestamp - b.timestamp);
+  
+  if (messages.length === 0) {
+    return { status: 'ignored', reason: 'empty' };
+  }
 
-  const quotedMessage = message.quotedMessage
+  const lastMessage = messages[messages.length - 1];
+  const firstMessage = messages[0];
+  
+  const allContext = await lastMessage.fetchContext(config.context.messageCount + messages.length);
+  const batchedIds = new Set(messages.map(m => m.id));
+  const context = allContext.filter(c => c.id && !batchedIds.has(c.id)).slice(-config.context.messageCount);
+
+  const combinedBody = messages.map(m => m.body).filter(Boolean).join('\n');
+  const quotedMessage = firstMessage.quotedMessage
     ? {
-        body: message.quotedMessage.body,
-        direction: message.quotedMessage.fromMe === true ? 'owner' as const : 'contact' as const,
+        body: firstMessage.quotedMessage.body,
+        direction: firstMessage.quotedMessage.fromMe === true ? 'owner' as const : 'contact' as const,
       }
     : undefined;
 
-  const imageData = config.llm.visionSupport ? message.imageData : undefined;
-  const audioData =
-    config.voiceNote?.mode === 'native_audio' ? message.audioData : undefined;
+  const imageData = config.llm.visionSupport ? messages.find(m => m.imageData)?.imageData : undefined;
+  const audioData = config.voiceNote?.mode === 'native_audio' ? messages.find(m => m.audioData)?.audioData : undefined;
 
   const reply = await llmProvider.generateReply({
     model: config.llm.modelName,
     modelLabel: config.llm.modelLabel,
     ownerStylePrompt: config.personality.ownerStylePrompt,
     messages: context,
-    incomingMessage: message.body,
+    incomingMessage: combinedBody,
     incomingMessageQuoted: quotedMessage,
     imageData,
     audioData,
-    isGroup: message.isGroup,
-    chatName: message.chatName,
+    isGroup: lastMessage.isGroup,
+    chatName: lastMessage.chatName,
   });
 
   if (config.safety.dryRun) {
-    logger?.info({ chatId: message.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
+    logger?.info({ chatId: lastMessage.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
     return { status: 'dry-run', reply: reply.text };
   }
 
-  await message.sendMessage(reply.text);
+  await lastMessage.sendMessage(reply.text);
   return { status: 'sent', reply: reply.text };
 }
 

@@ -67,6 +67,9 @@ export const appConfigSchema = z
     logging: z.object({
       level: logLevelSchema.default('info'),
     }),
+    automation: z.object({
+      debounceMs: z.number().int().min(0).max(600_000).default(10000),
+    }).default({ debounceMs: 10000 }),
   })
   .strict();
 
@@ -109,6 +112,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   },
   logging: {
     level: 'info',
+  },
+  automation: {
+    debounceMs: 10000,
   },
 };
 

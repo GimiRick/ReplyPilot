@@ -61,11 +61,14 @@ describe('CLI commands', () => {
       }),
     });
 
-    await program.parseAsync(['node', 'replypilot', 'config', 'show']);
+    try {
+      await program.parseAsync(['node', 'replypilot', 'config', 'show']);
 
-    expect(output.join('\n')).toContain('Saved configuration is invalid');
-    expect(process.exitCode).toBe(1);
-    process.exitCode = previousExitCode;
+      expect(output.join('\n')).toContain('Saved configuration is invalid');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 
   it('reports missing config on config show', async () => {
@@ -76,11 +79,14 @@ describe('CLI commands', () => {
       }),
     });
 
-    await program.parseAsync(['node', 'replypilot', 'config', 'show']);
+    try {
+      await program.parseAsync(['node', 'replypilot', 'config', 'show']);
 
-    expect(output.join('\n')).toContain('No saved configuration found');
-    expect(process.exitCode).toBe(1);
-    process.exitCode = previousExitCode;
+      expect(output.join('\n')).toContain('No saved configuration found');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 
   it('resets config after confirmation', async () => {

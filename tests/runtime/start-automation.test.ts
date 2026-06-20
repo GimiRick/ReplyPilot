@@ -71,6 +71,7 @@ describe('startAutomation', () => {
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = previousExitCode;
+      vi.restoreAllMocks();
     }
   });
 
@@ -92,6 +93,7 @@ describe('startAutomation', () => {
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = previousExitCode;
+      vi.restoreAllMocks();
     }
   });
 

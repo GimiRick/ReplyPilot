@@ -195,6 +195,36 @@ describe('runtime message processing', () => {
     );
   });
 
+  it('tracks metrics through ReplyAutomation handleIncomingMessage', async () => {
+    const sendMessage = vi.fn(async () => undefined);
+    const automation = new ReplyAutomation({
+      config: makeConfig({ automation: { debounceMs: 0 } }),
+      llmProvider: makeProvider('Metrics tracked'),
+      logger: makeLogger(),
+    });
+
+    const result = await automation.handleIncomingMessage(makeMessage({ id: 'm1', sendMessage }));
+
+    const snap = automation.getMetrics().snapshot();
+    expect(snap.messagesReceived).toBe(1);
+    expect(snap.messagesProcessed).toBe(1);
+    expect(result).toMatchObject({ status: 'sent' });
+  });
+
+  it('tracks ignored messages in metrics', async () => {
+    const automation = new ReplyAutomation({
+      config: makeConfig({ automation: { debounceMs: 0 } }),
+      llmProvider: makeProvider('ignored'),
+      logger: makeLogger(),
+    });
+
+    await automation.handleIncomingMessage(makeMessage({ id: 'm2', fromMe: true }));
+
+    const snap = automation.getMetrics().snapshot();
+    expect(snap.messagesReceived).toBe(1);
+    expect(snap.messagesIgnored).toBe(1);
+  });
+
   it('allows different chats to run concurrently up to the global limit', async () => {
     let active = 0;
     let maxActive = 0;

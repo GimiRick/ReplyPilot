@@ -5,6 +5,8 @@ import { type AudioData, type ChatContextMessage, type ImageData, type LlmProvid
 import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../whatsapp/filters';
 import { createLogger, type Logger } from './logger';
 import { MessageQueue } from './queue';
+import { HealthServer } from './health-server';
+import { MetricsCollector } from './metrics';
 
 type ChatBatch = {
   messages: RuntimeIncomingMessage[];
@@ -42,6 +44,7 @@ export type ReplyAutomationOptions = {
   logger?: Logger;
   queue?: MessageQueue;
   duplicateGuard?: DuplicateMessageGuard;
+  metrics?: MetricsCollector;
 };
 
 export class ReplyAutomation {
@@ -50,6 +53,7 @@ export class ReplyAutomation {
   private readonly logger: Logger;
   private readonly queue: MessageQueue;
   private readonly duplicateGuard: DuplicateMessageGuard;
+  private readonly metrics: MetricsCollector;
   private readonly activeBatches = new Map<string, ChatBatch>();
 
   constructor(options: ReplyAutomationOptions) {
@@ -58,12 +62,20 @@ export class ReplyAutomation {
     this.logger = options.logger ?? createLogger(options.config.logging.level);
     this.queue = options.queue ?? new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 });
     this.duplicateGuard = options.duplicateGuard ?? new DuplicateMessageGuard();
+    this.metrics = options.metrics ?? new MetricsCollector();
+  }
+
+  getMetrics(): MetricsCollector {
+    return this.metrics;
   }
 
   handleIncomingMessage(message: RuntimeIncomingMessage): Promise<AutomationResult> {
+    this.metrics.recordMessageReceived();
+
     const ignoreReason = getIgnoreReason(message, this.config);
 
     if (ignoreReason) {
+      this.metrics.recordMessageIgnored();
       this.logger.debug(
         { messageId: message.id, reason: ignoreReason },
         'Ignoring WhatsApp message',
@@ -72,6 +84,7 @@ export class ReplyAutomation {
     }
 
     if (!this.duplicateGuard.markIfNew(message.id)) {
+      this.metrics.recordMessageIgnored();
       this.logger.debug({ messageId: message.id }, 'Ignoring duplicate WhatsApp message');
       return Promise.resolve({ status: 'ignored', reason: 'duplicate' });
     }
@@ -102,7 +115,9 @@ export class ReplyAutomation {
             config: this.config,
             llmProvider: this.llmProvider,
             logger: this.logger,
+            metrics: this.metrics,
           }).catch((error) => {
+            this.metrics.recordMessageFailed();
             this.logger.error({ error, chatId }, 'Message processing failed');
             return { status: 'failed' as const, error };
           }),
@@ -124,7 +139,9 @@ export class ReplyAutomation {
           config: this.config,
           llmProvider: this.llmProvider,
           logger: this.logger,
+          metrics: this.metrics,
         }).catch((error) => {
+          this.metrics.recordMessageFailed();
           this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
           return { status: 'failed' as const, error };
         }),
@@ -141,8 +158,10 @@ export async function processIncomingMessageBatch(options: {
   config: AppConfig;
   llmProvider: LlmProvider;
   logger?: Pick<Logger, 'info'>;
+  metrics?: MetricsCollector;
 }): Promise<AutomationResult> {
-  const { config, llmProvider, logger } = options;
+  const batchStart = Date.now();
+  const { config, llmProvider, logger, metrics } = options;
   const messages = [...options.messages].sort((a, b) => a.timestamp - b.timestamp);
   
   if (messages.length === 0) {
@@ -167,29 +186,45 @@ export async function processIncomingMessageBatch(options: {
   const imageData = config.llm.visionSupport ? messages.find(m => m.imageData)?.imageData : undefined;
   const audioData = config.voiceNote?.mode === 'native_audio' ? messages.find(m => m.audioData)?.audioData : undefined;
 
-  const reply = await llmProvider.generateReply({
-    model: config.llm.modelName,
-    modelLabel: config.llm.modelLabel,
-    ownerStylePrompt: config.personality.ownerStylePrompt,
-    messages: context,
-    incomingMessage: combinedBody,
-    incomingMessageQuoted: quotedMessage,
-    imageData,
-    audioData,
-    isGroup: lastMessage.isGroup,
-    chatName: lastMessage.chatName,
-  });
+  const llmStart = Date.now();
+  let reply;
+  try {
+    reply = await llmProvider.generateReply({
+      model: config.llm.modelName,
+      modelLabel: config.llm.modelLabel,
+      ownerStylePrompt: config.personality.ownerStylePrompt,
+      messages: context,
+      incomingMessage: combinedBody,
+      incomingMessageQuoted: quotedMessage,
+      imageData,
+      audioData,
+      isGroup: lastMessage.isGroup,
+      chatName: lastMessage.chatName,
+    });
+    metrics?.recordLlmCall(Date.now() - llmStart);
+  } catch (error) {
+    metrics?.recordLlmError();
+    metrics?.recordProcessingTime(Date.now() - batchStart);
+    throw error;
+  }
 
   if (config.safety.dryRun) {
+    metrics?.recordMessageProcessed();
+    metrics?.recordProcessingTime(Date.now() - batchStart);
     logger?.info({ chatId: lastMessage.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
     return { status: 'dry-run', reply: reply.text };
   }
 
   await lastMessage.sendMessage(reply.text);
+  metrics?.recordMessageProcessed();
+  metrics?.recordProcessingTime(Date.now() - batchStart);
   return { status: 'sent', reply: reply.text };
 }
 
-export async function startAutomation(configOverrides?: PartialAppConfig): Promise<void> {
+export async function startAutomation(
+  configOverrides?: PartialAppConfig,
+  healthServerPort?: number,
+): Promise<void> {
   const storedConfig = loadConfig();
   const config = mergeAppConfig(storedConfig, configOverrides);
   const logger = createLogger(config.logging.level);
@@ -201,9 +236,21 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
     maxRetries: config.llm.maxRetries,
     logger,
   });
-  const automation = new ReplyAutomation({ config, llmProvider, logger });
+  const metrics = new MetricsCollector();
+  const automation = new ReplyAutomation({ config, llmProvider, logger, metrics });
   const { WhatsAppClientAdapter } = await import('../whatsapp/client');
   const whatsapp = new WhatsAppClientAdapter(config, logger);
+
+  let healthServer: HealthServer | undefined;
+  if (healthServerPort !== undefined) {
+    healthServer = new HealthServer({
+      port: healthServerPort,
+      host: '127.0.0.1',
+      metrics,
+    });
+    await healthServer.start();
+    logger.info({ port: healthServerPort }, 'Health server started');
+  }
 
   whatsapp.onMessage(async (message) => {
     await automation.handleIncomingMessage(message);
@@ -214,6 +261,9 @@ export async function startAutomation(configOverrides?: PartialAppConfig): Promi
     try {
       await automation.stop();
       await whatsapp.stop();
+      if (healthServer) {
+        await healthServer.stop();
+      }
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
     }

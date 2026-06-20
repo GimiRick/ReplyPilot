@@ -8,8 +8,8 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-157%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-97.21%25%20v8-brightgreen)](package.json)
+[![tests](https://img.shields.io/badge/tests-175%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![coverage](https://img.shields.io/badge/coverage-96.35%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
@@ -341,9 +341,11 @@ import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-repl
 import { oggToMp3 } from 'gimirick-replypilot';
 import { transcribeCloud, transcribeLocal } from 'gimirick-replypilot';
 
-// Queue & Logger
+// Queue, Logger & Metrics
 import { MessageQueue, type MessageQueueOptions } from 'gimirick-replypilot';
 import { createLogger, type Logger } from 'gimirick-replypilot';
+import { MetricsCollector, type MetricsSnapshot } from 'gimirick-replypilot';
+import { HealthServer, type HealthInfo, type HealthServerOptions } from 'gimirick-replypilot';
 
 // Errors
 import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot';
@@ -375,7 +377,11 @@ import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot
 │    ┌────────────────┐  ┌──────────────┐  ┌────────────────┐       │
 │    │ ReplyAutomation│  │ MessageQueue │  │ Logger (pino)  │       │
 │    │ (message flow) │  │ (p-queue)    │  │                │       │
-│    └───────┬────────┘  └──────────────┘  └────────────────┘       │
+│    ├────────────────┤  ├──────────────┤  ├────────────────┤       │
+│    │ Metrics        │  │ HealthServer │  │                │       │
+│    │ Collector      │  │ (/health,    │  │                │       │
+│    │ (counters)     │  │  /metrics)   │  │                │       │
+│    └────────────────┘  └──────────────┘  └────────────────┘       │
 └────────────┼──────────────────────────────────────────────────────┘
              │
        ┌─────┴─────────────────────────────────┐
@@ -525,6 +531,9 @@ replypilot start
        │       ├── register ready handler
        │       └── register disconnect handler
        ├── whatsapp.onMessage(handler)  register pipeline entry point
+       ├── if healthServerPort given:
+       │       └── new HealthServer({port, host: '127.0.0.1', metrics})
+       │           └── serve GET /health + /metrics
        ├── whatsapp.start()
        │       ├── client.on('message')  attach raw message listener
        │       └── client.initialize()   Puppeteer + QR scan
@@ -535,7 +544,7 @@ replypilot start
 
 | Layer | File | Role |
 | --- | --- | --- |
-| **CLI** | `cli.ts` | Commander program, 6 commands, dependency injection for testability |
+| **CLI** | `cli.ts` | Commander program, 8 commands, dependency injection for testability |
 | **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
 | **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
 | **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (3 providers + voice note flow) |
@@ -543,6 +552,8 @@ replypilot start
 | **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
 | **Runtime** | `logger.ts` | Pino logger with API key redaction |
 | **Runtime** | `errors.ts` | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.) |
+| **Runtime** | `metrics.ts` | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time |
+| **Runtime** | `health-server.ts` | `HealthServer` — optional HTTP endpoint (`:port/health`, `:port/metrics`) using Node.js built-in `http` |
 | **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
 | **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race |
 | **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |

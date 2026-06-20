@@ -70,6 +70,8 @@ export {
 } from './runtime/automation';
 export { createLogger, type Logger } from './runtime/logger';
 export { MessageQueue, type MessageQueueOptions } from './runtime/queue';
+export { MetricsCollector, type MetricsSnapshot } from './runtime/metrics';
+export { HealthServer, type HealthInfo, type HealthServerOptions } from './runtime/health-server';
 export {
   DuplicateMessageGuard,
   getIgnoreReason,

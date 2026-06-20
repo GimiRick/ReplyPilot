@@ -12,6 +12,21 @@ import { fetchChatContext, mediaTypeLabel } from './context';
 const require = createRequire(import.meta.url);
 const { Client, LocalAuth } = require('whatsapp-web.js') as typeof import('whatsapp-web.js');
 
+const CHROME_VERSION = '149.0.7827.115';
+
+function getPlatformUserAgent(): string {
+  switch (process.platform) {
+    case 'win32':
+      return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+    case 'darwin':
+      return `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+    case 'linux':
+      return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+    default:
+      return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+  }
+}
+
 export type WhatsAppMessageHandler = (message: RuntimeIncomingMessage) => void | Promise<void>;
 
 export class WhatsAppClientAdapter {
@@ -29,7 +44,7 @@ export class WhatsAppClientAdapter {
       }),
       puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', `--user-agent=${getPlatformUserAgent()}`],
       },
       webVersionCache: {
         type: 'none',
@@ -128,7 +143,7 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
   return {
     id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
-    body: (typeof message.body === 'string' ? message.body.trim() : message.body ?? '') || (message.hasMedia ? mediaTypeLabel(message.type) : ''),
+    body: (typeof message.body === 'string' ? message.body.trim() : '') || (message.hasMedia ? mediaTypeLabel(message.type) : ''),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),

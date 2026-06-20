@@ -35,6 +35,28 @@ npm i gimirick-replypilot
 
 ---
 
+## Dependencies
+
+ReplyPilot requires these runtime packages (auto-installed by `npm install`):
+
+| Package | Purpose |
+|---|---|
+| `whatsapp-web.js` | WhatsApp Web client library |
+| `openai` | OpenAI-compatible LLM provider client |
+| `commander` | CLI command parsing |
+| `@inquirer/prompts` | Interactive setup wizard |
+| `conf` | Persistent config storage |
+| `zod` | Config schema validation |
+| `p-queue` | Message queue with concurrency control |
+| `pino` | Structured logging |
+| `qrcode-terminal` | QR code display in terminal |
+
+Plus development tooling (TypeScript, Vitest, ESLint, Prettier, tsup, tsx) installed automatically as devDependencies.
+
+The only external requirement is a **local or remote OpenAI-compatible chat completions API** (LM Studio, Ollama, OpenAI, etc.).
+
+---
+
 ## Installation & Usage
 
 ### 1. NPM Global Install

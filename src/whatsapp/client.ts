@@ -104,17 +104,18 @@ export class WhatsAppClientAdapter {
 }
 
 async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIncomingMessage> {
-  const chatId = chat.id?._serialized ?? message.from;
+  const rawChatSerialized = chat.id?._serialized;
+  const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : message.from;
 
   let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
 
   if (message.hasQuotedMsg) {
     try {
       const quoted = await message.getQuotedMessage();
-      const quotedBody = quoted.body?.trim() || (quoted.hasMedia ? '[media]' : '');
+      const quotedBody = (typeof quoted.body === 'string' ? quoted.body.trim() : '') || (quoted.hasMedia ? '[media]' : '');
       if (quotedBody) {
         quotedMessage = {
-          id: quoted.id?._serialized,
+          id: typeof quoted.id?._serialized === 'string' ? quoted.id._serialized : undefined,
           body: quotedBody,
           fromMe: quoted.fromMe,
         };
@@ -125,9 +126,9 @@ async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIn
   }
 
   return {
-    id: message.id?._serialized ?? `${message.from}:${message.timestamp}:${message.body}`,
+    id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
-    body: message.body?.trim() || (message.hasMedia ? mediaTypeLabel(message.type) : message.body ?? ''),
+    body: (typeof message.body === 'string' ? message.body.trim() : message.body ?? '') || (message.hasMedia ? mediaTypeLabel(message.type) : ''),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),

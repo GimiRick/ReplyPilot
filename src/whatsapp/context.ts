@@ -18,6 +18,10 @@ export async function fetchChatContext(
   chat: WhatsAppRawChat,
   limit: number,
 ): Promise<ChatContextMessage[]> {
+  if (typeof chat.fetchMessages !== 'function') {
+    return [];
+  }
+
   const messages = await chat.fetchMessages({ limit });
   return normalizeChatMessages(messages).slice(-limit);
 }
@@ -63,7 +67,7 @@ export function normalizeChatMessage(message: WhatsAppRawMessage): ChatContextMe
 }
 
 function normalizeMessageBody(message: WhatsAppRawMessage): string | undefined {
-  const text = message.body?.trim();
+  const text = typeof message.body === 'string' ? message.body.trim() : undefined;
 
   if (text) {
     return text;

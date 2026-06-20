@@ -150,11 +150,14 @@ describe('transcribeCloud', () => {
       voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-test' },
     });
 
-    const promise = transcribeCloud('bXAzLWRhdGE=', config);
-    vi.runAllTimers();
+    try {
+      const promise = transcribeCloud('bXAzLWRhdGE=', config);
+      vi.runAllTimers();
 
-    await expect(promise).rejects.toThrow();
-    vi.useRealTimers();
+      await expect(promise).rejects.toThrow();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -257,10 +260,13 @@ describe('transcribeLocal', () => {
       voiceNote: { mode: 'whisper_local' },
     });
 
-    const promise = transcribeLocal('bXAzLWRhdGE=', config);
-    vi.runAllTimers();
+    try {
+      const promise = transcribeLocal('bXAzLWRhdGE=', config);
+      vi.runAllTimers();
 
-    await expect(promise).rejects.toThrow();
-    vi.useRealTimers();
+      await expect(promise).rejects.toThrow();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

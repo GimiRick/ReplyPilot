@@ -186,39 +186,40 @@ export async function processIncomingMessageBatch(options: {
   const imageData = config.llm.visionSupport ? messages.find(m => m.imageData)?.imageData : undefined;
   const audioData = config.voiceNote?.mode === 'native_audio' ? messages.find(m => m.audioData)?.audioData : undefined;
 
-  const llmStart = Date.now();
   let reply;
   try {
-    reply = await llmProvider.generateReply({
-      model: config.llm.modelName,
-      modelLabel: config.llm.modelLabel,
-      ownerStylePrompt: config.personality.ownerStylePrompt,
-      messages: context,
-      incomingMessage: combinedBody,
-      incomingMessageQuoted: quotedMessage,
-      imageData,
-      audioData,
-      isGroup: lastMessage.isGroup,
-      chatName: lastMessage.chatName,
-    });
-    metrics?.recordLlmCall(Date.now() - llmStart);
-  } catch (error) {
-    metrics?.recordLlmError();
-    metrics?.recordProcessingTime(Date.now() - batchStart);
-    throw error;
-  }
+    const llmStart = Date.now();
+    try {
+      reply = await llmProvider.generateReply({
+        model: config.llm.modelName,
+        modelLabel: config.llm.modelLabel,
+        ownerStylePrompt: config.personality.ownerStylePrompt,
+        messages: context,
+        incomingMessage: combinedBody,
+        incomingMessageQuoted: quotedMessage,
+        imageData,
+        audioData,
+        isGroup: lastMessage.isGroup,
+        chatName: lastMessage.chatName,
+      });
+      metrics?.recordLlmCall(Date.now() - llmStart);
+    } catch (error) {
+      metrics?.recordLlmError();
+      throw error;
+    }
 
-  if (config.safety.dryRun) {
+    if (config.safety.dryRun) {
+      metrics?.recordMessageProcessed();
+      logger?.info({ chatId: lastMessage.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
+      return { status: 'dry-run', reply: reply.text };
+    }
+
+    await lastMessage.sendMessage(reply.text);
     metrics?.recordMessageProcessed();
+    return { status: 'sent', reply: reply.text };
+  } finally {
     metrics?.recordProcessingTime(Date.now() - batchStart);
-    logger?.info({ chatId: lastMessage.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
-    return { status: 'dry-run', reply: reply.text };
   }
-
-  await lastMessage.sendMessage(reply.text);
-  metrics?.recordMessageProcessed();
-  metrics?.recordProcessingTime(Date.now() - batchStart);
-  return { status: 'sent', reply: reply.text };
 }
 
 export async function startAutomation(

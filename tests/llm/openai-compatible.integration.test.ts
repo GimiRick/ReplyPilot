@@ -58,18 +58,18 @@ describe('OpenAiCompatibleProvider HTTP integration', () => {
   }
 
   it('performs a full HTTP round-trip and returns cleaned reply text', async () => {
+    let requestMethod: string | undefined;
+    let requestUrl: string | undefined;
+    let requestBody: string | undefined;
+
     const port = await startServer((req, res) => {
-      expect(req.method).toBe('POST');
-      expect(req.url).toBe('/v1/chat/completions');
+      requestMethod = req.method;
+      requestUrl = req.url;
 
       let body = '';
       req.on('data', (chunk) => { body += chunk; });
       req.on('end', () => {
-        const parsed = JSON.parse(body);
-        expect(parsed.model).toBe('test-model');
-        expect(parsed.messages).toBeDefined();
-        expect(Array.isArray(parsed.messages)).toBe(true);
-
+        requestBody = body;
         jsonResponse(res, 200, {
           choices: [{ message: { content: 'Reply: Hello back.' } }],
         });
@@ -79,14 +79,22 @@ describe('OpenAiCompatibleProvider HTTP integration', () => {
     const provider = createProvider(port);
     const result = await provider.generateReply(makeInput());
 
+    expect(requestMethod).toBe('POST');
+    expect(requestUrl).toBe('/v1/chat/completions');
+    expect(requestBody).toBeDefined();
+    const parsed = JSON.parse(requestBody!);
+    expect(parsed.model).toBe('test-model');
+    expect(Array.isArray(parsed.messages)).toBe(true);
     expect(result.text).toBe('Hello back.');
     expect(result.provider).toBe('test-http');
     expect(result.model).toBe('test-model');
   });
 
   it('sends the correct Authorization header', async () => {
+    let authHeader: string | undefined;
+
     const port = await startServer((req, res) => {
-      expect(req.headers.authorization).toBe('Bearer test-key');
+      authHeader = req.headers.authorization;
       jsonResponse(res, 200, {
         choices: [{ message: { content: 'OK' } }],
       });
@@ -94,6 +102,8 @@ describe('OpenAiCompatibleProvider HTTP integration', () => {
 
     const provider = createProvider(port);
     await provider.generateReply(makeInput());
+
+    expect(authHeader).toBe('Bearer test-key');
   });
 
   it('throws ProviderResponseError when choices array is empty', async () => {

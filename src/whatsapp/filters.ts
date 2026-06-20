@@ -6,6 +6,7 @@ export type FilterableWhatsAppMessage = {
   fromMe?: boolean;
   isGroup?: boolean;
   isBroadcast?: boolean;
+  hasMedia?: boolean;
 };
 
 export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate';
@@ -18,7 +19,7 @@ export function getIgnoreReason(
     return 'self';
   }
 
-  if (!message.body?.trim()) {
+  if (!message.body?.trim() && !message.hasMedia) {
     return 'empty';
   }
 

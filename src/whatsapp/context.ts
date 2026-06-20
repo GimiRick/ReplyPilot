@@ -6,6 +6,8 @@ export type WhatsAppRawMessage = {
   body?: string;
   hasMedia?: boolean;
   timestamp?: number;
+  type?: string;
+  author?: string;
 };
 
 export type WhatsAppRawChat = {
@@ -56,6 +58,7 @@ export function normalizeChatMessage(message: WhatsAppRawMessage): ChatContextMe
     direction: message.fromMe ? 'owner' : 'contact',
     body,
     timestamp: message.timestamp,
+    authorName: message.author ?? undefined,
   };
 }
 
@@ -66,7 +69,32 @@ function normalizeMessageBody(message: WhatsAppRawMessage): string | undefined {
     return text;
   }
 
-  return message.hasMedia ? '[media message]' : undefined;
+  if (message.hasMedia) {
+    return mediaTypeLabel(message.type);
+  }
+
+  return undefined;
+}
+
+export function mediaTypeLabel(type?: string): string {
+  switch (type) {
+    case 'image':
+      return '[image]';
+    case 'video':
+      return '[video]';
+    case 'audio':
+      return '[audio]';
+    case 'document':
+      return '[document]';
+    case 'sticker':
+      return '[sticker]';
+    case 'location':
+      return '[location]';
+    case 'vcard':
+      return '[contact card]';
+    default:
+      return '[media message]';
+  }
 }
 
 function normalizeMessageId(id: WhatsAppRawMessage['id']): string | undefined {

@@ -3,6 +3,7 @@ export type ChatContextMessage = {
   direction: 'owner' | 'contact';
   body: string;
   timestamp?: number;
+  authorName?: string;
 };
 
 export type GenerateReplyInput = {
@@ -11,6 +12,9 @@ export type GenerateReplyInput = {
   ownerStylePrompt: string;
   messages: ChatContextMessage[];
   incomingMessage: string;
+  incomingMessageQuoted?: { body: string; direction: 'owner' | 'contact' };
+  isGroup?: boolean;
+  chatName?: string;
 };
 
 export type GenerateReplyResult = {

@@ -24,7 +24,7 @@ describe('prompt builder', () => {
     });
 
     expect(prompt[0].content).toContain('Use a friendly Hinglish tone.');
-    expect(prompt[1].content).toContain('Incoming contact message: Cool, 7 pm?');
+    expect(prompt[1].content).toContain('Incoming message: Cool, 7 pm?');
   });
 
   it('marks owner and contact direction', () => {
@@ -55,5 +55,43 @@ describe('prompt builder', () => {
     expect(cleanGeneratedReply('owner: "assistant: Sure, sounds good."')).toBe(
       'Sure, sounds good.',
     );
+  });
+
+  it('includes quoted message context when replying to a previous message', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Friendly tone.',
+      messages: [{ direction: 'contact', body: 'Can we meet tomorrow?' }],
+      incomingMessage: 'Sure, 10am works.',
+      incomingMessageQuoted: { body: 'Can we meet tomorrow?', direction: 'owner' },
+    });
+
+    expect(prompt[1].content).toContain('is a reply to a message from the owner');
+    expect(prompt[1].content).toContain('Can we meet tomorrow?');
+    expect(prompt[1].content).toContain('Sure, 10am works.');
+  });
+
+  it('includes chat name in prompt when provided', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Short replies.',
+      messages: [],
+      incomingMessage: 'Hello!',
+      chatName: 'Family Group',
+    });
+
+    expect(prompt[1].content).toContain('Chat: Family Group');
+  });
+
+  it('includes author name in context when provided', () => {
+    const context = formatChatContext([
+      { direction: 'owner', body: 'On my way' },
+      { direction: 'contact', body: 'Hurry up!', authorName: 'Alice' },
+    ]);
+
+    expect(context).toContain('owner: On my way');
+    expect(context).toContain('contact (Alice): Hurry up!');
   });
 });

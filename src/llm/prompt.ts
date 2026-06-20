@@ -8,6 +8,31 @@ export type PromptMessage = {
 export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
   const contextBlock = formatChatContext(input.messages);
 
+  const userParts: string[] = [
+    `Model label: ${input.modelLabel}`,
+  ];
+
+  if (input.chatName) {
+    userParts.push(`Chat: ${input.chatName}`);
+  }
+
+  userParts.push('Recent chat history, oldest to newest:');
+  userParts.push(contextBlock);
+  userParts.push('');
+
+  if (input.incomingMessageQuoted) {
+    const sender = input.incomingMessageQuoted.direction === 'owner' ? 'the owner' : 'the contact';
+    userParts.push(
+      `The incoming message is a reply to a message from ${sender}: "${normalizeInlineText(input.incomingMessageQuoted.body)}"`,
+    );
+    userParts.push('');
+  }
+
+  const msgLabel = input.isGroup ? 'Incoming group message' : 'Incoming message';
+  userParts.push(`${msgLabel}: ${normalizeInlineText(input.incomingMessage)}`);
+  userParts.push('');
+  userParts.push('Write only the next WhatsApp reply from the owner. Do not prefix it with a label.');
+
   return [
     {
       role: 'system',
@@ -24,15 +49,7 @@ export function buildReplyPrompt(input: GenerateReplyInput): PromptMessage[] {
     },
     {
       role: 'user',
-      content: [
-        `Model label: ${input.modelLabel}`,
-        'Recent chat history, oldest to newest:',
-        contextBlock,
-        '',
-        `Incoming contact message: ${normalizeInlineText(input.incomingMessage)}`,
-        '',
-        'Write only the next WhatsApp reply from the owner. Do not prefix it with a label.',
-      ].join('\n'),
+      content: userParts.join('\n'),
     },
   ];
 }
@@ -44,8 +61,15 @@ export function formatChatContext(messages: ChatContextMessage[]): string {
 
   return messages
     .map((message) => {
-      const direction = message.direction === 'owner' ? 'owner' : 'contact';
-      return `${direction}: ${normalizeInlineText(message.body)}`;
+      let label: string;
+      if (message.direction === 'owner') {
+        label = 'owner';
+      } else if (message.authorName) {
+        label = `contact (${message.authorName})`;
+      } else {
+        label = 'contact';
+      }
+      return `${label}: ${normalizeInlineText(message.body)}`;
     })
     .join('\n');
 }

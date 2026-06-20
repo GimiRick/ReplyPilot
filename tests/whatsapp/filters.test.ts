@@ -42,6 +42,12 @@ describe('WhatsApp message filters', () => {
     expect(shouldProcessMessage({ id: '1', body: 'hello' }, makeConfig())).toBe(true);
   });
 
+  it('processes media-only messages without text body', () => {
+    expect(
+      shouldProcessMessage({ id: '1', body: '', hasMedia: true }, makeConfig()),
+    ).toBe(true);
+  });
+
   it('guards duplicate message IDs', () => {
     const guard = new DuplicateMessageGuard();
 

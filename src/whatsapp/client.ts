@@ -7,7 +7,7 @@ import { type AppConfig } from '../config/schema';
 import { getWhatsAppSessionDir } from '../config/store';
 import { type RuntimeIncomingMessage } from '../runtime/automation';
 import { type Logger } from '../runtime/logger';
-import { fetchChatContext } from './context';
+import { fetchChatContext, mediaTypeLabel } from './context';
 
 const require = createRequire(import.meta.url);
 const { Client, LocalAuth } = require('whatsapp-web.js') as typeof import('whatsapp-web.js');
@@ -99,22 +99,44 @@ export class WhatsAppClientAdapter {
       return;
     }
 
-    await this.messageHandler(toRuntimeMessage(message, chat));
+    await this.messageHandler(await toRuntimeMessage(message, chat));
   }
 }
 
-function toRuntimeMessage(message: Message, chat: Chat): RuntimeIncomingMessage {
+async function toRuntimeMessage(message: Message, chat: Chat): Promise<RuntimeIncomingMessage> {
   const chatId = chat.id?._serialized ?? message.from;
+
+  let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
+
+  if (message.hasQuotedMsg) {
+    try {
+      const quoted = await message.getQuotedMessage();
+      const quotedBody = quoted.body?.trim() || (quoted.hasMedia ? '[media]' : '');
+      if (quotedBody) {
+        quotedMessage = {
+          id: quoted.id?._serialized,
+          body: quotedBody,
+          fromMe: quoted.fromMe,
+        };
+      }
+    } catch {
+      // quoted message fetch failed, continue without it
+    }
+  }
 
   return {
     id: message.id?._serialized ?? `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
-    body: message.body ?? '',
+    body: message.body?.trim() || (message.hasMedia ? mediaTypeLabel(message.type) : message.body ?? ''),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),
+    hasMedia: message.hasMedia,
+    messageType: message.type,
+    quotedMessage,
+    chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
-    sendMessage: (text) => chat.sendMessage(text).then(() => undefined),
+    sendMessage: (text) => message.reply(text).then(() => undefined),
   };
 }
 

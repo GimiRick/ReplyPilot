@@ -32,14 +32,28 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorRepo
       : `Node ${process.versions.node} is not supported. Use Node >=22.13.0.`,
   });
 
-  const config = options.config === undefined ? tryLoadConfig() : options.config;
+  let config: AppConfig | undefined | null;
+  let configLoadFailed = false;
+
+  try {
+    config = options.config === undefined ? tryLoadConfig() : options.config;
+  } catch {
+    config = null;
+    configLoadFailed = true;
+  }
 
   if (!config) {
     checks.push({
       name: 'Config',
-      status: 'warn',
-      message: 'No saved config found. Run replypilot setup.',
+      status: configLoadFailed ? 'fail' : 'warn',
+      message: configLoadFailed
+        ? 'Saved config is invalid. Run replypilot setup to replace it.'
+        : 'No saved config found. Run replypilot setup.',
     });
+
+    if (configLoadFailed) {
+      return { ok: false, checks };
+    }
 
     return {
       ok: checks.every((check) => check.status !== 'fail'),

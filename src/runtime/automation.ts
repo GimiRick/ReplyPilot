@@ -13,6 +13,10 @@ export type RuntimeIncomingMessage = {
   fromMe?: boolean;
   isGroup?: boolean;
   isBroadcast?: boolean;
+  hasMedia?: boolean;
+  messageType?: string;
+  quotedMessage?: { id?: string; body: string; fromMe?: boolean };
+  chatName?: string;
   fetchContext(limit: number): Promise<ChatContextMessage[]>;
   sendMessage(text: string): Promise<void>;
 };
@@ -63,19 +67,17 @@ export class ReplyAutomation {
       return Promise.resolve({ status: 'ignored', reason: 'duplicate' });
     }
 
-    return this.queue.add(message.chatId, async () => {
-      try {
-        return await processIncomingMessage({
-          message,
-          config: this.config,
-          llmProvider: this.llmProvider,
-          logger: this.logger,
-        });
-      } catch (error) {
+    return this.queue.add(message.chatId, () =>
+      processIncomingMessage({
+        message,
+        config: this.config,
+        llmProvider: this.llmProvider,
+        logger: this.logger,
+      }).catch((error) => {
         this.logger.error({ error, messageId: message.id }, 'Message processing failed');
         return { status: 'failed', error };
-      }
-    });
+      }),
+    );
   }
 }
 
@@ -87,12 +89,23 @@ export async function processIncomingMessage(options: {
 }): Promise<AutomationResult> {
   const { message, config, llmProvider, logger } = options;
   const context = await message.fetchContext(config.context.messageCount);
+
+  const quotedMessage = message.quotedMessage
+    ? {
+        body: message.quotedMessage.body,
+        direction: message.quotedMessage.fromMe === true ? 'owner' as const : 'contact' as const,
+      }
+    : undefined;
+
   const reply = await llmProvider.generateReply({
     model: config.llm.modelName,
     modelLabel: config.llm.modelLabel,
     ownerStylePrompt: config.personality.ownerStylePrompt,
     messages: context,
     incomingMessage: message.body,
+    incomingMessageQuoted: quotedMessage,
+    isGroup: message.isGroup,
+    chatName: message.chatName,
   });
 
   if (config.safety.dryRun) {

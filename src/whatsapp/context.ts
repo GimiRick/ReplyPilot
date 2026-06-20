@@ -57,12 +57,17 @@ export function normalizeChatMessage(message: WhatsAppRawMessage): ChatContextMe
     return undefined;
   }
 
+  let authorName = message.author;
+  if (authorName) {
+    authorName = authorName.replace(/@(c\.us|g\.us)$/, '');
+  }
+
   return {
     id: normalizeMessageId(message.id),
     direction: message.fromMe ? 'owner' : 'contact',
     body,
     timestamp: message.timestamp,
-    authorName: message.author ?? undefined,
+    authorName,
   };
 }
 

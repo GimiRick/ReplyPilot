@@ -16,10 +16,19 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
     ], { stdio: ['pipe', 'pipe', 'ignore'] });
 
     const chunks: Buffer[] = [];
+    let settled = false;
+
+    const settle = (fn: () => void) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        fn();
+      }
+    };
 
     const timer = setTimeout(() => {
       ffmpeg.kill('SIGTERM');
-      reject(new Error('ffmpeg timed out'));
+      settle(() => reject(new Error('ffmpeg timed out')));
     }, FFMPEG_TIMEOUT_MS);
 
     ffmpeg.stdout.on('data', (chunk: Buffer) => {
@@ -27,22 +36,23 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
     });
 
     ffmpeg.stdout.on('end', () => {
-      clearTimeout(timer);
-      resolve(Buffer.concat(chunks));
+      // stdout closed — wait for exit event to settle
     });
 
     ffmpeg.on('error', (err) => {
-      clearTimeout(timer);
-      reject(new Error(`ffmpeg spawn failed: ${err.message}`));
+      settle(() => reject(new Error(`ffmpeg spawn failed: ${err.message}`)));
     });
 
     ffmpeg.on('exit', (code, signal) => {
-      clearTimeout(timer);
-      if (code === null) {
-        reject(new Error(`ffmpeg was killed by signal ${signal}`));
-      } else if (code !== 0) {
-        reject(new Error(`ffmpeg exited with code ${code}`));
-      }
+      settle(() => {
+        if (code === null) {
+          reject(new Error(`ffmpeg was killed by signal ${signal}`));
+        } else if (code !== 0) {
+          reject(new Error(`ffmpeg exited with code ${code}`));
+        } else {
+          resolve(Buffer.concat(chunks));
+        }
+      });
     });
 
     ffmpeg.stdin.write(oggBuffer);

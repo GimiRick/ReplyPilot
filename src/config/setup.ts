@@ -211,10 +211,10 @@ export async function promptForConfig(
 
     if (mode === 'whisper_cloud') {
       whisperBaseUrl = await prompts.input({
-        message: 'Whisper base URL',
+        message: 'Whisper base URL (leave empty to use LLM base URL)',
         validate: (value) => {
           if (!value.trim()) {
-            return 'Base URL is required';
+            return true;
           }
           try {
             new URL(value.trim());
@@ -225,9 +225,8 @@ export async function promptForConfig(
         },
       });
       whisperApiKey = await prompts.password({
-        message: 'Whisper API key',
+        message: 'Whisper API key (leave empty to use LLM API key)',
         mask: '*',
-        validate: (value) => (value.trim() ? true : 'API key is required'),
       });
       whisperModel = await prompts.select({
         message: 'Whisper model',
@@ -271,10 +270,10 @@ export async function promptForConfig(
     modelLabel,
     visionSupport,
     voiceNoteMode,
-    whisperBaseUrl,
-    whisperApiKey,
-    whisperModel,
-    localWhisperUrl,
+    whisperBaseUrl: whisperBaseUrl?.trim() || undefined,
+    whisperApiKey: whisperApiKey?.trim() || undefined,
+    whisperModel: whisperModel?.trim() || undefined,
+    localWhisperUrl: localWhisperUrl?.trim() || undefined,
     messageCount,
     ownerStylePrompt,
     dryRun,

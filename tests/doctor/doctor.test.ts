@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   checkProviderReachability,
@@ -77,6 +77,24 @@ describe('doctor checks', () => {
     await expect(checkProviderReachability(makeConfig())).resolves.toBe(false);
 
     globalThis.fetch = originalFetch;
+  });
+
+  it('handles tryLoadConfig throwing an error', async () => {
+    const storeModule = await import('../../src/config/store');
+    const spy = vi.spyOn(storeModule, 'tryLoadConfig').mockImplementation(() => {
+      throw new Error('corrupted');
+    });
+
+    try {
+      const report = await runDoctor();
+
+      expect(report.ok).toBe(false);
+      expect(report.checks.some(
+        (c) => c.name === 'Config' && c.status === 'fail',
+      )).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('formats failure icons', () => {

@@ -56,6 +56,21 @@ describe('WhatsApp chat context', () => {
     ).toEqual(['third', 'first', 'second']);
   });
 
+  it.each([
+    ['image', '[image]'],
+    ['video', '[video]'],
+    ['audio', '[audio]'],
+    ['document', '[document]'],
+    ['sticker', '[sticker]'],
+    ['location', '[location]'],
+    ['vcard', '[contact card]'],
+    ['unknown', '[media message]'],
+  ])('labels media type %s as %s', (type, expected) => {
+    expect(
+      normalizeChatMessage({ id: 'm1', hasMedia: true, type })?.body,
+    ).toBe(expected);
+  });
+
   it('drops empty non-media messages', () => {
     expect(normalizeChatMessage({ id: 'm1', body: '   ' })).toBeUndefined();
   });

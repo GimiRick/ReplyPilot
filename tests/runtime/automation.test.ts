@@ -59,6 +59,22 @@ describe('runtime message processing', () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
+  it('ignores self messages before queueing', async () => {
+    const sendMessage = vi.fn(async () => undefined);
+    const automation = new ReplyAutomation({
+      config: makeConfig(),
+      llmProvider: makeProvider('Reply'),
+      logger: makeLogger(),
+    });
+
+    const result = await automation.handleIncomingMessage(
+      makeMessage({ fromMe: true, sendMessage }),
+    );
+
+    expect(result).toEqual({ status: 'ignored', reason: 'self' });
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
   it('ignores duplicate messages before queueing', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const automation = new ReplyAutomation({

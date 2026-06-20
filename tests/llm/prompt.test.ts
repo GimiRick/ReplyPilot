@@ -85,6 +85,36 @@ describe('prompt builder', () => {
     expect(prompt[1].content).toContain('Chat: Family Group');
   });
 
+  it('labels group messages differently', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Short replies.',
+      messages: [],
+      incomingMessage: 'Hello everyone!',
+      isGroup: true,
+    });
+
+    expect(prompt[1].content).toContain('Incoming group message');
+  });
+
+  it('shows contact direction for quoted message from contact', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Friendly tone.',
+      messages: [],
+      incomingMessage: 'Sure.',
+      incomingMessageQuoted: { body: 'Are you free?', direction: 'contact' },
+    });
+
+    expect(prompt[1].content).toContain('is a reply to a message from the contact');
+  });
+
+  it('cleans single-quoted replies', () => {
+    expect(cleanGeneratedReply("'Reply: See you.'")).toBe('See you.');
+  });
+
   it('includes author name in context when provided', () => {
     const context = formatChatContext([
       { direction: 'owner', body: 'On my way' },

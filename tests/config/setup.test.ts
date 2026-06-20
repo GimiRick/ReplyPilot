@@ -239,8 +239,8 @@ describe('setup wizard config creation', () => {
       'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
     ]);
     await promptForConfig(prompts);
-    const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name');
-    const customModelOptions = customModelCall![0] as { validate?: (value: string) => true | string };
+    const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name')!;
+    const customModelOptions = customModelCall[0]! as { validate: (value: string) => true | string };
     expect(customModelOptions.validate('')).toBe('Model name is required');
     expect(customModelOptions.validate('my-model')).toBe(true);
   });
@@ -250,8 +250,8 @@ describe('setup wizard config creation', () => {
       'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
     ]);
     await promptForConfig(prompts);
-    const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL');
-    const localUrlOptions = localUrlCall![0] as { validate?: (value: string) => true | string };
+    const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL')!;
+    const localUrlOptions = localUrlCall[0]! as { validate: (value: string) => true | string };
     expect(localUrlOptions.validate('')).toBe('URL is required');
     expect(localUrlOptions.validate('not-a-url')).toBe('Local Whisper URL must be a valid URL');
     expect(localUrlOptions.validate('http://localhost:9000')).toBe(true);

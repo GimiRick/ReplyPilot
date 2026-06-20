@@ -127,6 +127,28 @@ describe('CLI commands', () => {
 
     expect(output.join('\n')).toContain('[pass] Node.js');
   });
+
+  it('clears cache after confirmation', async () => {
+    const { program, output, deps } = makeProgram({
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'cache']);
+
+    expect(deps.removeWhatsAppCacheData).toHaveBeenCalled();
+    expect(output).toContain('WhatsApp web client cache removed.');
+  });
+
+  it('keeps cache when clear is cancelled', async () => {
+    const { program, output, deps } = makeProgram({
+      confirm: vi.fn(async () => false),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'cache']);
+
+    expect(deps.removeWhatsAppCacheData).not.toHaveBeenCalled();
+    expect(output).toContain('Cache clear cancelled.');
+  });
 });
 
 function makeProgram(overrides: Partial<CliDependencies> = {}) {
@@ -137,6 +159,7 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
     loadConfig: vi.fn(() => makeConfig()),
     deleteConfig: vi.fn(),
     removeWhatsAppSessionData: vi.fn(),
+    removeWhatsAppCacheData: vi.fn(),
     runDoctor: vi.fn(async () => ({
       ok: true,
       checks: [{ name: 'Node.js', status: 'pass' as const, message: 'Node is supported.' }],

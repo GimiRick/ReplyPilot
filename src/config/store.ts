@@ -74,3 +74,11 @@ export function getWhatsAppSessionDir(store: ReplyPilotConfigStore = getConfigSt
 export function removeWhatsAppSessionData(store: ReplyPilotConfigStore = getConfigStore()): void {
   fs.rmSync(getWhatsAppSessionDir(store), { recursive: true, force: true });
 }
+
+export function getWhatsAppCacheDir(): string {
+  return path.join(process.cwd(), '.wwebjs_cache');
+}
+
+export function removeWhatsAppCacheData(): void {
+  fs.rmSync(getWhatsAppCacheDir(), { recursive: true, force: true });
+}

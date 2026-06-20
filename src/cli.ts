@@ -8,7 +8,7 @@ import { Command } from 'commander';
 import { formatDoctorReport, runDoctor } from './doctor/doctor';
 import { startAutomation } from './runtime/automation';
 import { ConfigValidationError, MissingConfigError } from './runtime/errors';
-import { deleteConfig, loadConfig, removeWhatsAppSessionData } from './config/store';
+import { deleteConfig, loadConfig, removeWhatsAppCacheData, removeWhatsAppSessionData } from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
 
@@ -18,6 +18,7 @@ export type CliDependencies = {
   loadConfig: typeof loadConfig;
   deleteConfig: typeof deleteConfig;
   removeWhatsAppSessionData: typeof removeWhatsAppSessionData;
+  removeWhatsAppCacheData: typeof removeWhatsAppCacheData;
   runDoctor: typeof runDoctor;
   confirm: typeof confirm;
   output: (message: string) => void;
@@ -31,6 +32,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     loadConfig,
     deleteConfig,
     removeWhatsAppSessionData,
+    removeWhatsAppCacheData,
     runDoctor,
     confirm,
     output: (message) => console.log(message),
@@ -154,6 +156,24 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
 
       deps.removeWhatsAppSessionData();
       deps.output('WhatsApp session data removed.');
+    });
+
+  program
+    .command('cache')
+    .description('Remove the WhatsApp web client cache (.wwebjs_cache) from the current directory.')
+    .action(async () => {
+      const shouldClear = await deps.confirm({
+        message: 'Remove WhatsApp web client cache (.wwebjs_cache)?',
+        default: false,
+      });
+
+      if (!shouldClear) {
+        deps.output('Cache clear cancelled.');
+        return;
+      }
+
+      deps.removeWhatsAppCacheData();
+      deps.output('WhatsApp web client cache removed.');
     });
 
   return program;

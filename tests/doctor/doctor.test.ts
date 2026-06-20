@@ -1,4 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { execSync } from 'node:child_process';
+
+vi.mock('node:child_process', () => ({
+  execSync: vi.fn(() => Buffer.from('')),
+}));
 
 import {
   checkProviderReachability,
@@ -140,6 +145,37 @@ describe('doctor checks', () => {
     });
 
     expect(report.checks.some((c) => c.name === 'FFmpeg')).toBe(false);
+  });
+
+  it('reports warning when ffmpeg is not installed', async () => {
+    vi.mocked(execSync).mockImplementationOnce(() => { throw new Error('not found'); });
+
+    const report = await runDoctor({
+      config: makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperModel: 'whisper-1' } }),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => true,
+    });
+
+    const ffmpegCheck = report.checks.find((c) => c.name === 'FFmpeg');
+    expect(ffmpegCheck?.status).toBe('warn');
+    expect(ffmpegCheck?.message).toContain('ffmpeg not found');
+  });
+
+  it('uses default providerReachabilityCheck when omitted', async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async () => ({ ok: true })) as unknown as typeof fetch;
+    globalThis.fetch = fetchMock;
+
+    const storeModule = await import('../../src/config/store');
+    const spyStore = vi.spyOn(storeModule, 'tryLoadConfig').mockReturnValue(makeConfig());
+
+    try {
+      const report = await runDoctor({ nodeVersionCheck: () => true });
+      expect(report.checks.find(c => c.name === 'Provider')?.status).toBe('pass');
+    } finally {
+      globalThis.fetch = originalFetch;
+      spyStore.mockRestore();
+    }
   });
 
   it('formats failure icons', () => {

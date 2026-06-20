@@ -51,6 +51,32 @@ describe('transcribeCloud', () => {
     expect(result).toBe('transcribed');
   });
 
+  it('falls back to llm apiKey when whisperApiKey is not set', async () => {
+    const jsonResponse = { text: 'transcribed' };
+    const mockFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => jsonResponse,
+    }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const config = makeConfig({
+      llm: { apiKey: 'sk-llm-key' },
+      voiceNote: { mode: 'whisper_cloud' },
+    });
+    
+    // delete so it must fall back
+    delete config.voiceNote!.whisperApiKey;
+    
+    await transcribeCloud('bXAzLWRhdGE=', config);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer sk-llm-key' },
+      }),
+    );
+  });
+
   it('throws on non-ok response', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: false,
@@ -112,6 +138,23 @@ describe('transcribeCloud', () => {
     });
 
     await expect(transcribeCloud('bXAzLWRhdGE=', config)).rejects.toThrow('Network failure');
+  });
+
+  it('aborts on timeout', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(async (url, init) => new Promise((_, reject) => {
+      init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
+    })));
+
+    const config = makeConfig({
+      voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-test' },
+    });
+
+    const promise = transcribeCloud('bXAzLWRhdGE=', config);
+    vi.runAllTimers();
+
+    await expect(promise).rejects.toThrow();
+    vi.useRealTimers();
   });
 });
 
@@ -202,5 +245,22 @@ describe('transcribeLocal', () => {
     });
 
     await transcribeLocal('bXAzLWRhdGE=', config);
+  });
+
+  it('aborts on timeout', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(async (url, init) => new Promise((_, reject) => {
+      init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
+    })));
+
+    const config = makeConfig({
+      voiceNote: { mode: 'whisper_local' },
+    });
+
+    const promise = transcribeLocal('bXAzLWRhdGE=', config);
+    vi.runAllTimers();
+
+    await expect(promise).rejects.toThrow();
+    vi.useRealTimers();
   });
 });

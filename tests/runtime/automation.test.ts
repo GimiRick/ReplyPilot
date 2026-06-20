@@ -24,6 +24,15 @@ describe('runtime message processing', () => {
     expect(sendMessage).toHaveBeenCalledWith('Sure, see you.');
   });
 
+  it('returns ignored when batch is empty', async () => {
+    const result = await processIncomingMessageBatch({
+      messages: [],
+      config: makeConfig(),
+      llmProvider: makeProvider(''),
+    });
+    expect(result).toEqual({ status: 'ignored', reason: 'empty' });
+  });
+
   it('dry-run logs generated reply and does not send', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const logger = { info: vi.fn() };
@@ -43,7 +52,7 @@ describe('runtime message processing', () => {
   it('does not call WhatsApp when the provider fails', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: {
         generateReply: vi.fn(async () => {
           throw new Error('provider down');
@@ -52,8 +61,6 @@ describe('runtime message processing', () => {
       logger: makeLogger(),
       queue: new MessageQueue(),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     const result = await automation.handleIncomingMessage(makeMessage({ sendMessage }));
 
@@ -64,12 +71,10 @@ describe('runtime message processing', () => {
   it('ignores self messages before queueing', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: makeProvider('Reply'),
       logger: makeLogger(),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     const result = await automation.handleIncomingMessage(
       makeMessage({ fromMe: true, sendMessage }),
@@ -82,12 +87,10 @@ describe('runtime message processing', () => {
   it('ignores duplicate messages before queueing', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: makeProvider('Reply'),
       logger: makeLogger(),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     await automation.handleIncomingMessage(makeMessage({ id: 'same', sendMessage }));
     const duplicate = await automation.handleIncomingMessage(
@@ -109,13 +112,11 @@ describe('runtime message processing', () => {
       }),
     };
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: provider,
       logger: makeLogger(),
       queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     await Promise.all([
       automation.handleIncomingMessage(makeMessage({ id: '1', body: 'one', chatId: 'chat-a' })),
@@ -134,13 +135,11 @@ describe('runtime message processing', () => {
       }),
     };
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: provider,
       logger: makeLogger(),
       queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     // Simulate arriving out-of-order due to async parsing:
     // Message 'two' (timestamp 200) arrives to `handleIncomingMessage` FIRST.
@@ -209,13 +208,11 @@ describe('runtime message processing', () => {
       }),
     };
     const automation = new ReplyAutomation({
-      config: makeConfig(),
+      config: makeConfig({ automation: { debounceMs: 0 } }),
       llmProvider: provider,
       logger: makeLogger(),
       queue: new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 }),
     });
-    
-    automation['config'].automation.debounceMs = 0;
 
     await Promise.all([
       automation.handleIncomingMessage(makeMessage({ id: '1', body: 'one', chatId: 'chat-a' })),

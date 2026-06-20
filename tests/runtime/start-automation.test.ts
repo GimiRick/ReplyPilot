@@ -18,6 +18,14 @@ vi.mock('../../src/whatsapp/client', () => ({
   WhatsAppClientAdapter: mocks.WhatsAppClientAdapter,
 }));
 
+vi.mock('../../src/llm/openai-compatible', () => ({
+  OpenAiCompatibleProvider: vi.fn(function OpenAiCompatibleProviderMock() {
+    return {
+      generateReply: vi.fn().mockResolvedValue({ text: 'mocked', provider: 'test', model: 'test' }),
+    };
+  }),
+}));
+
 describe('startAutomation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,5 +93,85 @@ describe('startAutomation', () => {
     } finally {
       process.exitCode = previousExitCode;
     }
+  });
+
+  it('registers graceful shutdown handler and calls stop on client', async () => {
+    const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
+    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+
+    const stopMock = vi.fn().mockResolvedValue(undefined);
+    mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
+      return {
+        onMessage: mocks.onMessage,
+        start: mocks.start,
+        stop: stopMock,
+      };
+    });
+
+    const { startAutomation } = await import('../../src/runtime/automation');
+    
+    try {
+      await startAutomation();
+      
+      const sigintCall = processOn.mock.calls.find(c => c[0] === 'SIGINT');
+      expect(sigintCall).toBeDefined();
+      
+      const shutdown = sigintCall![1] as () => Promise<void>;
+      await shutdown();
+      
+      expect(stopMock).toHaveBeenCalled();
+      expect(processExit).toHaveBeenCalledWith(0);
+    } finally {
+      processOn.mockRestore();
+      processExit.mockRestore();
+    }
+  });
+
+  it('handles errors during graceful shutdown', async () => {
+    const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
+    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+
+    const stopMock = vi.fn().mockRejectedValue(new Error('stop failed'));
+    mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
+      return {
+        onMessage: mocks.onMessage,
+        start: mocks.start,
+        stop: stopMock,
+      };
+    });
+
+    const { startAutomation } = await import('../../src/runtime/automation');
+    
+    try {
+      await startAutomation();
+      
+      const sigintCall = processOn.mock.calls.find(c => c[0] === 'SIGINT');
+      const shutdown = sigintCall![1] as () => Promise<void>;
+      await shutdown();
+      
+      expect(stopMock).toHaveBeenCalled();
+      expect(processExit).toHaveBeenCalledWith(0);
+    } finally {
+      processOn.mockRestore();
+      processExit.mockRestore();
+    }
+  });
+
+  it('passes messages from whatsapp to automation handler', async () => {
+    const { startAutomation } = await import('../../src/runtime/automation');
+    await startAutomation({ automation: { debounceMs: 0 } });
+    
+    const onMessageCallback = mocks.onMessage.mock.calls[0][0];
+    
+    const message = {
+      id: '123',
+      chatId: 'c1',
+      timestamp: 1000,
+      body: 'hello',
+      fetchContext: async () => [],
+      sendMessage: async () => {},
+    };
+    
+    await expect(onMessageCallback(message)).resolves.toBeUndefined();
   });
 });

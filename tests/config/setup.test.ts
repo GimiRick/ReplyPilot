@@ -234,6 +234,27 @@ describe('setup wizard config creation', () => {
     expect(config.llm.provider).toBe('lmstudio');
   });
 
+  it('validates custom whisper model names', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
+    ]);
+    await promptForConfig(prompts);
+    const customModelOptions = (prompts.input as any).mock.calls.find((call: any) => call[0].message === 'Custom Whisper model name')[0];
+    expect(customModelOptions.validate('')).toBe('Model name is required');
+    expect(customModelOptions.validate('my-model')).toBe(true);
+  });
+
+  it('validates local whisper URLs', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
+    ]);
+    await promptForConfig(prompts);
+    const localUrlOptions = (prompts.input as any).mock.calls.find((call: any) => call[0].message === 'Local Whisper URL')[0];
+    expect(localUrlOptions.validate('')).toBe('URL is required');
+    expect(localUrlOptions.validate('not-a-url')).toBe('Local Whisper URL must be a valid URL');
+    expect(localUrlOptions.validate('http://localhost:9000')).toBe(true);
+  });
+
   it('saves setup output to the config store', async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
     try {

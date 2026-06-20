@@ -135,22 +135,16 @@ describe('oggToMp3', () => {
   });
 
   it('times out after FFMPEG_TIMEOUT_MS', async () => {
-    const timeoutCallback: Array<() => void> = [];
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
-      cb: () => void,
-    ) => {
-      timeoutCallback.push(cb);
-      return { unref: vi.fn() } as unknown as NodeJS.Timeout;
-    }) as typeof setTimeout);
+    vi.useFakeTimers();
 
     const ff = createMockFfmpeg();
     const promise = oggToMp3('aW5wdXQ=');
 
-    timeoutCallback[0]();
+    vi.runAllTimers();
 
     await expect(promise).rejects.toThrow('ffmpeg timed out');
     expect(ff.proc.kill).toHaveBeenCalledWith('SIGTERM');
 
-    vi.mocked(globalThis.setTimeout).mockRestore();
+    vi.useRealTimers();
   });
 });

@@ -88,4 +88,27 @@ describe('WhatsApp chat context', () => {
     expect(fetchMessages).toHaveBeenCalledWith({ limit: 2 });
     expect(context.map((message) => message.body)).toEqual(['two', 'three']);
   });
+
+  it('returns empty array if fetchMessages is missing', async () => {
+    const context = await fetchChatContext({} as any, 2);
+    expect(context).toEqual([]);
+  });
+
+  it('strips whatsapp domain from authorName', () => {
+    const message = normalizeChatMessage({
+      id: 'm1',
+      body: 'text',
+      author: '1234567890@c.us',
+    });
+    expect(message?.authorName).toBe('1234567890');
+  });
+
+  it('strips group domain from authorName', () => {
+    const message = normalizeChatMessage({
+      id: 'm1',
+      body: 'text',
+      author: '1234567890@g.us',
+    });
+    expect(message?.authorName).toBe('1234567890');
+  });
 });

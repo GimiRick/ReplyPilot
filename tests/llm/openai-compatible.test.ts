@@ -109,6 +109,28 @@ describe('OpenAiCompatibleProvider', () => {
 
     expect(provider).toBeInstanceOf(OpenAiCompatibleProvider);
   });
+
+  it('retries when error is ProviderTimeoutError', async () => {
+    const create = vi.fn()
+      .mockRejectedValueOnce(new ProviderTimeoutError('timeout'))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
+    const provider = makeProvider(create, { maxRetries: 1 });
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered' });
+  });
+
+  it('retries when error is APITimeoutError', async () => {
+    const create = vi.fn()
+      .mockRejectedValueOnce(Object.assign(new Error('timeout'), { name: 'APITimeoutError' }))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
+    const provider = makeProvider(create, { maxRetries: 1 });
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered' });
+  });
+
+  it('does not retry when error is not an object', async () => {
+    const create = vi.fn().mockRejectedValue('just a string error');
+    const provider = makeProvider(create, { maxRetries: 1 });
+    await expect(provider.generateReply(makeInput())).rejects.toThrow();
+  });
 });
 
 function makeProvider(

@@ -45,6 +45,14 @@ npm uninstall gimirick-replypilot
 
 [npm package](https://www.npmjs.com/package/gimirick-replypilot)
 
+### Troubleshooting
+
+```bash
+npm cache clean --force
+```
+
+Clears the npm cache if you encounter integrity or checksum errors during install.
+
 ---
 
 ## Dependencies

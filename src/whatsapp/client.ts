@@ -130,12 +130,17 @@ async function toRuntimeMessage(
   const rawChatSerialized = chat.id?._serialized;
   const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : (message.from ?? '');
 
+  const formatBody = (text: string | undefined, hasMedia: boolean | undefined, type: string | undefined): string => {
+    const clean = typeof text === 'string' ? text.trim() : '';
+    return clean && hasMedia ? `${clean} ${mediaTypeLabel(type)}` : (clean || (hasMedia ? mediaTypeLabel(type) : ''));
+  };
+
   let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
 
   if (message.hasQuotedMsg) {
     try {
       const quoted = await message.getQuotedMessage();
-      const quotedBody = (typeof quoted.body === 'string' ? quoted.body.trim() : '') || (quoted.hasMedia ? mediaTypeLabel(quoted.type) : '');
+      const quotedBody = formatBody(quoted.body, quoted.hasMedia, quoted.type);
       if (quotedBody) {
         quotedMessage = {
           id: typeof quoted.id?._serialized === 'string' ? quoted.id._serialized : undefined,
@@ -182,7 +187,7 @@ async function toRuntimeMessage(
     id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
     chatId,
     timestamp: message.timestamp,
-    body: voiceBody ?? ((typeof message.body === 'string' ? message.body.trim() : '') || (message.hasMedia ? mediaTypeLabel(message.type) : '')),
+    body: voiceBody ?? formatBody(message.body, message.hasMedia, message.type),
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),

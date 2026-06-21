@@ -55,6 +55,7 @@ export class ReplyAutomation {
   private readonly duplicateGuard: DuplicateMessageGuard;
   private readonly metrics: MetricsCollector;
   private readonly activeBatches = new Map<string, ChatBatch>();
+  private stopped = false;
 
   constructor(options: ReplyAutomationOptions) {
     this.config = options.config;
@@ -70,6 +71,11 @@ export class ReplyAutomation {
   }
 
   handleIncomingMessage(message: RuntimeIncomingMessage): Promise<AutomationResult> {
+    if (this.stopped) {
+      this.metrics.recordMessageIgnored();
+      return Promise.resolve({ status: 'ignored', reason: 'shutting_down' as IgnoreReason });
+    }
+
     this.metrics.recordMessageReceived();
 
     const ignoreReason = getIgnoreReason(message, this.config);
@@ -107,8 +113,9 @@ export class ReplyAutomation {
       }
 
       batch.timer = setTimeout(() => {
+        if (this.stopped) return;
         this.activeBatches.delete(chatId);
-        
+
         this.queue.add(chatId, () =>
           processIncomingMessageBatch({
             messages: batch!.messages,
@@ -129,6 +136,7 @@ export class ReplyAutomation {
   }
 
   async stop(): Promise<void> {
+    this.stopped = true;
     for (const [chatId, batch] of this.activeBatches.entries()) {
       clearTimeout(batch.timer);
       this.activeBatches.delete(chatId);
@@ -162,11 +170,12 @@ export async function processIncomingMessageBatch(options: {
 }): Promise<AutomationResult> {
   const batchStart = Date.now();
   const { config, llmProvider, logger, metrics } = options;
-  const messages = [...options.messages].sort((a, b) => a.timestamp - b.timestamp);
-  
-  if (messages.length === 0) {
+
+  if (options.messages.length === 0) {
     return { status: 'ignored', reason: 'empty' };
   }
+
+  const messages = [...options.messages].sort((a, b) => a.timestamp - b.timestamp);
 
   const lastMessage = messages[messages.length - 1];
   const firstMessage = messages[0];

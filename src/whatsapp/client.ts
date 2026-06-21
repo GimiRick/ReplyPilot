@@ -154,7 +154,7 @@ async function toRuntimeMessage(
   }
 
   let imageData: RuntimeIncomingMessage['imageData'] | undefined;
-  if (message.hasMedia && (message.type === 'image' || message.type === 'sticker')) {
+  if (config.llm.visionSupport && message.hasMedia && (message.type === 'image' || message.type === 'sticker')) {
     try {
       const media = await message.downloadMedia();
       imageData = { base64: media.data, mimeType: media.mimetype };

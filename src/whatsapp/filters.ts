@@ -11,7 +11,7 @@ export type FilterableWhatsAppMessage = {
   chatId?: string;
 };
 
-export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate' | 'voice_note_ignored' | 'status_broadcast';
+export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate' | 'voice_note_ignored' | 'status_broadcast' | 'shutting_down';
 
 export function getIgnoreReason(
   message: FilterableWhatsAppMessage,

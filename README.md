@@ -8,8 +8,8 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-182%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-96.35%25%20v8-brightgreen)](package.json)
+[![tests](https://img.shields.io/badge/tests-185%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![coverage](https://img.shields.io/badge/coverage-96.06%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
@@ -559,7 +559,7 @@ replypilot start
 | **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |
 | **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization, media type labels |
-| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with LRU pruning |
+| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with FIFO pruning |
 | **Audio** | `convert.ts` | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout |
 | **Audio** | `transcriber.ts` | Cloud (`transcribeCloud`) and local (`transcribeLocal`) Whisper transcription |
 | **Doctor** | `doctor.ts` | `runDoctor` health checks (Node, config, provider reachability, ffmpeg availability) |

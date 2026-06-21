@@ -25,10 +25,22 @@ Install globally (CLI use):
 npm i -g gimirick-replypilot
 ```
 
+Uninstall:
+
+```bash
+npm uninstall -g gimirick-replypilot
+```
+
 Install locally (programmatic use):
 
 ```bash
 npm i gimirick-replypilot
+```
+
+Uninstall:
+
+```bash
+npm uninstall gimirick-replypilot
 ```
 
 [npm package](https://www.npmjs.com/package/gimirick-replypilot)

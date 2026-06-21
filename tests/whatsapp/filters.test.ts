@@ -38,6 +38,35 @@ describe('WhatsApp message filters', () => {
     expect(shouldProcessMessage({ id: '1', body: 'hello', isBroadcast: true }, config)).toBe(true);
   });
 
+  it('ignores status@broadcast even when allowBroadcasts is enabled', () => {
+    const config = makeConfig({ whatsapp: { allowBroadcasts: true } });
+
+    expect(
+      getIgnoreReason({ id: '1', body: 'hello', chatId: 'status@broadcast' }, config),
+    ).toBe('status_broadcast');
+    expect(
+      shouldProcessMessage({ id: '1', body: 'hello', chatId: 'status@broadcast' }, config),
+    ).toBe(false);
+  });
+
+  it('ignores status@broadcast even when all broadcasts are allowed', () => {
+    const config = makeConfig({
+      whatsapp: { allowBroadcasts: true, allowGroups: true },
+    });
+
+    expect(
+      getIgnoreReason({ id: '1', body: 'hello', chatId: 'status@broadcast', isBroadcast: true, isGroup: false }, config),
+    ).toBe('status_broadcast');
+  });
+
+  it('does not affect regular broadcast list messages when broadcasts are enabled', () => {
+    const config = makeConfig({ whatsapp: { allowBroadcasts: true } });
+
+    expect(
+      shouldProcessMessage({ id: '1', body: 'hello', isBroadcast: true }, config),
+    ).toBe(true);
+  });
+
   it('processes direct contact messages', () => {
     expect(shouldProcessMessage({ id: '1', body: 'hello' }, makeConfig())).toBe(true);
   });

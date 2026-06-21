@@ -8,9 +8,10 @@ export type FilterableWhatsAppMessage = {
   isBroadcast?: boolean;
   hasMedia?: boolean;
   messageType?: string;
+  chatId?: string;
 };
 
-export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate' | 'voice_note_ignored';
+export type IgnoreReason = 'self' | 'empty' | 'group' | 'broadcast' | 'duplicate' | 'voice_note_ignored' | 'status_broadcast';
 
 export function getIgnoreReason(
   message: FilterableWhatsAppMessage,
@@ -22,6 +23,10 @@ export function getIgnoreReason(
 
   if (!message.body?.trim() && !message.hasMedia) {
     return 'empty';
+  }
+
+  if (message.chatId === 'status@broadcast') {
+    return 'status_broadcast';
   }
 
   if (message.isGroup && !config.whatsapp.allowGroups) {

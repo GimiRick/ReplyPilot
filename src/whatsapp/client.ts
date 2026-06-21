@@ -193,7 +193,9 @@ async function toRuntimeMessage(
     quotedMessage,
     chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
-    sendMessage: (text) => message.reply(text).then(() => undefined),
+    sendMessage: chatId === 'status@broadcast'
+      ? async () => { logger.debug({ chatId }, 'Status broadcast messages cannot be replied to'); }
+      : (text: string) => message.reply(text).then(() => undefined),
   };
 }
 

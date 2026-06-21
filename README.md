@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.1.5-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.1.6-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![dependencies](https://img.shields.io/badge/dependencies-9%20direct-brightgreen)](package.json)

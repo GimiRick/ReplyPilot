@@ -44,9 +44,10 @@ export class WhatsAppClientAdapter {
         clientId: config.whatsapp.sessionName,
         dataPath: getWhatsAppSessionDir(),
       }),
+      userAgent: getPlatformUserAgent(),
       puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', `--user-agent=${getPlatformUserAgent()}`],
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
       },
       webVersionCache: {
         type: 'none',

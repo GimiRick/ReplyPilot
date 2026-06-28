@@ -512,6 +512,69 @@ describe('setup wizard config creation', () => {
     expect(rateLimitOptions.validate?.(121)).toBe('Choose a value from 1 to 120');
     expect(rateLimitOptions.validate?.(36)).toBe(true);
   });
+
+  it('collects fallback API keys during setup', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      true,
+      'sk-fallback-1',
+      false,
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      false,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-1']);
+    expect(prompts.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Do you want to add a fallback API key?' }),
+    );
+    expect(prompts.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Do you want to add another fallback API key?' }),
+    );
+    expect(prompts.input).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Fallback API key' }),
+    );
+  });
+
+  it('collects multiple fallback API keys', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      true,
+      'sk-fallback-1',
+      true,
+      'sk-fallback-2',
+      false,
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      false,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-1', 'sk-fallback-2']);
+  });
 });
 
 function makePromptAdapter(values: unknown[]): PromptAdapter {

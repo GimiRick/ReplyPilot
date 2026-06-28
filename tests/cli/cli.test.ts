@@ -184,14 +184,19 @@ describe('CLI commands', () => {
   });
 
   it('reports error when no configs exist for switch', async () => {
+    const previousExitCode = process.exitCode;
     const { program, output } = makeProgram({
       listConfigNames: vi.fn(() => []),
     });
 
-    await program.parseAsync(['node', 'replypilot', 'switch']);
+    try {
+      await program.parseAsync(['node', 'replypilot', 'switch']);
 
-    expect(output.join('\n')).toContain('No configurations found');
-    expect(process.exitCode).toBe(1);
+      expect(output.join('\n')).toContain('No configurations found');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 
   it('reports when only one config exists for switch', async () => {

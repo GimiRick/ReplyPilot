@@ -104,6 +104,20 @@ describe('config schema', () => {
     expect(redacted.llm.apiKey).toBe('');
   });
 
+  it('redacts fallback API keys', () => {
+    const redacted = redactConfig(
+      makeConfig({ llm: { apiKey: 'secret', fallbackApiKeys: ['key1', 'key2'] } }),
+    );
+
+    expect(redacted.llm.fallbackApiKeys).toEqual(['[redacted]', '[redacted]']);
+  });
+
+  it('handles empty fallbackApiKeys when redacting', () => {
+    const redacted = redactConfig(makeConfig({ llm: { apiKey: 'secret' } }));
+
+    expect(redacted.llm.fallbackApiKeys).toEqual([]);
+  });
+
   it('merges nested overrides without replacing undefined values', () => {
     const merged = mergeAppConfig(makeConfig(), {
       llm: { modelName: undefined, modelLabel: 'Better Label' },

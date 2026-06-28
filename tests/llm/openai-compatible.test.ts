@@ -133,6 +133,65 @@ describe('OpenAiCompatibleProvider', () => {
     const provider = makeProvider(create, { maxRetries: 1 });
     await expect(provider.generateReply(makeInput())).rejects.toThrow();
   });
+
+  it('switches to fallback API key on failure', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('rate limited'), { status: 429 }))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Fallback worked' } }] });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary-key',
+      fallbackApiKeys: ['fallback-key'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: {
+        chat: { completions: { create } },
+      },
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result).toEqual({
+      text: 'Fallback worked',
+      provider: 'custom',
+      model: 'local-model',
+    });
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { keyIndex: 0, totalKeys: 2 },
+      'Key failed, trying next API key',
+    );
+  });
+
+  it('fails when all keys are exhausted', async () => {
+    const create = vi.fn().mockRejectedValue(
+      Object.assign(new Error('always fails'), { status: 500 }),
+    );
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'key-1',
+      fallbackApiKeys: ['key-2', 'key-3'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: {
+        chat: { completions: { create } },
+      },
+    });
+
+    await expect(provider.generateReply(makeInput())).rejects.toThrow('always fails');
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
 });
 
 function makeProvider(

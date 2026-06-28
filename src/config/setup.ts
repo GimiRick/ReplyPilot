@@ -1,4 +1,4 @@
-import { confirm, input, number, password, select } from '@inquirer/prompts';
+import { confirm, editor, input, number, password, select } from '@inquirer/prompts';
 
 import {
   CONFIG_VERSION,
@@ -35,6 +35,7 @@ export type SetupAnswers = {
 export type PromptAdapter = {
   select: typeof select;
   input: typeof input;
+  editor: typeof editor;
   password: typeof password;
   number: typeof number;
   confirm: typeof confirm;
@@ -43,6 +44,7 @@ export type PromptAdapter = {
 export const defaultPromptAdapter: PromptAdapter = {
   select,
   input,
+  editor,
   password,
   number,
   confirm,
@@ -221,9 +223,10 @@ export async function promptForConfig(
     });
   }
 
-  const ownerStylePrompt = await prompts.input({
+  const ownerStylePrompt = await prompts.editor({
     message: 'Owner personality and style prompt',
     default: 'Reply naturally, concisely, and in my usual WhatsApp style.',
+    postfix: '.txt',
     validate: (value) => (value.trim() ? true : 'Owner style prompt is required'),
   });
 

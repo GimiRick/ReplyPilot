@@ -185,6 +185,18 @@ describe('config store', () => {
 
     expect(listConfigNames(store).filter((n) => n === 'work').length).toBe(1);
   });
+
+  it('preserves very long personality prompts through save and load', () => {
+    const store = createTempStore();
+    const longPrompt = 'Be helpful, concise, and use a warm tone.'.repeat(500);
+    expect(longPrompt.length).toBeGreaterThan(10000);
+
+    saveConfig(makeConfig({ personality: { ownerStylePrompt: longPrompt } }), 'work', store);
+    const loaded = loadConfig('work', store);
+
+    expect(loaded.personality.ownerStylePrompt).toBe(longPrompt);
+    expect(loaded.personality.ownerStylePrompt.length).toBe(longPrompt.length);
+  });
 });
 
 let tempDirs: string[] = [];

@@ -134,16 +134,16 @@ describe('setup wizard config creation', () => {
 
     await promptForConfig(prompts);
 
-    const getValidate = (msg: string) => {
-      const call = vi.mocked(prompts.input).mock.calls.find(
+    const getValidate = (target: typeof prompts.input | typeof prompts.editor, msg: string) => {
+      const call = vi.mocked(target).mock.calls.find(
         (c) => (c[0] as { message: string }).message.includes(msg)
       )!;
       return (call[0] as { validate: (v: unknown) => true | string }).validate;
     };
 
-    const baseUrlValidate = getValidate('LLM base URL');
-    const ownerStyleValidate = getValidate('Owner personality and style prompt');
-    const whisperBaseUrlValidate = getValidate('Whisper base URL');
+    const baseUrlValidate = getValidate(prompts.input, 'LLM base URL');
+    const ownerStyleValidate = getValidate(prompts.editor, 'Owner personality and style prompt');
+    const whisperBaseUrlValidate = getValidate(prompts.input, 'Whisper base URL');
 
     expect(baseUrlValidate('')).toBe('Base URL is required');
     expect(baseUrlValidate('not-a-url')).toBe('LLM base URL must be a valid URL');
@@ -506,6 +506,7 @@ function makePromptAdapter(values: unknown[]): PromptAdapter {
   return {
     select: vi.fn(next),
     input: vi.fn(next),
+    editor: vi.fn(next),
     password: vi.fn(next),
     number: vi.fn(next),
     confirm: vi.fn(next),

@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.1.7-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.1.8-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![dependencies](https://img.shields.io/badge/dependencies-9%20direct-brightgreen)](package.json)
@@ -280,7 +280,7 @@ During setup enter the base URL, API key, and model name for your provider.
 
 During setup, after entering your primary API key, ReplyPilot asks if you'd like to add **fallback API keys**. These are backup keys for the same provider — useful for rate limits, expired credits, or any other failure.
 
-```
+```text
 ? Do you want to add a fallback API key? (y/N)
 ? Fallback API key (enter key)
 ? Do you want to add another fallback API key? (y/N)
@@ -298,7 +298,7 @@ You can create and manage multiple named configurations. Each config stores its 
 
 Run `replypilot setup` as many times as you want. Each time, you'll be asked for a config name:
 
-```
+```text
 ? Configuration name (default)
 ```
 

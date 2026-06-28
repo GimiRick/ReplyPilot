@@ -52,7 +52,7 @@ export function shouldProcessMessage(
 }
 
 export class DuplicateMessageGuard {
-  private readonly seen = new Map<string, number>();
+  private readonly seen = new Map<string, true>();
 
   constructor(private readonly maxEntries = 5_000) {}
 
@@ -61,7 +61,7 @@ export class DuplicateMessageGuard {
       return false;
     }
 
-    this.seen.set(messageId, Date.now());
+    this.seen.set(messageId, true);
     this.prune();
     return true;
   }

@@ -224,6 +224,8 @@ npm run pack:dry-run      # inspect npm tarball
 
 The setup wizard also configures optional voice note handling — transcription via Whisper Cloud API, a local whisper.cpp server, or native audio passthrough to a multimodal LLM. See [Voice Note Processing](#voice-note-processing-detail) for details.
 
+During setup you may optionally set a **rate limit** for LLM API calls (default: 36 calls/minute when enabled). This caps how often the LLM is invoked globally, preventing provider overload. Disabled by default.
+
 ### LM Studio
 
 1. Open LM Studio, load a chat model, start the local OpenAI-compatible server.
@@ -533,6 +535,7 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 ### Concurrency & Batching
 
 - **Global limit**: max 2 concurrent LLM requests (`globalConcurrency: 2`).
+- **Rate limit**: optionally configurable during `replypilot setup` — caps LLM calls per minute. When set, a rolling window (60s) prevents exceeding the configured ceiling.
 - **Per-chat serial**: messages in the same chat process one at a time (`perChatConcurrency: 1`).
 - **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining.
 - **Chat queues** are created lazily (one `PQueue` per `chatId`).
@@ -569,7 +572,7 @@ replypilot start
 | **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
 | **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (3 providers + voice note flow) |
 | **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation` |
-| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues |
+| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`) |
 | **Runtime** | `logger.ts` | Pino logger with API key redaction |
 | **Runtime** | `errors.ts` | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.) |
 | **Runtime** | `metrics.ts` | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time |

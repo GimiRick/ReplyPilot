@@ -22,6 +22,7 @@ export type SetupAnswers = {
   whisperModel?: string;
   localWhisperUrl?: string;
   messageCount?: number;
+  maxCallsPerMinute?: number;
   ownerStylePrompt?: string;
   dryRun?: boolean;
   allowGroups?: boolean;
@@ -80,6 +81,10 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
     },
     context: {
       messageCount: answers.messageCount ?? 30,
+    },
+    automation: {
+      debounceMs: 10000,
+      maxCallsPerMinute: answers.maxCallsPerMinute,
     },
     safety: {
       dryRun: answers.dryRun ?? false,
@@ -164,6 +169,30 @@ export async function promptForConfig(
       return value >= 1 && value <= 200 ? true : 'Choose a value from 1 to 200';
     },
   });
+
+  const setRateLimit = await prompts.confirm({
+    message: 'Do you want to set a max LLM API calls per minute limit?',
+    default: false,
+  });
+
+  let maxCallsPerMinute: number | undefined;
+
+  if (setRateLimit) {
+    maxCallsPerMinute = await prompts.number({
+      message: 'Max LLM API calls per minute',
+      default: 36,
+      validate: (value) => {
+        if (value === undefined) {
+          return true;
+        }
+        if (!Number.isInteger(value)) {
+          return 'Value must be an integer';
+        }
+
+        return value >= 1 && value <= 120 ? true : 'Choose a value from 1 to 120';
+      },
+    });
+  }
 
   const ownerStylePrompt = await prompts.input({
     message: 'Owner personality and style prompt',
@@ -275,6 +304,7 @@ export async function promptForConfig(
     whisperModel: whisperModel?.trim() || undefined,
     localWhisperUrl: localWhisperUrl?.trim() || undefined,
     messageCount,
+    maxCallsPerMinute,
     ownerStylePrompt,
     dryRun,
     allowGroups,

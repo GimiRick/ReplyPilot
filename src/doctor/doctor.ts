@@ -89,12 +89,6 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorRepo
       : `${config.llm.modelLabel} endpoint could not be reached.`,
   });
 
-  checks.push({
-    name: 'Package',
-    status: 'pass',
-    message: 'Package metadata and runtime modules are available.',
-  });
-
   const voiceMode = config.voiceNote?.mode;
   if (voiceMode && voiceMode !== 'ignore') {
     const ffmpegOk = checkFfmpeg();

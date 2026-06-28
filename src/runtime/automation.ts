@@ -61,7 +61,11 @@ export class ReplyAutomation {
     this.config = options.config;
     this.llmProvider = options.llmProvider;
     this.logger = options.logger ?? createLogger(options.config.logging.level);
-    this.queue = options.queue ?? new MessageQueue({ globalConcurrency: 2, perChatConcurrency: 1 });
+    this.queue = options.queue ?? new MessageQueue({
+      globalConcurrency: 2,
+      perChatConcurrency: 1,
+      maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
+    });
     this.duplicateGuard = options.duplicateGuard ?? new DuplicateMessageGuard();
     this.metrics = options.metrics ?? new MetricsCollector();
   }

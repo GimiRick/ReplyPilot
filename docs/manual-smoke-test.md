@@ -9,7 +9,8 @@ Use this checklist before publishing or before trusting a new environment.
 3. Run `replypilot setup`.
 4. Select the provider and model.
 5. Set context message count to `30`.
-6. Start the tool with `replypilot start`.
+6. Optionally configure a rate limit for LLM API calls (or skip for no limit).
+7. Start the tool with `replypilot start`.
 7. Scan the terminal QR code from WhatsApp on your phone using linked devices.
 8. Send a message from another WhatsApp account.
 9. Confirm recent chat context is fetched.

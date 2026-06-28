@@ -237,17 +237,20 @@ describe('transcribeLocal', () => {
   });
 
   it('does not send Authorization header for local requests', async () => {
-    const jsonResponse = { text: 'ok' };
-    vi.stubGlobal('fetch', vi.fn(async () => ({
+    const fetchMock = vi.fn<(...args: unknown[]) => Promise<{ ok: boolean; json: () => Promise<{ text: string }> }>>(async () => ({
       ok: true,
-      json: async () => jsonResponse,
-    })));
+      json: async () => ({ text: 'ok' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_local' },
     });
 
     await transcribeLocal('bXAzLWRhdGE=', config);
+
+    const options = fetchMock.mock.calls[0]?.[1];
+    expect(options).not.toHaveProperty('headers');
   });
 
   it('aborts on timeout', async () => {

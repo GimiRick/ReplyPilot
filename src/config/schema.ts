@@ -69,6 +69,7 @@ export const appConfigSchema = z
     }),
     automation: z.object({
       debounceMs: z.number().int().min(0).max(600_000).default(10000),
+      maxCallsPerMinute: z.number().int().min(1).max(120).optional(),
     }).default({ debounceMs: 10000 }),
   })
   .strict();

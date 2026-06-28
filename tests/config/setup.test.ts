@@ -65,6 +65,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -88,6 +89,7 @@ describe('setup wizard config creation', () => {
       'Custom Model',
       false,
       12,
+      false,
       'Crisp and warm.',
       false,
       true,
@@ -112,7 +114,8 @@ describe('setup wizard config creation', () => {
       'loaded-model',
       'Local Llama',
       false,
-      30,
+      undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -163,6 +166,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -191,6 +195,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -217,6 +222,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -241,6 +247,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -257,7 +264,7 @@ describe('setup wizard config creation', () => {
 
   it('validates custom whisper model names', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
     ]);
     await promptForConfig(prompts);
     const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name')!;
@@ -268,7 +275,7 @@ describe('setup wizard config creation', () => {
 
   it('validates local whisper URLs', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
     ]);
     await promptForConfig(prompts);
     const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL')!;
@@ -290,6 +297,7 @@ describe('setup wizard config creation', () => {
         'Qwen Local',
         false,
         44,
+        false,
         'Short and friendly.',
         true,
         false,

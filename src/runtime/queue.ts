@@ -11,7 +11,11 @@ export class MessageQueue {
   private readonly perChatConcurrency: number;
 
   constructor(options: MessageQueueOptions = {}) {
-    this.globalQueue = new PQueue({ concurrency: options.globalConcurrency ?? 2 });
+    this.globalQueue = new PQueue({
+      concurrency: options.globalConcurrency ?? 2,
+      interval: 60000,
+      intervalCap: 35,
+    });
     this.perChatConcurrency = options.perChatConcurrency ?? 1;
   }
 

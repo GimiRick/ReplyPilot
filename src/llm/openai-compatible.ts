@@ -54,7 +54,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   }
 
   async generateReply(input: GenerateReplyInput): Promise<GenerateReplyResult> {
-    const request = {
+    const baseRequest = {
       model: input.model,
       temperature: 0.7,
       messages: buildReplyPrompt(input),
@@ -62,7 +62,17 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
     try {
       const completion = await retryTransient(
-        () => withTimeout(this.client.chat.completions.create(request), this.timeoutMs),
+        () => {
+          const ctrl = new AbortController();
+          return withTimeout(
+            this.client.chat.completions.create({
+              ...baseRequest,
+              signal: ctrl.signal,
+            }),
+            this.timeoutMs,
+            ctrl,
+          );
+        },
         this.maxRetries,
         this.logger,
       );
@@ -107,12 +117,21 @@ async function retryTransient<T>(
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  controller?: AbortController,
+): Promise<T> {
   let timer: NodeJS.Timeout;
 
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new ProviderTimeoutError(timeoutMs)), timeoutMs);
+    timer = setTimeout(() => {
+      controller?.abort();
+      reject(new ProviderTimeoutError(timeoutMs));
+    }, timeoutMs);
   });
+
+  promise.catch(() => {});
 
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
@@ -129,7 +148,7 @@ function isTransientProviderError(error: unknown): boolean {
 
   const status = getErrorNumber(error, 'status') ?? getErrorNumber(error, 'statusCode');
   if (status !== undefined) {
-    return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+    return status === 408 || status === 409 || status === 425 || status >= 500;
   }
 
   const code = getErrorString(error, 'code');

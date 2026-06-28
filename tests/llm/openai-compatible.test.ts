@@ -66,11 +66,10 @@ describe('OpenAiCompatibleProvider', () => {
     await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderTimeoutError);
   });
 
-  it('retries transient statusCode failures', async () => {
-    const create = vi
-      .fn()
-      .mockRejectedValueOnce(Object.assign(new Error('rate limited'), { statusCode: 429 }))
-      .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
+  it('does not retry 429 rate-limited errors', async () => {
+    const create = vi.fn().mockRejectedValue(
+      Object.assign(new Error('rate limited'), { statusCode: 429 }),
+    );
     const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
     const provider = new OpenAiCompatibleProvider({
       provider: 'custom',
@@ -84,8 +83,8 @@ describe('OpenAiCompatibleProvider', () => {
       },
     });
 
-    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered' });
-    expect(logger.warn).toHaveBeenCalled();
+    await expect(provider.generateReply(makeInput())).rejects.toThrow('rate limited');
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it('retries transient network code failures', async () => {

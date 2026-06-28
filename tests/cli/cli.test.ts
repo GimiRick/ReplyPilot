@@ -42,6 +42,16 @@ describe('CLI commands', () => {
     expect(deps.startAutomation).toHaveBeenCalled();
   });
 
+  it('prints active config name on start', async () => {
+    const { program, output } = makeProgram({
+      getActiveConfigName: vi.fn(() => 'my-config'),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'start']);
+
+    expect(output).toContain('Using config: my-config');
+  });
+
   it('shows redacted config', async () => {
     const { program, output } = makeProgram({
       loadConfig: vi.fn(() => makeConfig({ llm: { apiKey: 'secret' } })),
@@ -51,6 +61,16 @@ describe('CLI commands', () => {
 
     expect(output.join('\n')).toContain('[redacted]');
     expect(output.join('\n')).not.toContain('secret');
+  });
+
+  it('shows active config name on config show', async () => {
+    const { program, output } = makeProgram({
+      getActiveConfigName: vi.fn(() => 'my-config'),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'show']);
+
+    expect(output.join('\n')).toContain('Active config: my-config');
   });
 
   it('reports invalid config on config show', async () => {
@@ -97,6 +117,19 @@ describe('CLI commands', () => {
     await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
 
     expect(deps.deleteConfig).toHaveBeenCalled();
+  });
+
+  it('shows active config name in reset confirmation', async () => {
+    const { program, deps } = makeProgram({
+      confirm: vi.fn(async () => true),
+      getActiveConfigName: vi.fn(() => 'work'),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
+
+    expect(deps.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Delete active configuration "work"?' }),
+    );
   });
 
   it('keeps config when reset is cancelled', async () => {
@@ -149,15 +182,53 @@ describe('CLI commands', () => {
     expect(deps.removeWhatsAppCacheData).not.toHaveBeenCalled();
     expect(output).toContain('Cache clear cancelled.');
   });
+
+  it('reports error when no configs exist for switch', async () => {
+    const { program, output } = makeProgram({
+      listConfigNames: vi.fn(() => []),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'switch']);
+
+    expect(output.join('\n')).toContain('No configurations found');
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('reports when only one config exists for switch', async () => {
+    const { program, output } = makeProgram({
+      listConfigNames: vi.fn(() => ['default']),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'switch']);
+
+    expect(output.join('\n')).toContain('Only one configuration exists: "default".');
+  });
+
+  it('switches to selected config', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work', 'personal']),
+      getActiveConfigName: vi.fn(() => 'work'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => 'personal') as any,
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'switch']);
+
+    expect(deps.setActiveConfigName).toHaveBeenCalledWith('personal');
+    expect(output).toContain('Switched to configuration: personal');
+  });
 });
 
 function makeProgram(overrides: Partial<CliDependencies> = {}) {
   const output: string[] = [];
   const deps: CliDependencies = {
-    runSetupWizard: vi.fn(async () => makeConfig()),
+    runSetupWizard: vi.fn(async () => ({ config: makeConfig(), configName: 'default' })),
     startAutomation: vi.fn(async () => undefined),
     loadConfig: vi.fn(() => makeConfig()),
     deleteConfig: vi.fn(),
+    listConfigNames: vi.fn(() => ['default']),
+    getActiveConfigName: vi.fn(() => undefined),
+    setActiveConfigName: vi.fn(),
     removeWhatsAppSessionData: vi.fn(),
     removeWhatsAppCacheData: vi.fn(),
     runDoctor: vi.fn(async () => ({
@@ -165,6 +236,8 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
       checks: [{ name: 'Node.js', status: 'pass' as const, message: 'Node is supported.' }],
     })),
     confirm: vi.fn(async () => true),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select: vi.fn(async () => 'default') as any,
     output: (message) => output.push(message),
     error: (message) => output.push(message),
     ...overrides,

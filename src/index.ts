@@ -17,17 +17,21 @@ export {
 export {
   createConfigStore,
   deleteConfig,
+  getActiveConfigName,
   getConfigFilePath,
   getConfigStore,
   getReplyPilotDataDir,
   getWhatsAppCacheDir,
   getWhatsAppSessionDir,
   hasConfig,
+  listConfigNames,
   loadConfig,
   removeWhatsAppCacheData,
   removeWhatsAppSessionData,
   saveConfig,
+  setActiveConfigName,
   tryLoadConfig,
+  validateConfigName,
   type ReplyPilotConfigStore,
 } from './config/store';
 export {
@@ -98,7 +102,9 @@ export {
   type DoctorReport,
 } from './doctor/doctor';
 export {
+  ConfigNotFoundError,
   ConfigValidationError,
+  DuplicateConfigError,
   MissingConfigError,
   ProviderResponseError,
   ProviderTimeoutError,

@@ -96,7 +96,7 @@ npm i -g gimirick-replypilot
 `replypilot` becomes a system-wide command.
 
 ```bash
-# Setup wizard (required before first start)
+# Setup wizard (creates a named config, default name: "default")
 replypilot setup
 
 # Start automation (connects WhatsApp + begins listening)
@@ -113,6 +113,9 @@ replypilot config show
 
 # Reset config (prompts confirmation)
 replypilot config reset
+
+# Switch to a different named config
+replypilot switch
 
 # Remove WhatsApp session data (prompts confirmation)
 replypilot logout
@@ -153,6 +156,7 @@ npx replypilot version
 npx replypilot doctor
 npx replypilot config show
 npx replypilot config reset
+npx replypilot switch
 npx replypilot logout
 npx replypilot cache
 ```
@@ -188,6 +192,7 @@ node dist/cli.js version
 node dist/cli.js doctor
 node dist/cli.js config show
 node dist/cli.js config reset
+node dist/cli.js switch
 node dist/cli.js logout
 node dist/cli.js cache
 ```
@@ -207,6 +212,7 @@ tsx src/cli.ts version
 tsx src/cli.ts doctor
 tsx src/cli.ts config show
 tsx src/cli.ts config reset
+tsx src/cli.ts switch
 tsx src/cli.ts logout
 tsx src/cli.ts cache
 ```
@@ -253,11 +259,11 @@ You can also configure a **wait time before sending messages** (default: 10 seco
 
 ### Custom OpenAI-Compatible Provider
 
-Works with ChatGPT, Gemini, or any OpenAI-compatible API. To switch providers:
+Works with ChatGPT, Gemini, or any OpenAI-compatible API. To switch providers, either re-run setup and enter a new config name, or use the switch command if you already have multiple configs saved:
 
 ```bash
-replypilot config reset    # clear current config
-replypilot setup           # re-run setup, select Custom
+replypilot setup           # create a new config, enter a name like "chatgpt"
+replypilot switch           # or switch between existing configs
 ```
 
 During setup enter the base URL, API key, and model name for your provider.
@@ -267,6 +273,46 @@ During setup enter the base URL, API key, and model name for your provider.
 | ChatGPT  | `https://api.openai.com/v1`                                | `gpt-5.5`                 |
 | Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash`        |
 | Groq     | `https://api.groq.com/openai/v1`                           | `llama-4-scout-17b-16e-instruct` |
+
+---
+
+## Multi-Config Profiles
+
+You can create and manage multiple named configurations. Each config stores its own LLM provider settings, model, voice note preferences, and WhatsApp session — so switching profiles also switches which WhatsApp account is connected.
+
+### Creating configs
+
+Run `replypilot setup` as many times as you want. Each time, you'll be asked for a config name:
+
+```
+? Configuration name (default)
+```
+
+Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default. Each named config gets its own WhatsApp login session, so you don't need to re-authenticate when switching.
+
+### Switching configs
+
+```bash
+replypilot switch
+```
+
+Shows a list of your saved configs. Select one to make it active. The next `replypilot start` uses the active config.
+
+### Viewing current config
+
+```bash
+replypilot config show
+```
+
+Prints the active config's name at the top along with the full config (API keys redacted).
+
+### Resetting
+
+```bash
+replypilot config reset
+```
+
+Deletes the **active** config (after confirmation). If other configs exist, the next one becomes active automatically.
 
 ---
 
@@ -298,19 +344,21 @@ replypilot cache      # Clear .wwebjs_cache
 
 ## Feature Availability
 
-| Feature               | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
-| --------------------- | ------------------- | ------------------- | ---------------------- | --------------------- |
-| `setup`               | ✓                   | ✓                   | ✓                      | ✓                     |
-| `start`               | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
-| `version`             | ✓                   | ✓                   | ✓                      | ✓                     |
-| `doctor`              | ✓                   | ✓                   | ✓                      | ✓                     |
-| `config show / reset` | ✓                   | ✓                   | ✓                      | ✓                     |
-| `logout`              | ✓                   | ✓                   | ✓                      | ✓                     |
-| `cache`               | ✓                   | ✓                   | ✓                      | ✓                     |
-| Programmatic API      | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
-| TypeScript types      | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
-| Run tests             | —                   | —                   | —                      | ✓ `npm test`          |
-| Hot-reload            | —                   | —                   | —                      | ✓ `tsx --watch`       |
+| Feature                    | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
+| -------------------------- | ------------------- | ------------------- | ---------------------- | --------------------- |
+| `setup`                    | ✓                   | ✓                   | ✓                      | ✓                     |
+| `start`                    | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
+| `version`                  | ✓                   | ✓                   | ✓                      | ✓                     |
+| `doctor`                   | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config show / reset`      | ✓                   | ✓                   | ✓                      | ✓                     |
+| `switch`                   | ✓                   | ✓                   | ✓                      | ✓                     |
+| `logout`                   | ✓                   | ✓                   | ✓                      | ✓                     |
+| `cache`                    | ✓                   | ✓                   | ✓                      | ✓                     |
+| Programmatic API           | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
+| TypeScript types           | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
+| Multi-config profiles      | ✓                   | ✓                   | ✓                      | ✓                     |
+| Run tests                  | —                   | —                   | —                      | ✓ `npm test`          |
+| Hot-reload                 | —                   | —                   | —                      | ✓ `tsx --watch`       |
 
 ---
 
@@ -347,6 +395,10 @@ import {
   deleteConfig,
   tryLoadConfig,
   hasConfig,
+  listConfigNames,
+  getActiveConfigName,
+  setActiveConfigName,
+  validateConfigName,
 } from 'gimirick-replypilot';
 import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot';
 import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot';
@@ -380,6 +432,7 @@ import { HealthServer, type HealthInfo, type HealthServerOptions } from 'gimiric
 // Errors
 import { ReplyPilotError, MissingConfigError, ConfigValidationError } from 'gimirick-replypilot';
 import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot';
+import { ConfigNotFoundError } from 'gimirick-replypilot';
 ```
 
 ---
@@ -391,7 +444,8 @@ import { ProviderResponseError, ProviderTimeoutError } from 'gimirick-replypilot
 ```text
 ┌───────────────────────────────────────────────────────────────────┐
 │                        CLI (Commander)                            │
-│ setup   start   doctor   config show   config reset   logout      │
+│ setup   start   doctor   config show   config reset   switch      │
+│ logout   cache   version                                           │
 └────────────────────────┬──────────────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────────────┐
@@ -554,7 +608,8 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 ```text
 replypilot start
        │
-       ├── loadConfig()              read + Zod-validate saved config
+       ├── loadConfig()              read active named config, Zod-validate
+       ├── (uses config name as WhatsApp session ID)
        ├── new OpenAiCompatibleProvider()   init OpenAI SDK client
        ├── new ReplyAutomation()        wire config, provider, queue, logger
        ├── new WhatsAppClientAdapter()  init whatsapp-web.js (LocalAuth)
@@ -575,10 +630,10 @@ replypilot start
 
 | Layer | File | Role |
 | --- | --- | --- |
-| **CLI** | `cli.ts` | Commander program, 8 commands, dependency injection for testability |
+| **CLI** | `cli.ts` | Commander program, 10 commands, dependency injection for testability |
 | **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
-| **Config** | `store.ts` | Persistent JSON store via `conf`, session dir management |
-| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (3 providers + voice note flow) |
+| **Config** | `store.ts` | Persistent JSON store via `conf`, multi-config profiles, session dir management |
+| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow) |
 | **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation` |
 | **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`) |
 | **Runtime** | `logger.ts` | Pino logger with API key redaction |

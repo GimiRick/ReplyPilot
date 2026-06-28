@@ -4,12 +4,19 @@ import path from 'node:path';
 import Conf from 'conf';
 
 import { type AppConfig, parseAppConfig } from './schema';
-import { MissingConfigError } from '../runtime/errors';
+import { MissingConfigError, ConfigNotFoundError } from '../runtime/errors';
 
 const CONFIG_KEY = 'config';
+const CONFIGS_KEY = 'configs';
+const ACTIVE_CONFIG_KEY = 'activeConfig';
+
+const CONFIG_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+const DEFAULT_CONFIG_NAME = 'default';
 
 type StoreShape = {
   config?: AppConfig;
+  configs?: Record<string, AppConfig>;
+  activeConfig?: string;
 };
 
 export type ReplyPilotConfigStore = Conf<StoreShape>;
@@ -28,35 +35,147 @@ export function getConfigStore(): ReplyPilotConfigStore {
   return defaultStore;
 }
 
-export function hasConfig(store: ReplyPilotConfigStore = getConfigStore()): boolean {
-  return store.has(CONFIG_KEY);
+function ensureMigrated(store: ReplyPilotConfigStore): void {
+  const oldConfig = store.get(CONFIG_KEY);
+  if (oldConfig) {
+    const configs = store.get(CONFIGS_KEY) ?? {};
+    if (!configs[DEFAULT_CONFIG_NAME]) {
+      store.set(CONFIGS_KEY, { ...configs, [DEFAULT_CONFIG_NAME]: oldConfig });
+    }
+    if (!store.get(ACTIVE_CONFIG_KEY)) {
+      store.set(ACTIVE_CONFIG_KEY, DEFAULT_CONFIG_NAME);
+    }
+    store.delete(CONFIG_KEY);
+  }
 }
 
-export function loadConfig(store: ReplyPilotConfigStore = getConfigStore()): AppConfig {
-  const rawConfig = store.get(CONFIG_KEY);
+export function validateConfigName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error('Config name cannot be empty.');
+  }
+  if (!CONFIG_NAME_REGEX.test(trimmed)) {
+    throw new Error('Config name may only contain letters, numbers, hyphens, and underscores.');
+  }
+  return trimmed;
+}
 
-  if (!rawConfig) {
+export function listConfigNames(store: ReplyPilotConfigStore = getConfigStore()): string[] {
+  ensureMigrated(store);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  return Object.keys(configs);
+}
+
+export function getActiveConfigName(store: ReplyPilotConfigStore = getConfigStore()): string | undefined {
+  ensureMigrated(store);
+  return store.get(ACTIVE_CONFIG_KEY);
+}
+
+export function setActiveConfigName(name: string, store: ReplyPilotConfigStore = getConfigStore()): void {
+  const trimmed = validateConfigName(name);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  if (!configs[trimmed]) {
+    throw new ConfigNotFoundError(trimmed);
+  }
+  store.set(ACTIVE_CONFIG_KEY, trimmed);
+}
+
+export function hasConfig(
+  configName?: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): boolean {
+  ensureMigrated(store);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  const name = resolveConfigName(configName, store, configs);
+  if (!name) return false;
+  return name in configs;
+}
+
+export function loadConfig(
+  configName?: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): AppConfig {
+  ensureMigrated(store);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  const name = resolveConfigName(configName, store, configs);
+
+  if (!name || !configs[name]) {
+    if (configName) {
+      throw new ConfigNotFoundError(configName);
+    }
     throw new MissingConfigError();
   }
 
-  return parseAppConfig(rawConfig);
+  return parseAppConfig(configs[name]);
 }
 
 export function tryLoadConfig(
+  configName?: string,
   store: ReplyPilotConfigStore = getConfigStore(),
 ): AppConfig | undefined {
-  return hasConfig(store) ? loadConfig(store) : undefined;
+  try {
+    return loadConfig(configName, store);
+  } catch (error) {
+    if (error instanceof MissingConfigError || error instanceof ConfigNotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 export function saveConfig(
   config: AppConfig,
+  configName?: string,
   store: ReplyPilotConfigStore = getConfigStore(),
 ): void {
-  store.set(CONFIG_KEY, parseAppConfig(config));
+  ensureMigrated(store);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  const name = configName ?? getActiveConfigName(store) ?? DEFAULT_CONFIG_NAME;
+  const trimmed = validateConfigName(name);
+
+  store.set(CONFIGS_KEY, { ...configs, [trimmed]: parseAppConfig(config) });
+  store.set(ACTIVE_CONFIG_KEY, trimmed);
 }
 
-export function deleteConfig(store: ReplyPilotConfigStore = getConfigStore()): void {
-  store.delete(CONFIG_KEY);
+export function deleteConfig(
+  configName?: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): void {
+  ensureMigrated(store);
+  const configs = store.get(CONFIGS_KEY) ?? {};
+  const name = configName ?? getActiveConfigName(store);
+
+  if (!name) {
+    throw new MissingConfigError();
+  }
+
+  if (!configs[name]) {
+    return;
+  }
+
+  const updated = { ...configs };
+  delete updated[name];
+  store.set(CONFIGS_KEY, updated);
+
+  if (store.get(ACTIVE_CONFIG_KEY) === name) {
+    const remaining = Object.keys(updated);
+    if (remaining.length > 0) {
+      store.set(ACTIVE_CONFIG_KEY, remaining[0]);
+    } else {
+      store.delete(ACTIVE_CONFIG_KEY);
+    }
+  }
+}
+
+function resolveConfigName(
+  configName: string | undefined,
+  store: ReplyPilotConfigStore,
+  configs: Record<string, AppConfig>,
+): string | undefined {
+  if (configName) {
+    return validateConfigName(configName);
+  }
+  return store.get(ACTIVE_CONFIG_KEY) ?? (Object.keys(configs)[0] || undefined);
 }
 
 export function getConfigFilePath(store: ReplyPilotConfigStore = getConfigStore()): string {

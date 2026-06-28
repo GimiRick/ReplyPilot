@@ -10,7 +10,7 @@ import {
   runSetupWizard,
   type PromptAdapter,
 } from '../../src/config/setup';
-import { createConfigStore, loadConfig } from '../../src/config/store';
+import { createConfigStore, loadConfig, saveConfig } from '../../src/config/store';
 
 describe('setup wizard config creation', () => {
   it('applies LM Studio defaults', () => {
@@ -299,6 +299,46 @@ describe('setup wizard config creation', () => {
     try {
       const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
       const prompts = makePromptAdapter([
+        'default',
+        'ollama',
+        'http://localhost:11434/v1',
+        'ollama',
+        'qwen2.5',
+        'Qwen Local',
+        false,
+        44,
+        false,
+        false,
+        'Short and friendly.',
+        true,
+        false,
+        false,
+        false,
+      ]);
+
+      const result = await runSetupWizard({ prompts, store });
+
+      expect(result.configName).toBe('default');
+      expect(loadConfig(undefined, store).context.messageCount).toBe(44);
+      expect(loadConfig(undefined, store).safety.dryRun).toBe(true);
+      expect(loadConfig(undefined, store).automation.debounceMs).toBe(0);
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects duplicate config names in the setup wizard', async () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
+    try {
+      const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
+      saveConfig(
+        createConfigFromSetupAnswers({ provider: 'ollama', modelName: 'mistral' }),
+        'work',
+        store,
+      );
+
+      const prompts = makePromptAdapter([
+        'work',
         'ollama',
         'http://localhost:11434/v1',
         'ollama',
@@ -317,9 +357,13 @@ describe('setup wizard config creation', () => {
 
       await runSetupWizard({ prompts, store });
 
-      expect(loadConfig(store).context.messageCount).toBe(44);
-      expect(loadConfig(store).safety.dryRun).toBe(true);
-      expect(loadConfig(store).automation.debounceMs).toBe(0);
+      const namePromptCall = vi.mocked(prompts.input).mock.calls.find(
+        (c) => (c[0] as { message: string }).message === 'Configuration name',
+      )!;
+      const validate = (namePromptCall[0] as { validate: (v: string) => true | string }).validate;
+
+      expect(validate('work')).toBe('A configuration named "work" already exists.');
+      expect(validate('new-config')).toBe(true);
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }

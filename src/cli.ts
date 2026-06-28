@@ -3,13 +3,21 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { version } from '../package.json';
-import { confirm } from '@inquirer/prompts';
+import { confirm, select } from '@inquirer/prompts';
 import { Command } from 'commander';
 
 import { formatDoctorReport, runDoctor } from './doctor/doctor';
 import { startAutomation } from './runtime/automation';
 import { ConfigValidationError, MissingConfigError } from './runtime/errors';
-import { deleteConfig, loadConfig, removeWhatsAppCacheData, removeWhatsAppSessionData } from './config/store';
+import {
+  deleteConfig,
+  getActiveConfigName,
+  listConfigNames,
+  loadConfig,
+  removeWhatsAppCacheData,
+  removeWhatsAppSessionData,
+  setActiveConfigName,
+} from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
 
@@ -18,13 +26,20 @@ export type CliDependencies = {
   startAutomation: typeof startAutomation;
   loadConfig: typeof loadConfig;
   deleteConfig: typeof deleteConfig;
+  listConfigNames: typeof listConfigNames;
+  getActiveConfigName: typeof getActiveConfigName;
+  setActiveConfigName: typeof setActiveConfigName;
   removeWhatsAppSessionData: typeof removeWhatsAppSessionData;
   removeWhatsAppCacheData: typeof removeWhatsAppCacheData;
   runDoctor: typeof runDoctor;
   confirm: typeof confirm;
+  select: SelectFn;
   output: (message: string) => void;
   error: (message: string) => void;
 };
+
+type SelectChoice = { name: string; value: string };
+type SelectFn = (config: { message: string; choices: SelectChoice[] }) => Promise<string>;
 
 export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Command {
   const deps: CliDependencies = {
@@ -32,10 +47,14 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     startAutomation,
     loadConfig,
     deleteConfig,
+    listConfigNames,
+    getActiveConfigName,
+    setActiveConfigName,
     removeWhatsAppSessionData,
     removeWhatsAppCacheData,
     runDoctor,
     confirm,
+    select: select as SelectFn,
     output: (message) => console.log(message),
     error: (message) => console.error(message),
     ...overrides,
@@ -57,7 +76,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
 
   program
     .command('setup')
-    .description('Run the first-time configuration wizard.')
+    .description('Run the configuration wizard to create a new config.')
     .action(async () => {
       await deps.runSetupWizard();
       deps.output('ReplyPilot configuration saved.');
@@ -79,6 +98,11 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         } else {
           throw error;
         }
+      }
+
+      const activeName = deps.getActiveConfigName();
+      if (activeName) {
+        deps.output(`Using config: ${activeName}`);
       }
 
       await deps.startAutomation();
@@ -103,6 +127,10 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .description('Print saved config with secrets redacted.')
     .action(() => {
       try {
+        const activeName = deps.getActiveConfigName();
+        if (activeName) {
+          deps.output(`Active config: ${activeName}`);
+        }
         deps.output(JSON.stringify(redactConfig(deps.loadConfig()), null, 2));
       } catch (error) {
         if (error instanceof MissingConfigError) {
@@ -127,8 +155,12 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .command('reset')
     .description('Delete saved ReplyPilot config after confirmation.')
     .action(async () => {
+      const activeName = deps.getActiveConfigName();
+
       const shouldReset = await deps.confirm({
-        message: 'Delete saved ReplyPilot configuration?',
+        message: activeName
+          ? `Delete active configuration "${activeName}"?`
+          : 'Delete saved ReplyPilot configuration?',
         default: false,
       });
 
@@ -137,8 +169,47 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         return;
       }
 
-      deps.deleteConfig();
-      deps.output('ReplyPilot configuration deleted.');
+      try {
+        deps.deleteConfig();
+        deps.output('ReplyPilot configuration deleted.');
+      } catch (error) {
+        if (error instanceof MissingConfigError) {
+          deps.error('No saved configuration found. Run replypilot setup to create one.');
+          process.exitCode = 1;
+          return;
+        }
+        throw error;
+      }
+    });
+
+  program
+    .command('switch')
+    .description('Switch to a different configuration.')
+    .action(async () => {
+      const names = deps.listConfigNames();
+
+      if (names.length === 0) {
+        deps.error('No configurations found. Run replypilot setup to create one.');
+        process.exitCode = 1;
+        return;
+      }
+
+      if (names.length === 1) {
+        deps.output(`Only one configuration exists: "${names[0]}".`);
+        return;
+      }
+
+      const activeName = deps.getActiveConfigName();
+      const chosen = await deps.select({
+        message: 'Select a configuration to switch to:',
+        choices: names.map((name) => ({
+          name: name === activeName ? `${name} (active)` : name,
+          value: name,
+        })),
+      });
+
+      deps.setActiveConfigName(chosen);
+      deps.output(`Switched to configuration: ${chosen}`);
     });
 
   program
@@ -191,7 +262,7 @@ try {
     process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url),
   );
 } catch {
-  // Fallback to false if process.argv[1] cannot be resolved to a real path
+  // Fallback to false if process.argv[1] cannot be resolved (e.g., in REPL or eval)
 }
 
 if (isMain) {

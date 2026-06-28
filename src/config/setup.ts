@@ -7,9 +7,10 @@ import {
   type LlmProviderName,
   parseAppConfig,
 } from './schema';
-import { saveConfig, type ReplyPilotConfigStore } from './store';
+import { listConfigNames, saveConfig, validateConfigName, type ReplyPilotConfigStore } from './store';
 
 export type SetupAnswers = {
+  configName?: string;
   provider: LlmProviderName;
   baseUrl?: string;
   apiKey?: string;
@@ -55,7 +56,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
   return parseAppConfig({
     version: CONFIG_VERSION,
     whatsapp: {
-      sessionName: 'default',
+      sessionName: answers.configName ?? 'default',
       allowGroups: answers.allowGroups ?? false,
       allowBroadcasts: answers.allowBroadcasts ?? false,
     },
@@ -345,8 +346,29 @@ export async function runSetupWizard(
     prompts?: PromptAdapter;
     store?: ReplyPilotConfigStore;
   } = {},
-): Promise<AppConfig> {
-  const config = await promptForConfig(options.prompts ?? defaultPromptAdapter);
-  saveConfig(config, options.store);
-  return config;
+): Promise<{ config: AppConfig; configName: string }> {
+  const prompts = options.prompts ?? defaultPromptAdapter;
+
+  const existingNames = listConfigNames(options.store);
+
+  const configName = await prompts.input({
+    message: 'Configuration name',
+    default: 'default',
+    validate: (value) => {
+      try {
+        const trimmed = validateConfigName(value);
+        if (existingNames.includes(trimmed)) {
+          return `A configuration named "${trimmed}" already exists.`;
+        }
+      } catch {
+        return 'Config name may only contain letters, numbers, hyphens, and underscores.';
+      }
+      return true;
+    },
+  });
+
+  const trimmedName = validateConfigName(configName);
+  const config = await promptForConfig(prompts);
+  saveConfig(config, trimmedName, options.store);
+  return { config, configName: trimmedName };
 }

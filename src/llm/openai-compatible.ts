@@ -25,6 +25,7 @@ export type OpenAiCompatibleProviderOptions = {
   provider: string;
   baseUrl: string;
   apiKey: string;
+  fallbackApiKeys?: string[];
   timeoutMs: number;
   maxRetries: number;
   client?: ChatCompletionClient;
@@ -32,25 +33,34 @@ export type OpenAiCompatibleProviderOptions = {
 };
 
 export class OpenAiCompatibleProvider implements LlmProvider {
-  private readonly client: ChatCompletionClient;
+  private readonly apiKeys: readonly string[];
   private readonly provider: string;
+  private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
   private readonly logger?: Pick<Logger, 'debug' | 'warn' | 'error'>;
+  private readonly injectedClient?: ChatCompletionClient;
 
   constructor(options: OpenAiCompatibleProviderOptions) {
     this.provider = options.provider;
+    this.baseUrl = options.baseUrl;
     this.timeoutMs = options.timeoutMs;
     this.maxRetries = options.maxRetries;
     this.logger = options.logger;
-    this.client =
-      options.client ??
-      (new OpenAI({
-        apiKey: options.apiKey,
-        baseURL: options.baseUrl,
-        timeout: options.timeoutMs,
-        maxRetries: 0,
-      }) as ChatCompletionClient);
+    this.injectedClient = options.client;
+    this.apiKeys = [options.apiKey, ...(options.fallbackApiKeys ?? [])];
+  }
+
+  private createClient(apiKey: string): ChatCompletionClient {
+    if (this.injectedClient) {
+      return this.injectedClient;
+    }
+    return new OpenAI({
+      apiKey,
+      baseURL: this.baseUrl,
+      timeout: this.timeoutMs,
+      maxRetries: 0,
+    }) as ChatCompletionClient;
   }
 
   async generateReply(input: GenerateReplyInput): Promise<GenerateReplyResult> {
@@ -60,38 +70,57 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       messages: buildReplyPrompt(input),
     };
 
-    try {
-      const completion = await retryTransient(
-        () => {
-          const ctrl = new AbortController();
-          return withTimeout(
-            this.client.chat.completions.create(
-              baseRequest,
-              { signal: ctrl.signal },
-            ),
-            this.timeoutMs,
-            ctrl,
+    let lastError: unknown;
+
+    for (let i = 0; i < this.apiKeys.length; i++) {
+      const client = this.createClient(this.apiKeys[i]);
+
+      try {
+        const completion = await retryTransient(
+          () => {
+            const ctrl = new AbortController();
+            return withTimeout(
+              client.chat.completions.create(
+                baseRequest,
+                { signal: ctrl.signal },
+              ),
+              this.timeoutMs,
+              ctrl,
+            );
+          },
+          this.maxRetries,
+          this.logger,
+        );
+
+        const rawText = completion.choices?.[0]?.message?.content ?? '';
+        const text = cleanGeneratedReply(rawText);
+
+        if (!text) {
+          throw new ProviderResponseError('The LLM provider returned an empty reply.');
+        }
+
+        return {
+          text,
+          provider: this.provider,
+          model: input.model,
+        };
+      } catch (error) {
+        lastError = error;
+
+        if (i < this.apiKeys.length - 1) {
+          this.logger?.warn(
+            { keyIndex: i, totalKeys: this.apiKeys.length },
+            'Key failed, trying next API key',
           );
-        },
-        this.maxRetries,
-        this.logger,
-      );
-      const rawText = completion.choices?.[0]?.message?.content ?? '';
-      const text = cleanGeneratedReply(rawText);
+          continue;
+        }
 
-      if (!text) {
-        throw new ProviderResponseError('The LLM provider returned an empty reply.');
+        this.logger?.error({ error }, 'LLM reply generation failed');
+        throw error;
       }
-
-      return {
-        text,
-        provider: this.provider,
-        model: input.model,
-      };
-    } catch (error) {
-      this.logger?.error({ error }, 'LLM reply generation failed');
-      throw error;
     }
+
+    throw lastError;
   }
 }
 

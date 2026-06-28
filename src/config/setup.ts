@@ -14,6 +14,7 @@ export type SetupAnswers = {
   provider: LlmProviderName;
   baseUrl?: string;
   apiKey?: string;
+  fallbackApiKeys?: string[];
   modelName: string;
   modelLabel?: string;
   visionSupport?: boolean;
@@ -66,6 +67,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       provider: answers.provider,
       baseUrl: answers.baseUrl ?? providerDefaults?.baseUrl,
       apiKey: answers.apiKey ?? providerDefaults?.apiKey,
+      fallbackApiKeys: answers.fallbackApiKeys ?? [],
       modelName: answers.modelName,
       modelLabel,
       visionSupport: answers.visionSupport ?? false,
@@ -143,6 +145,31 @@ export async function promptForConfig(
           default: providerDefaults?.apiKey,
           validate: (value) => (value.trim() ? true : 'API key is required'),
         });
+
+  const fallbackApiKeys: string[] = [];
+  let addFallback = await prompts.confirm({
+    message: 'Do you want to add a fallback API key?',
+    default: false,
+  });
+  while (addFallback) {
+    const fallbackKey =
+      provider === 'custom'
+        ? await prompts.password({
+            message: 'Fallback API key',
+            mask: '*',
+            validate: (value) => (value.trim() ? true : 'Fallback API key is required'),
+          })
+        : await prompts.input({
+            message: 'Fallback API key',
+            validate: (value) => (value.trim() ? true : 'Fallback API key is required'),
+          });
+    fallbackApiKeys.push(fallbackKey);
+
+    addFallback = await prompts.confirm({
+      message: 'Do you want to add another fallback API key?',
+      default: false,
+    });
+  }
 
   const modelName = await prompts.input({
     message: 'Model name',
@@ -325,6 +352,7 @@ export async function promptForConfig(
     provider,
     baseUrl,
     apiKey,
+    fallbackApiKeys: fallbackApiKeys.length > 0 ? fallbackApiKeys : undefined,
     modelName,
     modelLabel,
     visionSupport,

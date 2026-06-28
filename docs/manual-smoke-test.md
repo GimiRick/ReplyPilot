@@ -23,6 +23,16 @@ Use this checklist before publishing or before trusting a new environment.
 15. Run `replypilot logout`.
 16. Run `replypilot cache` to clear the WhatsApp web client cache.
 
+## Fallback API Keys
+
+1. Run `replypilot setup`.
+2. After entering the primary API key, confirm "Do you want to add a fallback API key?" appears.
+3. Answer `y` and enter a second API key.
+4. Confirm "Do you want to add another fallback API key?" appears.
+5. Answer `n` and complete setup.
+6. Run `replypilot config show` — confirm fallback keys are shown as `[redacted]`.
+7. Run `replypilot doctor` — confirm provider reachability check passes with the primary key.
+
 ## Multi-Config Profiles
 
 1. Run `replypilot setup` and create a config named `work`.

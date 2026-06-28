@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-192%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-210%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-96.3%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -240,6 +240,8 @@ During setup you may optionally set a **rate limit** for LLM API calls (default:
 
 You can also configure a **wait time before sending messages** (default: 10 seconds when enabled). Same-chat messages arriving within this window are batched into a single LLM call. Set to 0 for immediate processing. Disabled by default.
 
+Optionally add **fallback API keys** during setup. If the primary key fails (rate limited, out of balance, server error, etc.), ReplyPilot automatically rotates to the next key and retries — keeping your replies flowing with no interruption.
+
 ### LM Studio
 
 1. Open LM Studio, load a chat model, start the local OpenAI-compatible server.
@@ -273,6 +275,18 @@ During setup enter the base URL, API key, and model name for your provider.
 | ChatGPT  | `https://api.openai.com/v1`                                | `gpt-5.5`                 |
 | Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash`        |
 | Groq     | `https://api.groq.com/openai/v1`                           | `llama-4-scout-17b-16e-instruct` |
+
+### Fallback API Keys
+
+During setup, after entering your primary API key, ReplyPilot asks if you'd like to add **fallback API keys**. These are backup keys for the same provider — useful for rate limits, expired credits, or any other failure.
+
+```
+? Do you want to add a fallback API key? (y/N)
+? Fallback API key (enter key)
+? Do you want to add another fallback API key? (y/N)
+```
+
+If a request with the current key fails (rate limited, out of balance, server error, timeout, etc.), ReplyPilot automatically rotates to the next key and retries. If all keys fail, the error is reported. Fallback keys are optional — you can press enter (defaults to `n`) to skip.
 
 ---
 
@@ -568,6 +582,7 @@ WhatsApp Web ──> Client.on('message')
                      ┌──────────────┐
                      │ llmProvider.generateReply()
                      │  - withTimeout / retryTransient
+                     │  - key rotation on failure (all errors)
                      │  - ProviderTimeoutError if no response
                      │  - cleanGeneratedReply
                      └──────┬─────────┘
@@ -610,7 +625,8 @@ replypilot start
        │
        ├── loadConfig()              read active named config, Zod-validate
        ├── (uses config name as WhatsApp session ID)
-       ├── new OpenAiCompatibleProvider()   init OpenAI SDK client
+       ├── new OpenAiCompatibleProvider()   init OpenAI SDK client(s)
+       │   └── fallbackApiKeys[]           rotate on request failure
        ├── new ReplyAutomation()        wire config, provider, queue, logger
        ├── new WhatsAppClientAdapter()  init whatsapp-web.js (LocalAuth)
        │       ├── register QR handler
@@ -641,7 +657,7 @@ replypilot start
 | **Runtime** | `metrics.ts` | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time |
 | **Runtime** | `health-server.ts` | `HealthServer` — optional HTTP endpoint (`:port/health`, `:port/metrics`) using Node.js built-in `http` |
 | **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
-| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, transient-error retry with timeout race |
+| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race |
 | **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |
 | **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization, media type labels |

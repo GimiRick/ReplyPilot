@@ -61,6 +61,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -87,6 +88,7 @@ describe('setup wizard config creation', () => {
       'custom',
       'https://provider.example/v1',
       'secret-key',
+      false,
       'custom-model',
       'Custom Model',
       false,
@@ -115,6 +117,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -167,6 +170,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -197,6 +201,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -225,6 +230,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -251,6 +257,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -273,7 +280,7 @@ describe('setup wizard config creation', () => {
 
   it('validates custom whisper model names', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
+      'lmstudio', 'http://localhost', 'key', false, 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
     ]);
     await promptForConfig(prompts);
     const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name')!;
@@ -284,7 +291,7 @@ describe('setup wizard config creation', () => {
 
   it('validates local whisper URLs', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
+      'lmstudio', 'http://localhost', 'key', false, 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
     ]);
     await promptForConfig(prompts);
     const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL')!;
@@ -303,6 +310,7 @@ describe('setup wizard config creation', () => {
         'ollama',
         'http://localhost:11434/v1',
         'ollama',
+        false,
         'qwen2.5',
         'Qwen Local',
         false,
@@ -342,6 +350,7 @@ describe('setup wizard config creation', () => {
         'ollama',
         'http://localhost:11434/v1',
         'ollama',
+        false,
         'qwen2.5',
         'Qwen Local',
         false,
@@ -374,6 +383,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -399,6 +409,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -423,6 +434,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -446,6 +458,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,
@@ -475,6 +488,7 @@ describe('setup wizard config creation', () => {
       'lmstudio',
       'http://localhost:1234/v1',
       'lm-studio',
+      false,
       'loaded-model',
       'Local Llama',
       false,

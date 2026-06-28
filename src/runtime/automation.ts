@@ -246,6 +246,7 @@ export async function startAutomation(
     provider: config.llm.provider,
     baseUrl: config.llm.baseUrl,
     apiKey: config.llm.apiKey,
+    fallbackApiKeys: config.llm.fallbackApiKeys,
     timeoutMs: config.llm.timeoutMs,
     maxRetries: config.llm.maxRetries,
     logger,

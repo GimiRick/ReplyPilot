@@ -46,6 +46,7 @@ export const appConfigSchema = z
       visionSupport: z.boolean().default(false),
       timeoutMs: z.number().int().positive().default(60_000),
       maxRetries: z.number().int().min(0).max(5).default(1),
+      fallbackApiKeys: z.array(z.string().trim().min(1)).default([]),
     }),
     personality: z.object({
       ownerStylePrompt: nonEmptyString('Owner style prompt'),
@@ -96,6 +97,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     visionSupport: false,
     timeoutMs: 60_000,
     maxRetries: 1,
+    fallbackApiKeys: [],
   },
   personality: {
     ownerStylePrompt: 'Reply naturally, concisely, and in my usual WhatsApp style.',
@@ -143,6 +145,7 @@ export function redactConfig(config: AppConfig): AppConfig {
     llm: {
       ...config.llm,
       apiKey: config.llm.apiKey ? '[redacted]' : '',
+      fallbackApiKeys: config.llm.fallbackApiKeys.map(() => '[redacted]'),
     },
     voiceNote: {
       ...config.voiceNote,

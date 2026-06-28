@@ -254,9 +254,9 @@ During setup enter the base URL, API key, and model name for your provider.
 
 | Provider | Base URL                                                   | Example model             |
 | -------- | ---------------------------------------------------------- | ------------------------- |
-| ChatGPT  | `https://api.openai.com/v1`                                | `gpt-4o`                  |
-| Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash`        |
-| Groq     | `https://api.groq.com/openai/v1`                           | `llama-3.3-70b-versatile` |
+| ChatGPT  | `https://api.openai.com/v1`                                | `gpt-5.5`                 |
+| Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash`        |
+| Groq     | `https://api.groq.com/openai/v1`                           | `llama-4-scout-17b-16e-instruct` |
 
 ---
 

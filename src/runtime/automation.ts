@@ -73,7 +73,7 @@ export class ReplyAutomation {
   handleIncomingMessage(message: RuntimeIncomingMessage): Promise<AutomationResult> {
     if (this.stopped) {
       this.metrics.recordMessageIgnored();
-      return Promise.resolve({ status: 'ignored', reason: 'shutting_down' as IgnoreReason });
+      return Promise.resolve({ status: 'ignored', reason: 'shutting_down' });
     }
 
     this.metrics.recordMessageReceived();

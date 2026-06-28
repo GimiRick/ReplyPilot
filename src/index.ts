@@ -81,6 +81,7 @@ export {
 } from './whatsapp/filters';
 export {
   fetchChatContext,
+  mediaTypeLabel,
   normalizeChatMessage,
   normalizeChatMessages,
   type WhatsAppRawChat,

@@ -42,7 +42,7 @@ export function normalizeChatMessages(messages: WhatsAppRawMessage[]): ChatConte
     .map((message, index) => ({ message, index }))
     .sort((a, b) => {
       if (a.message.timestamp !== b.message.timestamp) {
-        return (a.message.timestamp ?? 0) - (b.message.timestamp ?? 0);
+        return a.message.timestamp - b.message.timestamp;
       }
       return a.index - b.index;
     })

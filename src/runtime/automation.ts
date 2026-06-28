@@ -305,9 +305,13 @@ export async function startAutomation(
       console.error('  This could be a missing browser, network issue, or environment problem.');
       console.error('  If the problem persists, try:  replypilot logout');
     }
-
     console.error('');
+
     process.exitCode = 1;
+
+    if (healthServer) {
+      await healthServer.stop();
+    }
   }
 }
 

@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-188%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-192%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-96.3%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -225,6 +225,8 @@ npm run pack:dry-run      # inspect npm tarball
 The setup wizard also configures optional voice note handling — transcription via Whisper Cloud API, a local whisper.cpp server, or native audio passthrough to a multimodal LLM. See [Voice Note Processing](#voice-note-processing-detail) for details.
 
 During setup you may optionally set a **rate limit** for LLM API calls (default: 36 calls/minute when enabled). This caps how often the LLM is invoked globally, preventing provider overload. Disabled by default.
+
+You can also configure a **wait time before sending messages** (default: 10 seconds when enabled). Same-chat messages arriving within this window are batched into a single LLM call. Set to 0 for immediate processing. Disabled by default.
 
 ### LM Studio
 
@@ -537,7 +539,7 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 - **Global limit**: max 2 concurrent LLM requests (`globalConcurrency: 2`).
 - **Rate limit**: optionally configurable during `replypilot setup` — caps LLM calls per minute. When set, a rolling window (60s) prevents exceeding the configured ceiling.
 - **Per-chat serial**: messages in the same chat process one at a time (`perChatConcurrency: 1`).
-- **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining.
+- **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s, configurable via `replypilot setup`) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining. Set to 0 for immediate processing (no batching).
 - **Chat queues** are created lazily (one `PQueue` per `chatId`).
 - **Duplicate guard** tracks up to 5,000 seen message IDs, pruning oldest entries when full.
 

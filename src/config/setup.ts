@@ -23,6 +23,8 @@ export type SetupAnswers = {
   localWhisperUrl?: string;
   messageCount?: number;
   maxCallsPerMinute?: number;
+  waitBeforeSending?: boolean;
+  debounceMs?: number;
   ownerStylePrompt?: string;
   dryRun?: boolean;
   allowGroups?: boolean;
@@ -83,7 +85,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       messageCount: answers.messageCount ?? 30,
     },
     automation: {
-      debounceMs: 10000,
+      debounceMs: answers.waitBeforeSending === false ? 0 : (answers.debounceMs ?? 10000),
       maxCallsPerMinute: answers.maxCallsPerMinute,
     },
     safety: {
@@ -190,6 +192,30 @@ export async function promptForConfig(
         }
 
         return value >= 1 && value <= 120 ? true : 'Choose a value from 1 to 120';
+      },
+    });
+  }
+
+  const setWaitTime = await prompts.confirm({
+    message: 'Do you want to set a wait time before sending messages?',
+    default: false,
+  });
+
+  let debounceMs: number | undefined;
+
+  if (setWaitTime) {
+    debounceMs = await prompts.number({
+      message: 'Wait time before sending (in seconds)',
+      default: 10,
+      validate: (value) => {
+        if (value === undefined) {
+          return true;
+        }
+        if (!Number.isInteger(value)) {
+          return 'Value must be an integer';
+        }
+
+        return value >= 0 && value <= 600 ? true : 'Choose a value from 0 to 600';
       },
     });
   }
@@ -305,6 +331,8 @@ export async function promptForConfig(
     localWhisperUrl: localWhisperUrl?.trim() || undefined,
     messageCount,
     maxCallsPerMinute,
+    waitBeforeSending: setWaitTime,
+    debounceMs: debounceMs !== undefined ? debounceMs * 1000 : undefined,
     ownerStylePrompt,
     dryRun,
     allowGroups,

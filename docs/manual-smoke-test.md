@@ -10,11 +10,12 @@ Use this checklist before publishing or before trusting a new environment.
 4. Select the provider and model.
 5. Set context message count to `30`.
 6. Optionally configure a rate limit for LLM API calls (or skip for no limit).
-7. Start the tool with `replypilot start`.
-7. Scan the terminal QR code from WhatsApp on your phone using linked devices.
-8. Send a message from another WhatsApp account.
-9. Confirm recent chat context is fetched.
-10. Confirm the generated reply is sent.
-11. Enable dry-run in config and confirm no WhatsApp message is sent.
-12. Run `replypilot logout`.
-13. Run `replypilot cache` to clear the WhatsApp web client cache.
+7. Optionally configure a wait time before sending messages (or skip for immediate send).
+8. Start the tool with `replypilot start`.
+9. Scan the terminal QR code from WhatsApp on your phone using linked devices.
+10. Send a message from another WhatsApp account.
+11. Confirm recent chat context is fetched.
+12. Confirm the generated reply is sent.
+13. Enable dry-run in config and confirm no WhatsApp message is sent.
+14. Run `replypilot logout`.
+15. Run `replypilot cache` to clear the WhatsApp web client cache.

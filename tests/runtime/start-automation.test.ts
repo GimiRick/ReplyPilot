@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeConfig } from '../fixtures/app-config';
+import { HealthServer } from '../../src/runtime/health-server';
 
 const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),
@@ -175,5 +176,27 @@ describe('startAutomation', () => {
     };
     
     await expect(onMessageCallback(message)).resolves.toBeUndefined();
+  });
+
+  it('stops health server on WhatsApp connection failure', async () => {
+    const previousExitCode = process.exitCode;
+    const error = new Error('Failed to launch browser process');
+    mocks.start.mockRejectedValue(error);
+
+    const stopSpy = vi.spyOn(HealthServer.prototype, 'stop');
+    const startSpy = vi.spyOn(HealthServer.prototype, 'start');
+
+    try {
+      const { startAutomation } = await import('../../src/runtime/automation');
+      await startAutomation({}, 0);
+
+      expect(startSpy).toHaveBeenCalled();
+      expect(stopSpy).toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+      stopSpy.mockRestore();
+      startSpy.mockRestore();
+    }
   });
 });

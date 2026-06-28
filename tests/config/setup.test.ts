@@ -66,6 +66,7 @@ describe('setup wizard config creation', () => {
       false,
       undefined,
       false,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -78,6 +79,7 @@ describe('setup wizard config creation', () => {
     expect(config.llm.provider).toBe('lmstudio');
     expect(config.context.messageCount).toBe(30);
     expect(config.personality.ownerStylePrompt).toBe('Reply in my tone.');
+    expect(config.automation.debounceMs).toBe(0);
   });
 
   it('collects custom provider answers with the password prompt', async () => {
@@ -89,6 +91,7 @@ describe('setup wizard config creation', () => {
       'Custom Model',
       false,
       12,
+      false,
       false,
       'Crisp and warm.',
       false,
@@ -103,6 +106,7 @@ describe('setup wizard config creation', () => {
     expect(config.llm.apiKey).toBe('secret-key');
     expect(config.whatsapp.allowGroups).toBe(true);
     expect(config.whatsapp.allowBroadcasts).toBe(true);
+    expect(config.automation.debounceMs).toBe(0);
     expect(prompts.password).toHaveBeenCalledOnce();
   });
 
@@ -115,6 +119,7 @@ describe('setup wizard config creation', () => {
       'Local Llama',
       false,
       undefined,
+      false,
       false,
       'Reply in my tone.',
       false,
@@ -167,6 +172,7 @@ describe('setup wizard config creation', () => {
       false,
       undefined,
       false,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -196,6 +202,7 @@ describe('setup wizard config creation', () => {
       false,
       undefined,
       false,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -223,6 +230,7 @@ describe('setup wizard config creation', () => {
       false,
       undefined,
       false,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -248,6 +256,7 @@ describe('setup wizard config creation', () => {
       false,
       undefined,
       false,
+      false,
       'Reply in my tone.',
       false,
       false,
@@ -264,7 +273,7 @@ describe('setup wizard config creation', () => {
 
   it('validates custom whisper model names', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
     ]);
     await promptForConfig(prompts);
     const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name')!;
@@ -275,7 +284,7 @@ describe('setup wizard config creation', () => {
 
   it('validates local whisper URLs', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
+      'lmstudio', 'http://localhost', 'key', 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
     ]);
     await promptForConfig(prompts);
     const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL')!;
@@ -298,6 +307,7 @@ describe('setup wizard config creation', () => {
         false,
         44,
         false,
+        false,
         'Short and friendly.',
         true,
         false,
@@ -309,6 +319,7 @@ describe('setup wizard config creation', () => {
 
       expect(loadConfig(store).context.messageCount).toBe(44);
       expect(loadConfig(store).safety.dryRun).toBe(true);
+      expect(loadConfig(store).automation.debounceMs).toBe(0);
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }
@@ -325,7 +336,9 @@ describe('setup wizard config creation', () => {
       undefined,
       true,
       50,
+      false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -334,6 +347,83 @@ describe('setup wizard config creation', () => {
     const config = await promptForConfig(prompts);
 
     expect(config.automation.maxCallsPerMinute).toBe(50);
+    expect(config.automation.debounceMs).toBe(0);
+  });
+
+  it('lets users set a custom wait time before sending', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      true,
+      30,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.automation.debounceMs).toBe(30000);
+  });
+
+  it('sets debounceMs to 0 when no wait time is wanted', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      false,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.automation.debounceMs).toBe(0);
+  });
+
+  it('validates wait time input', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      true,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    await promptForConfig(prompts);
+
+    const debounceOptions = getNthPromptOptions(prompts.number, 1);
+    expect(debounceOptions.validate?.(undefined)).toBe(true);
+    expect(debounceOptions.validate?.(30.5)).toBe('Value must be an integer');
+    expect(debounceOptions.validate?.(-1)).toBe('Choose a value from 0 to 600');
+    expect(debounceOptions.validate?.(601)).toBe('Choose a value from 0 to 600');
+    expect(debounceOptions.validate?.(10)).toBe(true);
   });
 
   it('validates max calls per minute input', async () => {
@@ -347,7 +437,9 @@ describe('setup wizard config creation', () => {
       undefined,
       true,
       undefined,
+      false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,

@@ -151,7 +151,7 @@ function withTimeout<T>(
   timeoutMs: number,
   controller?: AbortController,
 ): Promise<T> {
-  let timer: NodeJS.Timeout;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
@@ -160,9 +160,12 @@ function withTimeout<T>(
     }, timeoutMs);
   });
 
+  // Prevent unhandled rejections when timeout wins and `promise` rejects later.
   promise.catch(() => {});
 
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 function isTransientProviderError(error: unknown): boolean {

@@ -84,6 +84,9 @@ External requirements:
 
 ### 1. NPM Global Install
 
+> [!WARNING]
+> **Linux Users (Ubuntu/Debian, etc.)**: Do not use `sudo npm i -g gimirick-replypilot`. Installing with `sudo` downloads the internal browser to the `root` directory, causing the app to crash for normal users. Use a Node version manager (like NVM) to install without `sudo`, or use the **NPM Local Install (npx)** method below instead.
+
 Install from [npm](https://www.npmjs.com/package/gimirick-replypilot):
 
 ```bash
@@ -131,6 +134,9 @@ const config: AppConfig = loadConfig();
 ---
 
 ### 2. NPM Local Install
+
+> [!TIP]
+> **Recommended for Linux**: Using `npx` safely bypasses global permission issues on Linux and guarantees the internal browser downloads to the correct user directory.
 
 Install from [npm](https://www.npmjs.com/package/gimirick-replypilot):
 

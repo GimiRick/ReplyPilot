@@ -151,6 +151,9 @@ describe('oggToMp3', () => {
 
       await expect(promise).rejects.toThrow('ffmpeg timed out');
       expect(ff.proc.kill).toHaveBeenCalledWith('SIGTERM');
+
+      timeoutCallback[1]();
+      expect(ff.proc.kill).toHaveBeenCalledWith('SIGKILL');
     } finally {
       vi.mocked(globalThis.setTimeout).mockRestore();
     }

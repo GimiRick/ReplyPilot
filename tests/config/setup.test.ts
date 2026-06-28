@@ -313,6 +313,55 @@ describe('setup wizard config creation', () => {
       fs.rmSync(cwd, { recursive: true, force: true });
     }
   });
+
+  it('allows setting max LLM API calls per minute limit', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      true,
+      50,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.automation.maxCallsPerMinute).toBe(50);
+  });
+
+  it('validates max calls per minute input', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      true,
+      undefined,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+    ]);
+
+    await promptForConfig(prompts);
+
+    const rateLimitOptions = getNthPromptOptions(prompts.number, 1);
+    expect(rateLimitOptions.validate?.(undefined)).toBe(true);
+    expect(rateLimitOptions.validate?.(30.5)).toBe('Value must be an integer');
+    expect(rateLimitOptions.validate?.(0)).toBe('Choose a value from 1 to 120');
+    expect(rateLimitOptions.validate?.(121)).toBe('Choose a value from 1 to 120');
+    expect(rateLimitOptions.validate?.(36)).toBe(true);
+  });
 });
 
 function makePromptAdapter(values: unknown[]): PromptAdapter {
@@ -328,7 +377,11 @@ function makePromptAdapter(values: unknown[]): PromptAdapter {
 }
 
 function getFirstPromptOptions(prompt: unknown) {
-  return (prompt as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+  return getNthPromptOptions(prompt, 0);
+}
+
+function getNthPromptOptions(prompt: unknown, index: number) {
+  return (prompt as ReturnType<typeof vi.fn>).mock.calls[index][0] as {
     validate?: (value: unknown) => true | string;
   };
 }

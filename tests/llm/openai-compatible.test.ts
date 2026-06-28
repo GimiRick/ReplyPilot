@@ -26,6 +26,9 @@ describe('OpenAiCompatibleProvider', () => {
           expect.objectContaining({ role: 'user' }),
         ]),
       }),
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 

@@ -270,7 +270,12 @@ export async function startAutomation(
     await automation.handleIncomingMessage(message);
   });
 
+  let shuttingDown = false;
   const shutdown = async () => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
     logger.info('Shutting down ReplyPilot gracefully...');
     try {
       await automation.stop();

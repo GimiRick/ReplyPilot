@@ -17,22 +17,38 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
 
     const chunks: Buffer[] = [];
     let settled = false;
+    let sigkillTimer: NodeJS.Timeout | undefined;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (sigkillTimer) {
+        clearTimeout(sigkillTimer);
+      }
+    };
 
     const settle = (fn: () => void) => {
       if (!settled) {
         settled = true;
-        clearTimeout(timer);
+        cleanup();
         fn();
       }
     };
 
     const timer = setTimeout(() => {
       ffmpeg.kill('SIGTERM');
-      settle(() => reject(new Error('ffmpeg timed out')));
-      setTimeout(() => {
+      sigkillTimer = setTimeout(() => {
         ffmpeg.kill('SIGKILL');
       }, 5000);
+      
+      if (!settled) {
+        settled = true;
+        reject(new Error('ffmpeg timed out'));
+      }
     }, FFMPEG_TIMEOUT_MS);
+
+    ffmpeg.stdin?.on?.('error', () => {
+      // Ignore EPIPE or write errors since we handle exit/close on the process
+    });
 
     ffmpeg.stdout.on('data', (chunk: Buffer) => {
       chunks.push(chunk);
@@ -47,7 +63,9 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
     });
 
     ffmpeg.on('close', (code, signal) => {
-      settle(() => {
+      cleanup(); // ALWAYS clear timers when process closes to prevent event loop leaks
+      if (!settled) {
+        settled = true;
         if (code === null) {
           reject(new Error(`ffmpeg was killed by signal ${signal}`));
         } else if (code !== 0) {
@@ -55,7 +73,7 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
         } else {
           resolve(Buffer.concat(chunks));
         }
-      });
+      }
     });
 
     ffmpeg.stdin.write(oggBuffer);

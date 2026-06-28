@@ -185,7 +185,14 @@ export async function main(argv = process.argv): Promise<void> {
   await program.parseAsync(argv);
 }
 
-const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+let isMain = false;
+try {
+  isMain = Boolean(
+    process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url),
+  );
+} catch {
+  // Fallback to false if process.argv[1] cannot be resolved to a real path
+}
 
 if (isMain) {
   main().catch((error: unknown) => {

@@ -96,7 +96,7 @@ npm i -g gimirick-replypilot
 `replypilot` becomes a system-wide command.
 
 ```bash
-# Setup wizard (creates a named config — AI settings only)
+# Setup wizard (creates a named config ——> AI settings only)
 replypilot setup
 
 # Authenticate a WhatsApp account (scans QR code)
@@ -218,7 +218,7 @@ Or via npm scripts:
 npm start          # node dist/cli.js start
 ```
 
-#### Development mode (tsx — no build needed)
+#### Development mode (tsx ——> no build needed)
 
 ```bash
 npm run dev                    # tsx src/cli.ts start
@@ -252,13 +252,13 @@ npm run pack:dry-run      # inspect npm tarball
 
 ## Provider Setup
 
-The setup wizard also configures optional voice note handling — transcription via Whisper Cloud API, a local whisper.cpp server, or native audio passthrough to a multimodal LLM. See [Voice Note Processing](#voice-note-processing-detail) for details.
+The setup wizard also configures optional voice note handling, transcription via Whisper Cloud API, a local whisper.cpp server, or native audio passthrough to a multimodal LLM. See [Voice Note Processing](#voice-note-processing-detail) for details.
 
 During setup you may optionally set a **rate limit** for LLM API calls (default: 36 calls/minute when enabled). This caps how often the LLM is invoked globally, preventing provider overload. Disabled by default.
 
 You can also configure a **wait time before sending messages** (default: 10 seconds when enabled). Same-chat messages arriving within this window are batched into a single LLM call. Set to 0 for immediate processing. Disabled by default.
 
-Optionally add **fallback API keys** during setup. If the primary key fails (rate limited, out of balance, server error, etc.), ReplyPilot automatically rotates to the next key and retries — keeping your replies flowing with no interruption.
+Optionally add **fallback API keys** during setup. If the primary key fails (rate limited, out of balance, server error, etc.), ReplyPilot automatically rotates to the next key and retries, keeping your replies flowing with no interruption.
 
 ### LM Studio
 
@@ -296,7 +296,7 @@ During setup enter the base URL, API key, and model name for your provider.
 
 ### Fallback API Keys
 
-During setup, after entering your primary API key, ReplyPilot asks if you'd like to add **fallback API keys**. These are backup keys for the same provider — useful for rate limits, expired credits, or any other failure.
+During setup, after entering your primary API key, ReplyPilot asks if you'd like to add **fallback API keys**. These are backup keys for the same provider useful for rate limits, expired credits, or any other failure.
 
 ```text
 ? Do you want to add a fallback API key? (y/N)
@@ -304,13 +304,13 @@ During setup, after entering your primary API key, ReplyPilot asks if you'd like
 ? Do you want to add another fallback API key? (y/N)
 ```
 
-If a request with the current key fails (rate limited, out of balance, server error, timeout, etc.), ReplyPilot automatically rotates to the next key and retries. If all keys fail, the error is reported. Fallback keys are optional — you can press enter (defaults to `n`) to skip.
+If a request with the current key fails (rate limited, out of balance, server error, timeout, etc.), ReplyPilot automatically rotates to the next key and retries. If all keys fail, the error is reported. Fallback keys are optional, you can press enter (defaults to `n`) to skip.
 
 ---
 
 ## Multi-Config Profiles
 
-You can create and manage multiple named configurations. Each config stores its own LLM provider settings, model, voice note preferences, and automation behavior — **independently** of which WhatsApp account is active.
+You can create and manage multiple named configurations. Each config stores its own LLM provider settings, model, voice note preferences, and automation behavior **independently** of which WhatsApp account is active.
 
 Configs and WhatsApp accounts are fully decoupled. You can use the same WhatsApp account with different AI configurations, or the same AI config with different WhatsApp accounts.
 
@@ -330,7 +330,7 @@ Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default.
 replypilot config switch
 ```
 
-Shows a list of your saved configs. Select one to make it active. This only changes which AI settings are used — your WhatsApp account stays the same.
+Shows a list of your saved configs. Select one to make it active. This only changes which AI settings are used, your WhatsApp account stays the same.
 
 ### Viewing current config
 
@@ -360,7 +360,7 @@ WhatsApp accounts are managed separately from configs. You log into each account
 replypilot login
 ```
 
-You'll be prompted for an account name (e.g., `work-phone`, `personal`). Names must be unique — if you try to reuse a name, you'll be asked to enter a different one.
+You'll be prompted for an account name (e.g., `work-phone`, `personal`). Names must be unique if you try to reuse a name, you'll be asked to enter a different one.
 
 ```text
 ? WhatsApp account name: work-phone
@@ -368,7 +368,7 @@ You'll be prompted for an account name (e.g., `work-phone`, `personal`). Names m
 
 A QR code appears in the terminal. Scan it from WhatsApp on your phone (Linked Devices → Link a device). Once scanned, the account is saved and set as active.
 
-You can repeat this for multiple phone numbers. Each gets its own name and its own saved session — no need to re-scan QR codes later.
+You can repeat this for multiple phone numbers. Each gets its own name and its own saved session, no need to re-scan QR codes later.
 
 ### Switching accounts
 
@@ -376,7 +376,7 @@ You can repeat this for multiple phone numbers. Each gets its own name and its o
 replypilot account switch
 ```
 
-Shows all authenticated accounts. Select one to make it active. This only changes which WhatsApp account is used — your AI config stays the same.
+Shows all authenticated accounts. Select one to make it active. This only changes which WhatsApp account is used, your AI config stays the same.
 
 ### Logging out
 

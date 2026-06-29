@@ -81,6 +81,8 @@
     "access": "public"
   },
   "overrides": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "glob": "13.0.6",
+    "fluent-ffmpeg": "npm:@ts-ffmpeg/fluent-ffmpeg@2.2.6"
   }
 }

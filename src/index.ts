@@ -18,6 +18,7 @@ export {
   createConfigStore,
   deleteConfig,
   getActiveConfigName,
+  getActiveWhatsAppAccount,
   getConfigFilePath,
   getConfigStore,
   getReplyPilotDataDir,
@@ -25,11 +26,15 @@ export {
   getWhatsAppSessionDir,
   hasConfig,
   listConfigNames,
+  listWhatsAppAccounts,
   loadConfig,
+  clearActiveWhatsAppAccount,
   removeWhatsAppCacheData,
+  removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,
   saveConfig,
   setActiveConfigName,
+  setActiveWhatsAppAccount,
   tryLoadConfig,
   validateConfigName,
   type ReplyPilotConfigStore,
@@ -83,6 +88,7 @@ export {
   type FilterableWhatsAppMessage,
   type IgnoreReason,
 } from './whatsapp/filters';
+export { loginWhatsAppAccount } from './whatsapp/client';
 export {
   fetchChatContext,
   mediaTypeLabel,

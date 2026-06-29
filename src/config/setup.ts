@@ -59,7 +59,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
   return parseAppConfig({
     version: CONFIG_VERSION,
     whatsapp: {
-      sessionName: answers.configName ?? 'default',
+      sessionName: 'default',
       allowGroups: answers.allowGroups ?? false,
       allowBroadcasts: answers.allowBroadcasts ?? false,
     },

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildCliProgram, type CliDependencies } from '../../src/cli';
 import { ConfigValidationError, MissingConfigError } from '../../src/runtime/errors';
 import { makeConfig } from '../fixtures/app-config';
+import type { Logger } from '../../src/runtime/logger';
 
 describe('CLI commands', () => {
   it('runs setup and reports saved config', async () => {
@@ -109,31 +110,34 @@ describe('CLI commands', () => {
     }
   });
 
-  it('resets config after confirmation', async () => {
-    const { program, deps } = makeProgram({
+  it('resets a single config after confirmation', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['default']),
       confirm: vi.fn(async () => true),
     });
 
     await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
 
-    expect(deps.deleteConfig).toHaveBeenCalled();
+    expect(deps.deleteConfig).toHaveBeenCalledWith('default');
+    expect(output).toContain('Configuration "default" deleted.');
   });
 
-  it('shows active config name in reset confirmation', async () => {
+  it('shows config name in reset confirmation for single config', async () => {
     const { program, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work']),
       confirm: vi.fn(async () => true),
-      getActiveConfigName: vi.fn(() => 'work'),
     });
 
     await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
 
     expect(deps.confirm).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'Delete active configuration "work"?' }),
+      expect.objectContaining({ message: 'Delete configuration "work"?' }),
     );
   });
 
   it('keeps config when reset is cancelled', async () => {
     const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['default']),
       confirm: vi.fn(async () => false),
     });
 
@@ -143,14 +147,141 @@ describe('CLI commands', () => {
     expect(output).toContain('Config reset cancelled.');
   });
 
-  it('logs out after confirmation', async () => {
+  it('reports when no configs exist for reset', async () => {
+    const previousExitCode = process.exitCode;
+    const { program, output } = makeProgram({
+      listConfigNames: vi.fn(() => []),
+    });
+
+    try {
+      await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
+
+      expect(output.join('\n')).toContain('No saved configuration found');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  });
+
+  it('resets a selected config from multiple', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work', 'personal']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => 'personal') as any,
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
+
+    expect(deps.deleteConfig).toHaveBeenCalledWith('personal');
+    expect(output).toContain('Configuration "personal" deleted.');
+  });
+
+  it('resets all configurations', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work', 'personal']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => '__all__') as any,
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
+
+    expect(deps.deleteConfig).toHaveBeenCalledTimes(2);
+    expect(deps.deleteConfig).toHaveBeenCalledWith('work');
+    expect(deps.deleteConfig).toHaveBeenCalledWith('personal');
+    expect(output).toContain('All configurations deleted.');
+  });
+
+  it('cancels multi-config reset', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work', 'personal']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => '__all__') as any,
+      confirm: vi.fn(async () => false),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'config', 'reset']);
+
+    expect(deps.deleteConfig).not.toHaveBeenCalled();
+    expect(output).toContain('Config reset cancelled.');
+  });
+
+  it('logs out a single WhatsApp account after confirmation', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['default']),
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'logout']);
+
+    expect(deps.removeWhatsAppSessionAccount).toHaveBeenCalledWith('default');
+    expect(output).toContain('WhatsApp account "default" logged out.');
+  });
+
+  it('reports when no WhatsApp accounts exist for logout', async () => {
+    const { program, output } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => []),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'logout']);
+
+    expect(output.join('\n')).toContain('No WhatsApp accounts to logout.');
+  });
+
+  it('cancels logout of a single account', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['default']),
+      confirm: vi.fn(async () => false),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'logout']);
+
+    expect(deps.removeWhatsAppSessionAccount).not.toHaveBeenCalled();
+    expect(output).toContain('Logout cancelled.');
+  });
+
+  it('logs out a selected WhatsApp account from multiple', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['work', 'personal']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => 'work') as any,
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'logout']);
+
+    expect(deps.removeWhatsAppSessionAccount).toHaveBeenCalledWith('work');
+    expect(output).toContain('WhatsApp account "work" logged out.');
+  });
+
+  it('clears active account when logging out the active account', async () => {
     const { program, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['work', 'personal']),
+      getActiveWhatsAppAccount: vi.fn(() => 'work'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => 'work') as any,
+      confirm: vi.fn(async () => true),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'logout']);
+
+    expect(deps.clearActiveWhatsAppAccount).toHaveBeenCalled();
+  });
+
+  it('logs out all WhatsApp accounts', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['work', 'personal']),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => '__all__') as any,
       confirm: vi.fn(async () => true),
     });
 
     await program.parseAsync(['node', 'replypilot', 'logout']);
 
     expect(deps.removeWhatsAppSessionData).toHaveBeenCalled();
+    expect(deps.clearActiveWhatsAppAccount).toHaveBeenCalled();
+    expect(output).toContain('All WhatsApp session data removed.');
   });
 
   it('prints doctor output', async () => {
@@ -222,6 +353,75 @@ describe('CLI commands', () => {
     expect(deps.setActiveConfigName).toHaveBeenCalledWith('personal');
     expect(output).toContain('Switched to configuration: personal');
   });
+
+  it('runs login and sets account active', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => []),
+      input: vi.fn(async () => 'work-account') as unknown as CliDependencies['input'],
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'login']);
+
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('work-account', expect.anything());
+    expect(deps.setActiveWhatsAppAccount).toHaveBeenCalledWith('work-account');
+    expect(output).toContain('Account "work-account" is now active.');
+  });
+
+  it('rejects duplicate WhatsApp account name', async () => {
+    let validateResult: string | true | undefined;
+    const { program, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['existing-account']),
+      input: vi.fn(async (config: { message: string; validate?: (value: string) => true | string }) => {
+        validateResult = config.validate?.('existing-account');
+        return 'different-name';
+      }) as unknown as CliDependencies['input'],
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'login']);
+
+    expect(validateResult).toBe('An account named "existing-account" already exists.');
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('different-name', expect.anything());
+  });
+
+  it('reports error when no accounts exist for account switch', async () => {
+    const previousExitCode = process.exitCode;
+    const { program, output } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => []),
+    });
+
+    try {
+      await program.parseAsync(['node', 'replypilot', 'account', 'switch']);
+
+      expect(output.join('\n')).toContain('No WhatsApp accounts found');
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  });
+
+  it('reports when only one account exists for account switch', async () => {
+    const { program, output } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['default']),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'account', 'switch']);
+
+    expect(output.join('\n')).toContain('Only one WhatsApp account exists: "default".');
+  });
+
+  it('switches to selected WhatsApp account', async () => {
+    const { program, output, deps } = makeProgram({
+      listWhatsAppAccounts: vi.fn(() => ['work', 'personal']),
+      getActiveWhatsAppAccount: vi.fn(() => 'work'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: vi.fn(async () => 'personal') as any,
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'account', 'switch']);
+
+    expect(deps.setActiveWhatsAppAccount).toHaveBeenCalledWith('personal');
+    expect(output).toContain('Switched to WhatsApp account: personal');
+  });
 });
 
 function makeProgram(overrides: Partial<CliDependencies> = {}) {
@@ -235,14 +435,24 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
     getActiveConfigName: vi.fn(() => undefined),
     setActiveConfigName: vi.fn(),
     removeWhatsAppSessionData: vi.fn(),
+    removeWhatsAppSessionAccount: vi.fn(),
+    clearActiveWhatsAppAccount: vi.fn(),
     removeWhatsAppCacheData: vi.fn(),
     runDoctor: vi.fn(async () => ({
       ok: true,
       checks: [{ name: 'Node.js', status: 'pass' as const, message: 'Node is supported.' }],
     })),
+    loginWhatsAppAccount: vi.fn(async (_name: string, _logger: Logger) => {
+      void _name;
+      void _logger;
+    }),
+    getActiveWhatsAppAccount: vi.fn(() => undefined),
+    setActiveWhatsAppAccount: vi.fn(),
+    listWhatsAppAccounts: vi.fn(() => []),
     confirm: vi.fn(async () => true),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: vi.fn(async () => 'default') as any,
+    input: vi.fn(async () => 'test-account') as unknown as CliDependencies['input'],
     output: (message) => output.push(message),
     error: (message) => output.push(message),
     ...overrides,

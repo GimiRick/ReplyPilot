@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-216%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-240%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-95.9%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -96,16 +96,22 @@ npm i -g gimirick-replypilot
 `replypilot` becomes a system-wide command.
 
 ```bash
-# Setup wizard (creates a named config, default name: "default")
+# Setup wizard (creates a named config — AI settings only)
 replypilot setup
 
-# Start automation (connects WhatsApp + begins listening)
+# Authenticate a WhatsApp account (scans QR code)
+replypilot login
+
+# Switch between authenticated WhatsApp accounts
+replypilot account switch
+
+# Start automation (connects active WhatsApp + active config)
 replypilot start
 
 # Display installed version
 replypilot version
 
-# Health check (Node version, config validity, provider reachability)
+# Health check (Node version, config, provider reachability, ffmpeg)
 replypilot doctor
 
 # View current config (API key redacted)
@@ -117,7 +123,7 @@ replypilot config reset
 # Switch to a different named config
 replypilot switch
 
-# Remove WhatsApp session data (prompts confirmation)
+# Remove all WhatsApp session data (prompts confirmation)
 replypilot logout
 
 # Clear WhatsApp web client cache (prompts confirmation)
@@ -151,6 +157,8 @@ All features via `npx`:
 
 ```bash
 npx replypilot setup
+npx replypilot login
+npx replypilot account switch
 npx replypilot start
 npx replypilot version
 npx replypilot doctor
@@ -187,6 +195,8 @@ npm install
 ```bash
 npm run build
 node dist/cli.js setup
+node dist/cli.js login
+node dist/cli.js account switch
 node dist/cli.js start
 node dist/cli.js version
 node dist/cli.js doctor
@@ -208,6 +218,8 @@ npm start          # node dist/cli.js start
 ```bash
 npm run dev                    # tsx src/cli.ts start
 tsx src/cli.ts setup
+tsx src/cli.ts login
+tsx src/cli.ts account switch
 tsx src/cli.ts version
 tsx src/cli.ts doctor
 tsx src/cli.ts config show
@@ -292,7 +304,9 @@ If a request with the current key fails (rate limited, out of balance, server er
 
 ## Multi-Config Profiles
 
-You can create and manage multiple named configurations. Each config stores its own LLM provider settings, model, voice note preferences, and WhatsApp session — so switching profiles also switches which WhatsApp account is connected.
+You can create and manage multiple named configurations. Each config stores its own LLM provider settings, model, voice note preferences, and automation behavior — **independently** of which WhatsApp account is active.
+
+Configs and WhatsApp accounts are fully decoupled. You can use the same WhatsApp account with different AI configurations, or the same AI config with different WhatsApp accounts.
 
 ### Creating configs
 
@@ -302,7 +316,7 @@ Run `replypilot setup` as many times as you want. Each time, you'll be asked for
 ? Configuration name (default)
 ```
 
-Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default. Each named config gets its own WhatsApp login session, so you don't need to re-authenticate when switching.
+Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default.
 
 ### Switching configs
 
@@ -310,7 +324,7 @@ Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default.
 replypilot switch
 ```
 
-Shows a list of your saved configs. Select one to make it active. The next `replypilot start` uses the active config.
+Shows a list of your saved configs. Select one to make it active. This only changes which AI settings are used — your WhatsApp account stays the same.
 
 ### Viewing current config
 
@@ -326,22 +340,63 @@ Prints the active config's name at the top along with the full config (API keys 
 replypilot config reset
 ```
 
-Deletes the **active** config (after confirmation). If other configs exist, the next one becomes active automatically.
+Displays a selection of your saved configs. Pick one to delete, or choose `Reset all configurations` to delete everything. With only one config, you get a direct confirm prompt. If the active config is deleted, the next one becomes active automatically.
 
 ---
 
-## WhatsApp Login
+## WhatsApp Account Management
+
+WhatsApp accounts are managed separately from configs. You log into each account once, give it a name, and then select which one to use.
+
+### Logging into a new account
 
 ```bash
-replypilot start
+replypilot login
 ```
 
-Scan the terminal QR code from WhatsApp on your phone (Linked Devices). Keep the terminal process running while active.
+You'll be prompted for an account name (e.g., `work-phone`, `personal`). Names must be unique — if you try to reuse a name, you'll be asked to enter a different one.
+
+```text
+? WhatsApp account name: work-phone
+```
+
+A QR code appears in the terminal. Scan it from WhatsApp on your phone (Linked Devices → Link a device). Once scanned, the account is saved and set as active.
+
+You can repeat this for multiple phone numbers. Each gets its own name and its own saved session — no need to re-scan QR codes later.
+
+### Switching accounts
 
 ```bash
-replypilot logout     # Reset WhatsApp session
-replypilot cache      # Clear .wwebjs_cache
+replypilot account switch
 ```
+
+Shows all authenticated accounts. Select one to make it active. This only changes which WhatsApp account is used — your AI config stays the same.
+
+### Logging out
+
+```bash
+replypilot logout
+```
+
+Displays a selection of your authenticated accounts. Pick one to remove its session, or choose `Logout all accounts` to remove everything. With only one account, you get a direct confirm prompt. You'll need to run `replypilot login` again before you can use any account.
+
+### Clearing cache
+
+```bash
+replypilot cache
+```
+
+Clears the WhatsApp web client cache (`.wwebjs_cache`) from the current directory.
+
+---
+
+## Getting Started (Step by Step)
+
+1. **Create an AI config**: `replypilot setup` — pick your provider, model, and style prompt.
+2. **Log into WhatsApp**: `replypilot login` — give it a name and scan the QR code.
+3. **Start**: `replypilot start` — the tool connects the active WhatsApp account using the active config.
+
+To use a different account or a different AI setup later, just use `replypilot account switch` or `replypilot switch` — they're independent.
 
 ---
 
@@ -358,21 +413,24 @@ replypilot cache      # Clear .wwebjs_cache
 
 ## Feature Availability
 
-| Feature                    | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
-| -------------------------- | ------------------- | ------------------- | ---------------------- | --------------------- |
-| `setup`                    | ✓                   | ✓                   | ✓                      | ✓                     |
-| `start`                    | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
-| `version`                  | ✓                   | ✓                   | ✓                      | ✓                     |
-| `doctor`                   | ✓                   | ✓                   | ✓                      | ✓                     |
-| `config show / reset`      | ✓                   | ✓                   | ✓                      | ✓                     |
-| `switch`                   | ✓                   | ✓                   | ✓                      | ✓                     |
-| `logout`                   | ✓                   | ✓                   | ✓                      | ✓                     |
-| `cache`                    | ✓                   | ✓                   | ✓                      | ✓                     |
-| Programmatic API           | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
-| TypeScript types           | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
-| Multi-config profiles      | ✓                   | ✓                   | ✓                      | ✓                     |
-| Run tests                  | —                   | —                   | —                      | ✓ `npm test`          |
-| Hot-reload                 | —                   | —                   | —                      | ✓ `tsx --watch`       |
+| Feature                        | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
+| ------------------------------ | ------------------- | ------------------- | ---------------------- | --------------------- |
+| `setup`                        | ✓                   | ✓                   | ✓                      | ✓                     |
+| `login`                        | ✓                   | ✓                   | ✓                      | ✓                     |
+| `account switch`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| `start`                        | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
+| `version`                      | ✓                   | ✓                   | ✓                      | ✓                     |
+| `doctor`                       | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config show / reset`          | ✓                   | ✓                   | ✓                      | ✓                     |
+| `switch`                       | ✓                   | ✓                   | ✓                      | ✓                     |
+| `logout`                       | ✓                   | ✓                   | ✓                      | ✓                     |
+| `cache`                        | ✓                   | ✓                   | ✓                      | ✓                     |
+| Multi-WA accounts              | ✓                   | ✓                   | ✓                      | ✓                     |
+| Programmatic API               | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
+| TypeScript types               | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
+| Multi-config profiles          | ✓                   | ✓                   | ✓                      | ✓                     |
+| Run tests                      | —                   | —                   | —                      | ✓ `npm test`          |
+| Hot-reload                     | —                   | —                   | —                      | ✓ `tsx --watch`       |
 
 ---
 
@@ -415,7 +473,7 @@ import {
   validateConfigName,
 } from 'gimirick-replypilot';
 import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot';
-import { removeWhatsAppSessionData, type ReplyPilotConfigStore } from 'gimirick-replypilot';
+import { removeWhatsAppSessionData, removeWhatsAppSessionAccount, clearActiveWhatsAppAccount, type ReplyPilotConfigStore } from 'gimirick-replypilot';
 import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot';
 import { type PromptAdapter, type SetupAnswers } from 'gimirick-replypilot';
 import { parseAppConfig, mergeAppConfig, redactConfig } from 'gimirick-replypilot';
@@ -428,10 +486,20 @@ import { runDoctor, formatDoctorReport, checkProviderReachability } from 'gimiri
 import { isSupportedNodeVersion, type DoctorReport, type DoctorCheck } from 'gimirick-replypilot';
 
 // WhatsApp
+import { loginWhatsAppAccount } from 'gimirick-replypilot';
 import { fetchChatContext, normalizeChatMessage, normalizeChatMessages } from 'gimirick-replypilot';
 import { type WhatsAppRawChat, type WhatsAppRawMessage } from 'gimirick-replypilot';
 import { DuplicateMessageGuard, getIgnoreReason, shouldProcessMessage } from 'gimirick-replypilot';
 import { type FilterableWhatsAppMessage, type IgnoreReason } from 'gimirick-replypilot';
+
+// WhatsApp account management
+import {
+  getActiveWhatsAppAccount,
+  setActiveWhatsAppAccount,
+  listWhatsAppAccounts,
+  removeWhatsAppSessionAccount,
+  clearActiveWhatsAppAccount,
+} from 'gimirick-replypilot';
 
 // Audio (voice note transcription)
 import { oggToMp3 } from 'gimirick-replypilot';
@@ -458,8 +526,8 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 ```text
 ┌───────────────────────────────────────────────────────────────────┐
 │                        CLI (Commander)                            │
-│ setup   start   doctor   config show   config reset   switch      │
-│ logout   cache   version                                           │
+│ setup   login   account switch   start   doctor   config show     │
+│ config reset   switch   logout   cache   version                  │
 └────────────────────────┬──────────────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────────────┐
@@ -624,11 +692,12 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 replypilot start
        │
        ├── loadConfig()              read active named config, Zod-validate
-       ├── (uses config name as WhatsApp session ID)
+       ├── getActiveWhatsAppAccount() read active WA account (falls back to config sessionName)
        ├── new OpenAiCompatibleProvider()   init OpenAI SDK client(s)
        │   └── fallbackApiKeys[]           rotate on request failure
        ├── new ReplyAutomation()        wire config, provider, queue, logger
-       ├── new WhatsAppClientAdapter()  init whatsapp-web.js (LocalAuth)
+       ├── new WhatsAppClientAdapter(   init whatsapp-web.js (LocalAuth)
+       │     activeAccount)             using active WA account as clientId
        │       ├── register QR handler
        │       ├── register ready handler
        │       └── register disconnect handler
@@ -646,9 +715,9 @@ replypilot start
 
 | Layer | File | Role |
 | --- | --- | --- |
-| **CLI** | `cli.ts` | Commander program, 10 commands, dependency injection for testability |
+| **CLI** | `cli.ts` | Commander program, 12 commands, dependency injection for testability |
 | **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
-| **Config** | `store.ts` | Persistent JSON store via `conf`, multi-config profiles, session dir management |
+| **Config** | `store.ts` | Persistent JSON store via `conf`, multi-config profiles, multi-WA account tracking, session dir management |
 | **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow) |
 | **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation` |
 | **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`) |
@@ -659,7 +728,7 @@ replypilot start
 | **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
 | **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race |
 | **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |
-| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
+| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization, media type labels |
 | **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with FIFO pruning |
 | **Audio** | `convert.ts` | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout |

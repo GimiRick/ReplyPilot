@@ -3,23 +3,30 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { version } from '../package.json';
-import { confirm, select } from '@inquirer/prompts';
+import { confirm, input, select } from '@inquirer/prompts';
 import { Command } from 'commander';
 
 import { formatDoctorReport, runDoctor } from './doctor/doctor';
 import { startAutomation } from './runtime/automation';
 import { ConfigValidationError, MissingConfigError } from './runtime/errors';
 import {
+  clearActiveWhatsAppAccount,
   deleteConfig,
   getActiveConfigName,
+  getActiveWhatsAppAccount,
   listConfigNames,
+  listWhatsAppAccounts,
   loadConfig,
   removeWhatsAppCacheData,
+  removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,
   setActiveConfigName,
+  setActiveWhatsAppAccount,
 } from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
+import { loginWhatsAppAccount } from './whatsapp/client';
+import { createLogger } from './runtime/logger';
 
 export type CliDependencies = {
   runSetupWizard: typeof runSetupWizard;
@@ -30,10 +37,17 @@ export type CliDependencies = {
   getActiveConfigName: typeof getActiveConfigName;
   setActiveConfigName: typeof setActiveConfigName;
   removeWhatsAppSessionData: typeof removeWhatsAppSessionData;
+  removeWhatsAppSessionAccount: typeof removeWhatsAppSessionAccount;
+  clearActiveWhatsAppAccount: typeof clearActiveWhatsAppAccount;
   removeWhatsAppCacheData: typeof removeWhatsAppCacheData;
   runDoctor: typeof runDoctor;
+  loginWhatsAppAccount: typeof loginWhatsAppAccount;
+  getActiveWhatsAppAccount: typeof getActiveWhatsAppAccount;
+  setActiveWhatsAppAccount: typeof setActiveWhatsAppAccount;
+  listWhatsAppAccounts: typeof listWhatsAppAccounts;
   confirm: typeof confirm;
   select: SelectFn;
+  input: (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>;
   output: (message: string) => void;
   error: (message: string) => void;
 };
@@ -51,10 +65,17 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     getActiveConfigName,
     setActiveConfigName,
     removeWhatsAppSessionData,
+    removeWhatsAppSessionAccount,
+    clearActiveWhatsAppAccount,
     removeWhatsAppCacheData,
     runDoctor,
+    loginWhatsAppAccount,
+    getActiveWhatsAppAccount,
+    setActiveWhatsAppAccount,
+    listWhatsAppAccounts,
     confirm,
     select: select as SelectFn,
+    input: input as (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>,
     output: (message) => console.log(message),
     error: (message) => console.error(message),
     ...overrides,
@@ -155,30 +176,67 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .command('reset')
     .description('Delete saved ReplyPilot config after confirmation.')
     .action(async () => {
-      const activeName = deps.getActiveConfigName();
+      const configNames = deps.listConfigNames();
 
-      const shouldReset = await deps.confirm({
-        message: activeName
-          ? `Delete active configuration "${activeName}"?`
-          : 'Delete saved ReplyPilot configuration?',
-        default: false,
-      });
-
-      if (!shouldReset) {
-        deps.output('Config reset cancelled.');
+      if (configNames.length === 0) {
+        deps.error('No saved configuration found. Run replypilot setup to create one.');
+        process.exitCode = 1;
         return;
       }
 
-      try {
-        deps.deleteConfig();
-        deps.output('ReplyPilot configuration deleted.');
-      } catch (error) {
-        if (error instanceof MissingConfigError) {
-          deps.error('No saved configuration found. Run replypilot setup to create one.');
-          process.exitCode = 1;
+      if (configNames.length === 1) {
+        const name = configNames[0];
+        const shouldReset = await deps.confirm({
+          message: `Delete configuration "${name}"?`,
+          default: false,
+        });
+
+        if (!shouldReset) {
+          deps.output('Config reset cancelled.');
           return;
         }
-        throw error;
+
+        deps.deleteConfig(name);
+        deps.output(`Configuration "${name}" deleted.`);
+        return;
+      }
+
+      const action = await deps.select({
+        message: 'Select a configuration to delete:',
+        choices: [
+          ...configNames.map((name) => ({ name, value: name })),
+          { name: 'Reset all configurations', value: '__all__' },
+        ],
+      });
+
+      if (action === '__all__') {
+        const shouldReset = await deps.confirm({
+          message: 'Delete all saved configurations?',
+          default: false,
+        });
+
+        if (!shouldReset) {
+          deps.output('Config reset cancelled.');
+          return;
+        }
+
+        for (const name of configNames) {
+          deps.deleteConfig(name);
+        }
+        deps.output('All configurations deleted.');
+      } else {
+        const shouldReset = await deps.confirm({
+          message: `Delete configuration "${action}"?`,
+          default: false,
+        });
+
+        if (!shouldReset) {
+          deps.output('Config reset cancelled.');
+          return;
+        }
+
+        deps.deleteConfig(action);
+        deps.output(`Configuration "${action}" deleted.`);
       }
     });
 
@@ -216,18 +274,72 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .command('logout')
     .description('Remove WhatsApp auth/session data after confirmation.')
     .action(async () => {
-      const shouldLogout = await deps.confirm({
-        message: 'Remove saved WhatsApp session data?',
-        default: false,
-      });
+      const accounts = deps.listWhatsAppAccounts();
 
-      if (!shouldLogout) {
-        deps.output('Logout cancelled.');
+      if (accounts.length === 0) {
+        deps.output('No WhatsApp accounts to logout.');
         return;
       }
 
-      deps.removeWhatsAppSessionData();
-      deps.output('WhatsApp session data removed.');
+      if (accounts.length === 1) {
+        const accountName = accounts[0];
+        const shouldLogout = await deps.confirm({
+          message: `Logout WhatsApp account "${accountName}"?`,
+          default: false,
+        });
+
+        if (!shouldLogout) {
+          deps.output('Logout cancelled.');
+          return;
+        }
+
+        deps.removeWhatsAppSessionAccount(accountName);
+        if (deps.getActiveWhatsAppAccount() === accountName) {
+          deps.clearActiveWhatsAppAccount();
+        }
+        deps.output(`WhatsApp account "${accountName}" logged out.`);
+        return;
+      }
+
+      const action = await deps.select({
+        message: 'Select a WhatsApp account to logout:',
+        choices: [
+          ...accounts.map((name) => ({ name, value: name })),
+          { name: 'Logout all accounts', value: '__all__' },
+        ],
+      });
+
+      if (action === '__all__') {
+        const shouldLogout = await deps.confirm({
+          message: 'Remove all saved WhatsApp session data?',
+          default: false,
+        });
+
+        if (!shouldLogout) {
+          deps.output('Logout cancelled.');
+          return;
+        }
+
+        deps.removeWhatsAppSessionData();
+        deps.clearActiveWhatsAppAccount();
+        deps.output('All WhatsApp session data removed.');
+      } else {
+        const shouldLogout = await deps.confirm({
+          message: `Logout WhatsApp account "${action}"?`,
+          default: false,
+        });
+
+        if (!shouldLogout) {
+          deps.output('Logout cancelled.');
+          return;
+        }
+
+        deps.removeWhatsAppSessionAccount(action);
+        if (deps.getActiveWhatsAppAccount() === action) {
+          deps.clearActiveWhatsAppAccount();
+        }
+        deps.output(`WhatsApp account "${action}" logged out.`);
+      }
     });
 
   program
@@ -246,6 +358,69 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
 
       deps.removeWhatsAppCacheData();
       deps.output('WhatsApp web client cache removed.');
+    });
+
+  program
+    .command('login')
+    .description('Authenticate a WhatsApp account by scanning a QR code.')
+    .action(async () => {
+      const accountName = await deps.input({
+        message: 'WhatsApp account name (letters, numbers, hyphens, underscores)',
+        validate: (value) => {
+          const trimmed = value.trim();
+          if (!trimmed) return 'Account name is required.';
+          if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+            return 'Account name may only contain letters, numbers, hyphens, and underscores.';
+          }
+          if (deps.listWhatsAppAccounts().includes(trimmed)) {
+            return `An account named "${trimmed}" already exists.`;
+          }
+          return true;
+        },
+      });
+
+      const trimmed = accountName.trim();
+
+      try {
+        await deps.loginWhatsAppAccount(trimmed, createLogger('info'));
+        deps.setActiveWhatsAppAccount(trimmed);
+        deps.output(`Account "${trimmed}" is now active.`);
+      } catch (error) {
+        deps.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      }
+    });
+
+  const account = program.command('account').description('Manage WhatsApp accounts.');
+
+  account
+    .command('switch')
+    .description('Switch to a different WhatsApp account.')
+    .action(async () => {
+      const accounts = deps.listWhatsAppAccounts();
+
+      if (accounts.length === 0) {
+        deps.error('No WhatsApp accounts found. Run replypilot login to add one.');
+        process.exitCode = 1;
+        return;
+      }
+
+      if (accounts.length === 1) {
+        deps.output(`Only one WhatsApp account exists: "${accounts[0]}".`);
+        return;
+      }
+
+      const activeAccount = deps.getActiveWhatsAppAccount();
+      const chosen = await deps.select({
+        message: 'Select a WhatsApp account:',
+        choices: accounts.map((name) => ({
+          name: name === activeAccount ? `${name} (active)` : name,
+          value: name,
+        })),
+      });
+
+      deps.setActiveWhatsAppAccount(chosen);
+      deps.output(`Switched to WhatsApp account: ${chosen}`);
     });
 
   return program;

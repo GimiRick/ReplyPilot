@@ -17,6 +17,7 @@ type StoreShape = {
   config?: AppConfig;
   configs?: Record<string, AppConfig>;
   activeConfig?: string;
+  activeWhatsAppAccount?: string;
 };
 
 export type ReplyPilotConfigStore = Conf<StoreShape>;
@@ -178,6 +179,36 @@ function resolveConfigName(
   return store.get(ACTIVE_CONFIG_KEY) ?? (Object.keys(configs)[0] || undefined);
 }
 
+export function getActiveWhatsAppAccount(
+  store: ReplyPilotConfigStore = getConfigStore(),
+): string | undefined {
+  return store.get('activeWhatsAppAccount');
+}
+
+export function setActiveWhatsAppAccount(
+  name: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): void {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error('WhatsApp account name cannot be empty.');
+  }
+  store.set('activeWhatsAppAccount', trimmed);
+}
+
+export function listWhatsAppAccounts(
+  store: ReplyPilotConfigStore = getConfigStore(),
+): string[] {
+  const dir = getWhatsAppSessionDir(store);
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name);
+  } catch {
+    return [];
+  }
+}
+
 export function getConfigFilePath(store: ReplyPilotConfigStore = getConfigStore()): string {
   return store.path;
 }
@@ -192,6 +223,20 @@ export function getWhatsAppSessionDir(store: ReplyPilotConfigStore = getConfigSt
 
 export function removeWhatsAppSessionData(store: ReplyPilotConfigStore = getConfigStore()): void {
   fs.rmSync(getWhatsAppSessionDir(store), { recursive: true, force: true });
+}
+
+export function removeWhatsAppSessionAccount(
+  accountName: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): void {
+  const dir = path.join(getWhatsAppSessionDir(store), accountName);
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+export function clearActiveWhatsAppAccount(
+  store: ReplyPilotConfigStore = getConfigStore(),
+): void {
+  store.delete('activeWhatsAppAccount');
 }
 
 export function getWhatsAppCacheDir(): string {

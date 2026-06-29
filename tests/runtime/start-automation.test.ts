@@ -5,6 +5,7 @@ import { HealthServer } from '../../src/runtime/health-server';
 
 const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),
+  getActiveWhatsAppAccount: vi.fn<() => string | undefined>(() => undefined),
   onMessage: vi.fn(),
   start: vi.fn(),
   WhatsAppClientAdapter: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../src/config/store', async () => ({
   ...(await vi.importActual<typeof import('../../src/config/store')>('../../src/config/store')),
   loadConfig: mocks.loadConfig,
+  getActiveWhatsAppAccount: mocks.getActiveWhatsAppAccount,
 }));
 
 vi.mock('../../src/whatsapp/client', () => ({
@@ -46,12 +48,28 @@ describe('startAutomation', () => {
     await startAutomation({ safety: { dryRun: true } });
 
     expect(mocks.loadConfig).toHaveBeenCalled();
+    expect(mocks.getActiveWhatsAppAccount).toHaveBeenCalled();
     expect(mocks.WhatsAppClientAdapter).toHaveBeenCalledWith(
       expect.objectContaining({ safety: expect.objectContaining({ dryRun: true }) }),
       expect.anything(),
+      undefined,
     );
     expect(mocks.onMessage).toHaveBeenCalledWith(expect.any(Function));
     expect(mocks.start).toHaveBeenCalled();
+  });
+
+  it('passes active WhatsApp account to WhatsApp client', async () => {
+    mocks.getActiveWhatsAppAccount.mockReturnValue('work-phone');
+    const { startAutomation } = await import('../../src/runtime/automation');
+
+    await startAutomation({ safety: { dryRun: true } });
+
+    expect(mocks.getActiveWhatsAppAccount).toHaveBeenCalledTimes(1);
+    expect(mocks.WhatsAppClientAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({ safety: expect.objectContaining({ dryRun: true }) }),
+      expect.anything(),
+      'work-phone',
+    );
   });
 
   it('prints session expiry message on EBUSY error', async () => {

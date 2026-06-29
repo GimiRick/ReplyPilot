@@ -38,10 +38,11 @@ export class WhatsAppClientAdapter {
   constructor(
     private readonly config: AppConfig,
     private readonly logger: Logger,
+    sessionName?: string,
   ) {
     this.client = new Client({
       authStrategy: new LocalAuth({
-        clientId: config.whatsapp.sessionName,
+        clientId: sessionName ?? config.whatsapp.sessionName,
         dataPath: getWhatsAppSessionDir(),
       }),
       userAgent: getPlatformUserAgent(),
@@ -211,4 +212,62 @@ function isBroadcastMessage(message: Message, chatId: string): boolean {
     chatId === 'status@broadcast' ||
     chatId.endsWith('@broadcast')
   );
+}
+
+export async function loginWhatsAppAccount(
+  accountName: string,
+  logger: Logger,
+): Promise<void> {
+  const client = new Client({
+    authStrategy: new LocalAuth({
+      clientId: accountName,
+      dataPath: getWhatsAppSessionDir(),
+    }),
+    userAgent: getPlatformUserAgent(),
+    puppeteer: {
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    },
+    webVersionCache: {
+      type: 'none',
+    },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      client.destroy().catch(() => {});
+      reject(new Error('Login timed out after 120 seconds.'));
+    }, 120_000);
+
+    client.on('qr', (qr) => {
+      logger.info('Scan this QR code with WhatsApp linked devices to log in.');
+      qrcode.generate(qr, { small: true });
+    });
+
+    client.on('ready', () => {
+      clearTimeout(timeout);
+      logger.info(`WhatsApp account "${accountName}" authenticated and saved.`);
+      setTimeout(() => {
+        client.destroy().catch(() => {});
+        resolve();
+      }, 2000);
+    });
+
+    client.on('auth_failure', (msg) => {
+      clearTimeout(timeout);
+      client.destroy().catch(() => {});
+      reject(new Error(`WhatsApp authentication failed: ${msg}`));
+    });
+
+    client.on('disconnected', (reason) => {
+      clearTimeout(timeout);
+      client.destroy().catch(() => {});
+      reject(new Error(`WhatsApp disconnected during login: ${reason}`));
+    });
+
+    client.initialize().catch((err: unknown) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
 }

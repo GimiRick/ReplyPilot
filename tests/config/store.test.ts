@@ -5,18 +5,23 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  clearActiveWhatsAppAccount,
   createConfigStore,
   deleteConfig,
   getActiveConfigName,
+  getActiveWhatsAppAccount,
   getConfigFilePath,
   getReplyPilotDataDir,
   getWhatsAppSessionDir,
   hasConfig,
   listConfigNames,
+  listWhatsAppAccounts,
   loadConfig,
+  removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,
   saveConfig,
   setActiveConfigName,
+  setActiveWhatsAppAccount,
   tryLoadConfig,
   validateConfigName,
 } from '../../src/config/store';
@@ -59,6 +64,116 @@ describe('config store', () => {
     removeWhatsAppSessionData(store);
 
     expect(fs.existsSync(sessionDir)).toBe(false);
+  });
+
+  it('removes a single WhatsApp account session', () => {
+    const store = createTempStore();
+    const sessionDir = getWhatsAppSessionDir(store);
+    fs.mkdirSync(path.join(sessionDir, 'work'), { recursive: true });
+    fs.mkdirSync(path.join(sessionDir, 'personal'), { recursive: true });
+    fs.writeFileSync(path.join(sessionDir, 'work', 'session.data'), 'dummy');
+    fs.writeFileSync(path.join(sessionDir, 'personal', 'session.data'), 'dummy');
+
+    removeWhatsAppSessionAccount('work', store);
+
+    expect(fs.existsSync(path.join(sessionDir, 'work'))).toBe(false);
+    expect(fs.existsSync(path.join(sessionDir, 'personal'))).toBe(true);
+  });
+
+  it('removeWhatsAppSessionAccount does not throw for missing account', () => {
+    const store = createTempStore();
+    expect(() => removeWhatsAppSessionAccount('nonexistent', store)).not.toThrow();
+  });
+
+  it('clears the active WhatsApp account', () => {
+    const store = createTempStore();
+
+    setActiveWhatsAppAccount('work-phone', store);
+    expect(getActiveWhatsAppAccount(store)).toBe('work-phone');
+
+    clearActiveWhatsAppAccount(store);
+    expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+  });
+
+  it('clearActiveWhatsAppAccount is safe when no account is set', () => {
+    const store = createTempStore();
+    expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+    expect(() => clearActiveWhatsAppAccount(store)).not.toThrow();
+    expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+  });
+
+  it('tracks active WhatsApp account', () => {
+    const store = createTempStore();
+
+    expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+
+    setActiveWhatsAppAccount('work-phone', store);
+    expect(getActiveWhatsAppAccount(store)).toBe('work-phone');
+
+    setActiveWhatsAppAccount('personal', store);
+    expect(getActiveWhatsAppAccount(store)).toBe('personal');
+  });
+
+  it('rejects empty WhatsApp account name', () => {
+    const store = createTempStore();
+
+    expect(() => setActiveWhatsAppAccount('', store)).toThrow('empty');
+    expect(() => setActiveWhatsAppAccount('   ', store)).toThrow('empty');
+  });
+
+  it('lists WhatsApp accounts from session directory', () => {
+    const store = createTempStore();
+    const sessionDir = getWhatsAppSessionDir(store);
+
+    expect(listWhatsAppAccounts(store)).toEqual([]);
+
+    fs.mkdirSync(sessionDir, { recursive: true });
+    expect(listWhatsAppAccounts(store)).toEqual([]);
+
+    fs.mkdirSync(path.join(sessionDir, 'work-phone'));
+    fs.mkdirSync(path.join(sessionDir, 'personal'));
+    fs.writeFileSync(path.join(sessionDir, 'config.json'), 'ignored');
+
+    const accounts = listWhatsAppAccounts(store).sort();
+    expect(accounts).toEqual(['personal', 'work-phone']);
+  });
+
+  it('proves end-to-end: filesystem listing → store → clientId fallback', () => {
+    const store = createTempStore();
+    const sessionDir = getWhatsAppSessionDir(store);
+
+    fs.mkdirSync(path.join(sessionDir, 'main-phone'), { recursive: true });
+    fs.writeFileSync(path.join(sessionDir, 'main-phone', 'session.data'), 'dummy');
+
+    const accounts = listWhatsAppAccounts(store);
+    expect(accounts).toContain('main-phone');
+
+    setActiveWhatsAppAccount('main-phone', store);
+    expect(getActiveWhatsAppAccount(store)).toBe('main-phone');
+
+    const activeAccount = getActiveWhatsAppAccount(store);
+    const configSessionName = 'some-config-session';
+    const clientId = activeAccount ?? configSessionName;
+    expect(clientId).toBe('main-phone');
+
+    const sessionPath = path.join(sessionDir, clientId);
+    expect(fs.existsSync(sessionPath)).toBe(true);
+    expect(fs.existsSync(path.join(sessionPath, 'session.data'))).toBe(true);
+  });
+
+  it('proves end-to-end: filesystem listing → undefined account → config fallback → default', () => {
+    const store = createTempStore();
+    const sessionDir = getWhatsAppSessionDir(store);
+
+    fs.mkdirSync(path.join(sessionDir, 'fallback-phone'), { recursive: true });
+
+    expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+    const configSessionName = 'fallback-phone';
+    const clientId = getActiveWhatsAppAccount(store) ?? configSessionName;
+    expect(clientId).toBe('fallback-phone');
+
+    const sessionPath = path.join(sessionDir, clientId);
+    expect(fs.existsSync(sessionPath)).toBe(true);
   });
 
   it('reuses the default config store instance', async () => {

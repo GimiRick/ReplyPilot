@@ -1,5 +1,5 @@
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
-import { loadConfig } from '../config/store';
+import { getActiveWhatsAppAccount, loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
 import { type AudioData, type ChatContextMessage, type ImageData, type LlmProvider } from '../llm/provider';
 import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../whatsapp/filters';
@@ -254,7 +254,8 @@ export async function startAutomation(
   const metrics = new MetricsCollector();
   const automation = new ReplyAutomation({ config, llmProvider, logger, metrics });
   const { WhatsAppClientAdapter } = await import('../whatsapp/client');
-  const whatsapp = new WhatsAppClientAdapter(config, logger);
+  const activeAccount = getActiveWhatsAppAccount();
+  const whatsapp = new WhatsAppClientAdapter(config, logger, activeAccount);
 
   let healthServer: HealthServer | undefined;
   if (healthServerPort !== undefined) {

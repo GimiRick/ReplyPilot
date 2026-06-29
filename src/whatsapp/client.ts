@@ -9,6 +9,7 @@ import { type RuntimeIncomingMessage } from '../runtime/automation';
 import { type Logger } from '../runtime/logger';
 import { oggToMp3 } from '../audio/convert';
 import { transcribeCloud, transcribeLocal } from '../audio/transcriber';
+import { getIgnoreReason } from './filters';
 import { fetchChatContext, mediaTypeLabel } from './context';
 
 const require = createRequire(import.meta.url);
@@ -118,8 +119,73 @@ export class WhatsAppClientAdapter {
       return;
     }
 
-    await this.messageHandler(await toRuntimeMessage(message, chat, this.config, this.logger));
+    const filterable = toFilterableMessage(message, chat);
+    const skipMediaProcessing = getIgnoreReason(filterable, this.config) !== undefined;
+    const runtimeMessage = skipMediaProcessing
+      ? toLightweightRuntimeMessage(message, chat, this.logger)
+      : await toRuntimeMessage(message, chat, this.config, this.logger);
+
+    await this.messageHandler(runtimeMessage);
   }
+}
+
+function getChatId(message: Message, chat: Chat): string {
+  const rawChatSerialized = chat.id?._serialized;
+  return typeof rawChatSerialized === 'string' ? rawChatSerialized : (message.from ?? '');
+}
+
+function getMessageId(message: Message): string {
+  return typeof message.id?._serialized === 'string'
+    ? message.id._serialized
+    : `${message.from}:${message.timestamp}:${message.body}`;
+}
+
+function formatBody(
+  text: string | undefined,
+  hasMedia: boolean | undefined,
+  type: string | undefined,
+): string {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  return clean && hasMedia ? `${clean} ${mediaTypeLabel(type)}` : (clean || (hasMedia ? mediaTypeLabel(type) : ''));
+}
+
+function toFilterableMessage(message: Message, chat: Chat) {
+  const chatId = getChatId(message, chat);
+  return {
+    id: getMessageId(message),
+    body: message.body,
+    fromMe: message.fromMe,
+    isGroup: Boolean(chat.isGroup),
+    isBroadcast: isBroadcastMessage(message, chatId),
+    hasMedia: message.hasMedia,
+    messageType: message.type,
+    chatId,
+  };
+}
+
+function toLightweightRuntimeMessage(
+  message: Message,
+  chat: Chat,
+  logger: Logger,
+): RuntimeIncomingMessage {
+  const chatId = getChatId(message, chat);
+
+  return {
+    id: getMessageId(message),
+    chatId,
+    timestamp: message.timestamp,
+    body: formatBody(message.body, message.hasMedia, message.type),
+    fromMe: message.fromMe,
+    isGroup: Boolean(chat.isGroup),
+    isBroadcast: isBroadcastMessage(message, chatId),
+    hasMedia: message.hasMedia,
+    messageType: message.type,
+    chatName: chat.name,
+    fetchContext: (limit) => fetchChatContext(chat, limit),
+    sendMessage: chatId === 'status@broadcast'
+      ? async () => { logger.debug({ chatId }, 'Status broadcast messages cannot be replied to'); }
+      : (text: string) => message.reply(text).then(() => undefined),
+  };
 }
 
 async function toRuntimeMessage(
@@ -128,13 +194,7 @@ async function toRuntimeMessage(
   config: AppConfig,
   logger: Logger,
 ): Promise<RuntimeIncomingMessage> {
-  const rawChatSerialized = chat.id?._serialized;
-  const chatId = typeof rawChatSerialized === 'string' ? rawChatSerialized : (message.from ?? '');
-
-  const formatBody = (text: string | undefined, hasMedia: boolean | undefined, type: string | undefined): string => {
-    const clean = typeof text === 'string' ? text.trim() : '';
-    return clean && hasMedia ? `${clean} ${mediaTypeLabel(type)}` : (clean || (hasMedia ? mediaTypeLabel(type) : ''));
-  };
+  const chatId = getChatId(message, chat);
 
   let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
 
@@ -185,7 +245,7 @@ async function toRuntimeMessage(
   }
 
   return {
-    id: typeof message.id?._serialized === 'string' ? message.id._serialized : `${message.from}:${message.timestamp}:${message.body}`,
+    id: getMessageId(message),
     chatId,
     timestamp: message.timestamp,
     body: voiceBody ?? formatBody(message.body, message.hasMedia, message.type),
@@ -234,7 +294,14 @@ export async function loginWhatsAppAccount(
   });
 
   await new Promise<void>((resolve, reject) => {
+    let authenticated = false;
+    let settled = false;
+
     const timeout = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       client.destroy().catch(() => {});
       reject(new Error('Login timed out after 120 seconds.'));
     }, 120_000);
@@ -246,28 +313,46 @@ export async function loginWhatsAppAccount(
 
     client.on('ready', () => {
       clearTimeout(timeout);
+      authenticated = true;
       logger.info(`WhatsApp account "${accountName}" authenticated and saved.`);
       setTimeout(() => {
-        client.destroy().catch(() => {});
+        if (settled) {
+          return;
+        }
+        settled = true;
         resolve();
+        client.destroy().catch(() => {});
       }, 2000);
     });
 
     client.on('auth_failure', (msg) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       clearTimeout(timeout);
       client.destroy().catch(() => {});
       reject(new Error(`WhatsApp authentication failed: ${msg}`));
     });
 
     client.on('disconnected', (reason) => {
+      if (authenticated || settled) {
+        return;
+      }
+      settled = true;
       clearTimeout(timeout);
       client.destroy().catch(() => {});
       reject(new Error(`WhatsApp disconnected during login: ${reason}`));
     });
 
     client.initialize().catch((err: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       clearTimeout(timeout);
-      reject(err);
+      client.destroy().catch(() => {});
+      reject(err instanceof Error ? err : new Error(String(err)));
     });
   });
 }

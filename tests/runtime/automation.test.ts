@@ -252,6 +252,47 @@ describe('runtime message processing', () => {
 
     expect(maxActive).toBe(2);
   });
+
+  it('flushes pending debounced messages when stopped before timer fires', async () => {
+    vi.useFakeTimers();
+    try {
+      const sendMessage = vi.fn(async () => undefined);
+      const automation = new ReplyAutomation({
+        config: makeConfig({ automation: { debounceMs: 5000 } }),
+        llmProvider: makeProvider('Flushed reply'),
+        logger: makeLogger(),
+      });
+
+      const pending = automation.handleIncomingMessage(makeMessage({ id: 'pending-1', sendMessage }));
+      const stopPromise = automation.stop();
+
+      await expect(pending).resolves.toEqual({ status: 'sent', reply: 'Flushed reply' });
+      await stopPromise;
+      expect(sendMessage).toHaveBeenCalledWith('Flushed reply');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('resolves pending debounced messages as shutting_down when timer fires after stopped', async () => {
+    vi.useFakeTimers();
+    try {
+      const automation = new ReplyAutomation({
+        config: makeConfig({ automation: { debounceMs: 5000 } }),
+        llmProvider: makeProvider('Reply'),
+        logger: makeLogger(),
+      });
+
+      const pending = automation.handleIncomingMessage(makeMessage({ id: 'pending-1' }));
+      Object.assign(automation, { stopped: true });
+
+      await vi.advanceTimersByTimeAsync(5000);
+
+      await expect(pending).resolves.toEqual({ status: 'ignored', reason: 'shutting_down' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 function makeProvider(text: string): LlmProvider {

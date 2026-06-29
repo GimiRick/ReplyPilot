@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getActiveWhatsAppAccount: vi.fn<() => string | undefined>(() => undefined),
   onMessage: vi.fn(),
   start: vi.fn(),
+  stop: vi.fn(),
   WhatsAppClientAdapter: vi.fn(),
 }));
 
@@ -37,9 +38,11 @@ describe('startAutomation', () => {
       return {
         onMessage: mocks.onMessage,
         start: mocks.start,
+        stop: mocks.stop,
       };
     });
     mocks.start.mockResolvedValue(undefined);
+    mocks.stop.mockResolvedValue(undefined);
   });
 
   it('wires config, WhatsApp client, and message handler', async () => {
@@ -203,6 +206,7 @@ describe('startAutomation', () => {
 
     const stopSpy = vi.spyOn(HealthServer.prototype, 'stop');
     const startSpy = vi.spyOn(HealthServer.prototype, 'start');
+    const offSpy = vi.spyOn(process, 'off');
 
     try {
       const { startAutomation } = await import('../../src/runtime/automation');
@@ -211,10 +215,13 @@ describe('startAutomation', () => {
       expect(startSpy).toHaveBeenCalled();
       expect(stopSpy).toHaveBeenCalled();
       expect(process.exitCode).toBe(1);
+      expect(offSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+      expect(offSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
     } finally {
       process.exitCode = previousExitCode;
       stopSpy.mockRestore();
       startSpy.mockRestore();
+      offSpy.mockRestore();
     }
   });
 });

@@ -10,7 +10,7 @@ import { MetricsCollector } from './metrics';
 
 type ChatBatch = {
   messages: RuntimeIncomingMessage[];
-  timer: NodeJS.Timeout;
+  timer: NodeJS.Timeout | undefined;
   resolvers: ((result: AutomationResult) => void)[];
 };
 
@@ -33,7 +33,6 @@ export type RuntimeIncomingMessage = {
 };
 export type AutomationResult =
   | { status: 'ignored'; reason: IgnoreReason }
-  | { status: 'queued' }
   | { status: 'sent'; reply: string }
   | { status: 'dry-run'; reply: string }
   | { status: 'failed'; error: unknown };
@@ -104,20 +103,26 @@ export class ReplyAutomation {
 
     return new Promise((resolve) => {
       if (batch) {
-        clearTimeout(batch.timer);
+        if (batch.timer) {
+          clearTimeout(batch.timer);
+        }
         batch.messages.push(message);
         batch.resolvers.push(resolve);
       } else {
         batch = {
           messages: [message],
-          timer: undefined as unknown as NodeJS.Timeout,
+          timer: undefined,
           resolvers: [resolve],
         };
         this.activeBatches.set(chatId, batch);
       }
 
       batch.timer = setTimeout(() => {
-        if (this.stopped) return;
+        if (this.stopped) {
+          this.activeBatches.delete(chatId);
+          batch!.resolvers.forEach((r) => r({ status: 'ignored', reason: 'shutting_down' }));
+          return;
+        }
         this.activeBatches.delete(chatId);
 
         this.queue.add(chatId, () =>
@@ -142,7 +147,9 @@ export class ReplyAutomation {
   async stop(): Promise<void> {
     this.stopped = true;
     for (const [chatId, batch] of this.activeBatches.entries()) {
-      clearTimeout(batch.timer);
+      if (batch.timer) {
+        clearTimeout(batch.timer);
+      }
       this.activeBatches.delete(chatId);
 
       this.queue.add(chatId, () =>
@@ -287,6 +294,9 @@ export async function startAutomation(
       }
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
+    } finally {
+      process.off('SIGINT', shutdown);
+      process.off('SIGTERM', shutdown);
     }
     process.exit(0);
   };
@@ -297,6 +307,9 @@ export async function startAutomation(
   try {
     await whatsapp.start();
   } catch (error) {
+    process.off('SIGINT', shutdown);
+    process.off('SIGTERM', shutdown);
+    await whatsapp.stop().catch(() => {});
     console.error('');
     console.error('ReplyPilot could not connect to WhatsApp.');
     console.error('');

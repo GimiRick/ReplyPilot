@@ -35,15 +35,11 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
     };
 
     const timer = setTimeout(() => {
+      settle(() => reject(new Error('ffmpeg timed out')));
       ffmpeg.kill('SIGTERM');
       sigkillTimer = setTimeout(() => {
         ffmpeg.kill('SIGKILL');
       }, 5000);
-      
-      if (!settled) {
-        settled = true;
-        reject(new Error('ffmpeg timed out'));
-      }
     }, FFMPEG_TIMEOUT_MS);
 
     ffmpeg.stdin?.on?.('error', () => {

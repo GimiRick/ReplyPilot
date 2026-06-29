@@ -240,7 +240,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       }
     });
 
-  program
+  config
     .command('switch')
     .description('Switch to a different configuration.')
     .action(async () => {

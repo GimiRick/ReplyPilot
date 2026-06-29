@@ -121,7 +121,7 @@ replypilot config show
 replypilot config reset
 
 # Switch to a different named config
-replypilot switch
+replypilot config switch
 
 # Remove all WhatsApp session data (prompts confirmation)
 replypilot logout
@@ -164,7 +164,7 @@ npx replypilot version
 npx replypilot doctor
 npx replypilot config show
 npx replypilot config reset
-npx replypilot switch
+npx replypilot config switch
 npx replypilot logout
 npx replypilot cache
 ```
@@ -202,7 +202,7 @@ node dist/cli.js version
 node dist/cli.js doctor
 node dist/cli.js config show
 node dist/cli.js config reset
-node dist/cli.js switch
+node dist/cli.js config switch
 node dist/cli.js logout
 node dist/cli.js cache
 ```
@@ -224,7 +224,7 @@ tsx src/cli.ts version
 tsx src/cli.ts doctor
 tsx src/cli.ts config show
 tsx src/cli.ts config reset
-tsx src/cli.ts switch
+tsx src/cli.ts config switch
 tsx src/cli.ts logout
 tsx src/cli.ts cache
 ```
@@ -277,7 +277,7 @@ Works with ChatGPT, Gemini, or any OpenAI-compatible API. To switch providers, e
 
 ```bash
 replypilot setup           # create a new config, enter a name like "chatgpt"
-replypilot switch           # or switch between existing configs
+replypilot config switch           # or switch between existing configs
 ```
 
 During setup enter the base URL, API key, and model name for your provider.
@@ -321,7 +321,7 @@ Enter a name like `work`, `personal`, `chatgpt`, or press Enter for the default.
 ### Switching configs
 
 ```bash
-replypilot switch
+replypilot config switch
 ```
 
 Shows a list of your saved configs. Select one to make it active. This only changes which AI settings are used — your WhatsApp account stays the same.
@@ -396,7 +396,7 @@ Clears the WhatsApp web client cache (`.wwebjs_cache`) from the current director
 2. **Log into WhatsApp**: `replypilot login` — give it a name and scan the QR code.
 3. **Start**: `replypilot start` — the tool connects the active WhatsApp account using the active config.
 
-To use a different account or a different AI setup later, just use `replypilot account switch` or `replypilot switch` — they're independent.
+To use a different account or a different AI setup later, just use `replypilot account switch` or `replypilot config switch` — they're independent.
 
 ---
 
@@ -422,7 +422,7 @@ To use a different account or a different AI setup later, just use `replypilot a
 | `version`                      | ✓                   | ✓                   | ✓                      | ✓                     |
 | `doctor`                       | ✓                   | ✓                   | ✓                      | ✓                     |
 | `config show / reset`          | ✓                   | ✓                   | ✓                      | ✓                     |
-| `switch`                       | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config switch`                | ✓                   | ✓                   | ✓                      | ✓                     |
 | `logout`                       | ✓                   | ✓                   | ✓                      | ✓                     |
 | `cache`                        | ✓                   | ✓                   | ✓                      | ✓                     |
 | Multi-WA accounts              | ✓                   | ✓                   | ✓                      | ✓                     |
@@ -527,7 +527,7 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 ┌───────────────────────────────────────────────────────────────────┐
 │                        CLI (Commander)                            │
 │ setup   login   account switch   start   doctor   config show     │
-│ config reset   switch   logout   cache   version                  │
+│ config reset   config switch   logout   cache   version           │
 └────────────────────────┬──────────────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────────────┐

@@ -43,7 +43,7 @@ Use this checklist before publishing or before trusting a new environment.
 
 ## Config Independence from Accounts
 
-1. Run `replypilot switch` — confirm switching configs does not change the active WhatsApp account.
+1. Run `replypilot config switch` — confirm switching configs does not change the active WhatsApp account.
 2. Run `replypilot account switch` — confirm switching accounts does not change the active config.
 
 ## Dry-Run + Logout
@@ -70,7 +70,7 @@ Use this checklist before publishing or before trusting a new environment.
 1. Run `replypilot setup` and create a config named `work`.
 2. Run `replypilot setup` again and create a second config named `personal`.
 3. Run `replypilot config show` — confirm it shows `Active config: personal` (the last created one).
-4. Run `replypilot switch` — select `work`. Confirm `Switched to configuration: work`.
+4. Run `replypilot config switch` — select `work`. Confirm `Switched to configuration: work`.
 5. Run `replypilot config show` — confirm it shows `Active config: work`.
 6. Run `replypilot config reset` — confirm a selection list appears with `work`, `personal`, and `Reset all configurations`.
 7. Select `work`. Confirm `Configuration "work" reset.` appears.

@@ -321,7 +321,7 @@ describe('CLI commands', () => {
     });
 
     try {
-      await program.parseAsync(['node', 'replypilot', 'switch']);
+      await program.parseAsync(['node', 'replypilot', 'config', 'switch']);
 
       expect(output.join('\n')).toContain('No configurations found');
       expect(process.exitCode).toBe(1);
@@ -335,7 +335,7 @@ describe('CLI commands', () => {
       listConfigNames: vi.fn(() => ['default']),
     });
 
-    await program.parseAsync(['node', 'replypilot', 'switch']);
+    await program.parseAsync(['node', 'replypilot', 'config', 'switch']);
 
     expect(output.join('\n')).toContain('Only one configuration exists: "default".');
   });
@@ -348,7 +348,7 @@ describe('CLI commands', () => {
       select: vi.fn(async () => 'personal') as any,
     });
 
-    await program.parseAsync(['node', 'replypilot', 'switch']);
+    await program.parseAsync(['node', 'replypilot', 'config', 'switch']);
 
     expect(deps.setActiveConfigName).toHaveBeenCalledWith('personal');
     expect(output).toContain('Switched to configuration: personal');

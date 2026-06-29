@@ -54,6 +54,7 @@ Use this checklist before publishing or before trusting a new environment.
 4. Select `my-phone`. Confirm `WhatsApp account "my-phone" logged out.` appears.
 5. Run `replypilot logout` again and select `Logout all accounts`. Confirm all accounts removed.
 6. Run `replypilot cache` to clear the WhatsApp web client cache.
+7. Run `replypilot clear` to wipe everything (npm cache, configs, WhatsApp accounts, web cache) — you'll be prompted to confirm first.
 
 ## Fallback API Keys
 

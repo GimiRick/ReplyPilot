@@ -314,6 +314,56 @@ describe('CLI commands', () => {
     expect(output).toContain('Cache clear cancelled.');
   });
 
+  it('clears everything after confirmation', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => ['work', 'personal']),
+      confirm: vi.fn(async () => true),
+      exec: vi.fn(() => ({ stdout: '', stderr: '' })),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'clear']);
+
+    expect(deps.exec).toHaveBeenCalledWith('npm cache clean --force');
+    expect(deps.deleteConfig).toHaveBeenCalledWith('work');
+    expect(deps.deleteConfig).toHaveBeenCalledWith('personal');
+    expect(deps.clearActiveWhatsAppAccount).toHaveBeenCalled();
+    expect(deps.removeWhatsAppSessionData).toHaveBeenCalled();
+    expect(deps.removeWhatsAppCacheData).toHaveBeenCalled();
+    expect(output).toContain('npm cache cleared.');
+    expect(output).toContain('All configurations deleted.');
+    expect(output).toContain('All WhatsApp accounts removed.');
+    expect(output).toContain('WhatsApp web client cache cleared.');
+    expect(output).toContain('ReplyPilot has been fully cleared.');
+  });
+
+  it('cancels clear when not confirmed', async () => {
+    const { program, output, deps } = makeProgram({
+      confirm: vi.fn(async () => false),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'clear']);
+
+    expect(deps.exec).not.toHaveBeenCalled();
+    expect(deps.deleteConfig).not.toHaveBeenCalled();
+    expect(deps.removeWhatsAppSessionData).not.toHaveBeenCalled();
+    expect(deps.removeWhatsAppCacheData).not.toHaveBeenCalled();
+    expect(output).toContain('Clear cancelled.');
+  });
+
+  it('handles npm cache failure gracefully', async () => {
+    const { program, output, deps } = makeProgram({
+      listConfigNames: vi.fn(() => []),
+      confirm: vi.fn(async () => true),
+      exec: vi.fn(() => { throw new Error('npm not found'); }),
+    });
+
+    await program.parseAsync(['node', 'replypilot', 'clear']);
+
+    expect(output.join('\n')).toContain('npm cache could not be cleared');
+    expect(deps.deleteConfig).not.toHaveBeenCalled();
+    expect(deps.removeWhatsAppSessionData).toHaveBeenCalled();
+  });
+
   it('reports error when no configs exist for switch', async () => {
     const previousExitCode = process.exitCode;
     const { program, output } = makeProgram({
@@ -453,6 +503,7 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: vi.fn(async () => 'default') as any,
     input: vi.fn(async () => 'test-account') as unknown as CliDependencies['input'],
+    exec: vi.fn(() => ({ stdout: '', stderr: '' })),
     output: (message) => output.push(message),
     error: (message) => output.push(message),
     ...overrides,

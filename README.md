@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-240%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-248%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-95.9%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -128,6 +128,9 @@ replypilot logout
 
 # Clear WhatsApp web client cache (prompts confirmation)
 replypilot cache
+
+# Clear everything: npm cache, all configs, all WhatsApp accounts, and web cache
+replypilot clear
 ```
 
 Programmatic API (any `.js` / `.mjs` file):
@@ -167,6 +170,7 @@ npx replypilot config reset
 npx replypilot config switch
 npx replypilot logout
 npx replypilot cache
+npx replypilot clear
 ```
 
 Programmatic API in your project:
@@ -205,6 +209,7 @@ node dist/cli.js config reset
 node dist/cli.js config switch
 node dist/cli.js logout
 node dist/cli.js cache
+node dist/cli.js clear
 ```
 
 Or via npm scripts:
@@ -227,6 +232,7 @@ tsx src/cli.ts config reset
 tsx src/cli.ts config switch
 tsx src/cli.ts logout
 tsx src/cli.ts cache
+tsx src/cli.ts clear
 ```
 
 #### Tests & quality
@@ -388,6 +394,13 @@ replypilot cache
 
 Clears the WhatsApp web client cache (`.wwebjs_cache`) from the current directory.
 
+### Complete cleanup
+
+```bash
+replypilot clear
+```
+
+Wipes everything: runs `npm cache clean --force`, deletes all saved configurations, removes all WhatsApp accounts, and clears the WhatsApp web client cache. You'll be prompted to confirm before anything is deleted.
 ---
 
 ## Getting Started (Step by Step)
@@ -425,6 +438,7 @@ To use a different account or a different AI setup later, just use `replypilot a
 | `config switch`                | ✓                   | ✓                   | ✓                      | ✓                     |
 | `logout`                       | ✓                   | ✓                   | ✓                      | ✓                     |
 | `cache`                        | ✓                   | ✓                   | ✓                      | ✓                     |
+| `clear`                        | ✓                   | ✓                   | ✓                      | ✓                     |
 | Multi-WA accounts              | ✓                   | ✓                   | ✓                      | ✓                     |
 | Programmatic API               | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
 | TypeScript types               | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
@@ -527,7 +541,7 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 ┌───────────────────────────────────────────────────────────────────┐
 │                        CLI (Commander)                            │
 │ setup   login   account switch   start   doctor   config show     │
-│ config reset   config switch   logout   cache   version           │
+│ config reset   config switch   logout   cache   clear   version   │
 └────────────────────────┬──────────────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────────────┐

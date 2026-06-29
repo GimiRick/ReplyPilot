@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -48,6 +49,7 @@ export type CliDependencies = {
   confirm: typeof confirm;
   select: SelectFn;
   input: (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>;
+  exec: (command: string) => { stdout: string; stderr: string };
   output: (message: string) => void;
   error: (message: string) => void;
 };
@@ -76,6 +78,10 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     confirm,
     select: select as SelectFn,
     input: input as (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>,
+    exec: (command) => {
+      const stdout = execSync(command, { encoding: 'utf8', timeout: 30_000 });
+      return { stdout, stderr: '' };
+    },
     output: (message) => console.log(message),
     error: (message) => console.error(message),
     ...overrides,
@@ -93,6 +99,44 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .description('Display the installed ReplyPilot version.')
     .action(() => {
       deps.output(version);
+    });
+
+  program
+    .command('clear')
+    .description('Clear all ReplyPilot data: npm cache, configs, WhatsApp accounts, and web cache.')
+    .action(async () => {
+      const shouldClear = await deps.confirm({
+        message:
+          'This will clear the npm cache, delete all configurations, remove all WhatsApp accounts, and clear the WhatsApp web cache. Continue?',
+        default: false,
+      });
+
+      if (!shouldClear) {
+        deps.output('Clear cancelled.');
+        return;
+      }
+
+      try {
+        deps.exec('npm cache clean --force');
+        deps.output('npm cache cleared.');
+      } catch {
+        deps.output('npm cache could not be cleared (npm may not be available).');
+      }
+
+      const configNames = deps.listConfigNames();
+      for (const name of configNames) {
+        deps.deleteConfig(name);
+      }
+      deps.clearActiveWhatsAppAccount();
+      deps.output('All configurations deleted.');
+
+      deps.removeWhatsAppSessionData();
+      deps.output('All WhatsApp accounts removed.');
+
+      deps.removeWhatsAppCacheData();
+      deps.output('WhatsApp web client cache cleared.');
+
+      deps.output('ReplyPilot has been fully cleared.');
     });
 
   program

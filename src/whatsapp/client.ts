@@ -146,7 +146,9 @@ function formatBody(
   type: string | undefined,
 ): string {
   const clean = typeof text === 'string' ? text.trim() : '';
-  return clean && hasMedia ? `${clean} ${mediaTypeLabel(type)}` : (clean || (hasMedia ? mediaTypeLabel(type) : ''));
+  return clean && hasMedia
+    ? `${clean} ${mediaTypeLabel(type)}`
+    : clean || (hasMedia ? mediaTypeLabel(type) : '');
 }
 
 function toFilterableMessage(message: Message, chat: Chat) {
@@ -182,9 +184,12 @@ function toLightweightRuntimeMessage(
     messageType: message.type,
     chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
-    sendMessage: chatId === 'status@broadcast'
-      ? async () => { logger.debug({ chatId }, 'Status broadcast messages cannot be replied to'); }
-      : (text: string) => message.reply(text).then(() => undefined),
+    sendMessage:
+      chatId === 'status@broadcast'
+        ? async () => {
+            logger.debug({ chatId }, 'Status broadcast messages cannot be replied to');
+          }
+        : (text: string) => message.reply(text).then(() => undefined),
   };
 }
 
@@ -215,12 +220,14 @@ async function toRuntimeMessage(
   }
 
   let imageData: RuntimeIncomingMessage['imageData'] | undefined;
-  if (config.llm.visionSupport && message.hasMedia && (message.type === 'image' || message.type === 'sticker')) {
-    try {
-      const media = await message.downloadMedia();
+  if (
+    config.llm.visionSupport &&
+    message.hasMedia &&
+    (message.type === 'image' || message.type === 'sticker')
+  ) {
+    const media = await downloadMediaWithRetry(message, logger, 'image/sticker');
+    if (media) {
       imageData = { base64: media.data, mimeType: media.mimetype };
-    } catch (error) {
-      logger.warn({ error }, 'Image/sticker media download failed, continuing without image data');
     }
   }
 
@@ -228,19 +235,21 @@ async function toRuntimeMessage(
   let voiceBody: string | undefined;
 
   if (message.hasMedia && message.type === 'ptt' && config.voiceNote?.mode !== 'ignore') {
-    try {
-      const media = await message.downloadMedia();
-      const mp3Base64 = await oggToMp3(media.data);
+    const media = await downloadMediaWithRetry(message, logger, 'voice note');
+    if (media) {
+      try {
+        const mp3Base64 = await oggToMp3(media.data);
 
-      if (config.voiceNote?.mode === 'whisper_cloud') {
-        voiceBody = await transcribeCloud(mp3Base64, config);
-      } else if (config.voiceNote?.mode === 'whisper_local') {
-        voiceBody = await transcribeLocal(mp3Base64, config);
-      } else if (config.voiceNote?.mode === 'native_audio') {
-        audioData = { base64: mp3Base64, format: 'mp3' };
+        if (config.voiceNote?.mode === 'whisper_cloud') {
+          voiceBody = await transcribeCloud(mp3Base64, config);
+        } else if (config.voiceNote?.mode === 'whisper_local') {
+          voiceBody = await transcribeLocal(mp3Base64, config);
+        } else if (config.voiceNote?.mode === 'native_audio') {
+          audioData = { base64: mp3Base64, format: 'mp3' };
+        }
+      } catch (error) {
+        logger.warn({ error }, 'Voice note processing failed, falling back to text label');
       }
-    } catch (error) {
-      logger.warn({ error }, 'Voice note processing failed, falling back to text label');
     }
   }
 
@@ -259,10 +268,38 @@ async function toRuntimeMessage(
     quotedMessage,
     chatName: chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
-    sendMessage: chatId === 'status@broadcast'
-      ? async () => { logger.debug({ chatId }, 'Status broadcast messages cannot be replied to'); }
-      : (text: string) => message.reply(text).then(() => undefined),
+    sendMessage:
+      chatId === 'status@broadcast'
+        ? async () => {
+            logger.debug({ chatId }, 'Status broadcast messages cannot be replied to');
+          }
+        : (text: string) => message.reply(text).then(() => undefined),
   };
+}
+
+export async function downloadMediaWithRetry(
+  message: Message,
+  logger: Logger,
+  label: string,
+): Promise<{ data: string; mimetype: string } | undefined> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const media = await message.downloadMedia();
+      if (media && media.data && media.mimetype) {
+        return { data: media.data, mimetype: media.mimetype };
+      }
+    } catch (error) {
+      logger.warn(
+        { error, errMsg: error instanceof Error ? error.message : String(error), attempt },
+        `${label} media download failed, retrying...`,
+      );
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  logger.warn(`${label} media download failed after 3 attempts, continuing without media data`);
+  return undefined;
 }
 
 function isBroadcastMessage(message: Message, chatId: string): boolean {
@@ -274,10 +311,7 @@ function isBroadcastMessage(message: Message, chatId: string): boolean {
   );
 }
 
-export async function loginWhatsAppAccount(
-  accountName: string,
-  logger: Logger,
-): Promise<void> {
+export async function loginWhatsAppAccount(accountName: string, logger: Logger): Promise<void> {
   const client = new Client({
     authStrategy: new LocalAuth({
       clientId: accountName,

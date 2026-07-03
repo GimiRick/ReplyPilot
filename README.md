@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-248%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-257%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-95.9%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -59,17 +59,17 @@ Clears the npm cache if you encounter integrity or checksum errors during instal
 
 ReplyPilot requires these runtime packages (auto-installed by `npm install`):
 
-| Package | Purpose |
-| --- | --- |
-| `whatsapp-web.js` | WhatsApp Web client library |
-| `openai` | OpenAI-compatible LLM provider client |
-| `commander` | CLI command parsing |
-| `@inquirer/prompts` | Interactive setup wizard |
-| `conf` | Persistent config storage |
-| `zod` | Config schema validation |
-| `p-queue` | Message queue with concurrency control |
-| `pino` | Structured logging |
-| `qrcode-terminal` | QR code display in terminal |
+| Package             | Purpose                                |
+| ------------------- | -------------------------------------- |
+| `whatsapp-web.js`   | WhatsApp Web client library            |
+| `openai`            | OpenAI-compatible LLM provider client  |
+| `commander`         | CLI command parsing                    |
+| `@inquirer/prompts` | Interactive setup wizard               |
+| `conf`              | Persistent config storage              |
+| `zod`               | Config schema validation               |
+| `p-queue`           | Message queue with concurrency control |
+| `pino`              | Structured logging                     |
+| `qrcode-terminal`   | QR code display in terminal            |
 
 Plus development tooling (TypeScript, Vitest, ESLint, Prettier, tsup, tsx) installed automatically as devDependencies.
 
@@ -288,10 +288,10 @@ replypilot config switch           # or switch between existing configs
 
 During setup enter the base URL, API key, and model name for your provider.
 
-| Provider | Base URL                                                   | Example model             |
-| -------- | ---------------------------------------------------------- | ------------------------- |
-| ChatGPT  | `https://api.openai.com/v1`                                | `gpt-5.5`                 |
-| Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash`        |
+| Provider | Base URL                                                   | Example model                    |
+| -------- | ---------------------------------------------------------- | -------------------------------- |
+| ChatGPT  | `https://api.openai.com/v1`                                | `gpt-5.5`                        |
+| Gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-3.5-flash`               |
 | Groq     | `https://api.groq.com/openai/v1`                           | `llama-4-scout-17b-16e-instruct` |
 
 ### Fallback API Keys
@@ -426,25 +426,25 @@ To use a different account or a different AI setup later, just use `replypilot a
 
 ## Feature Availability
 
-| Feature                        | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
-| ------------------------------ | ------------------- | ------------------- | ---------------------- | --------------------- |
-| `setup`                        | ✓                   | ✓                   | ✓                      | ✓                     |
-| `login`                        | ✓                   | ✓                   | ✓                      | ✓                     |
-| `account switch`               | ✓                   | ✓                   | ✓                      | ✓                     |
-| `start`                        | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
-| `version`                      | ✓                   | ✓                   | ✓                      | ✓                     |
-| `doctor`                       | ✓                   | ✓                   | ✓                      | ✓                     |
-| `config show / reset`          | ✓                   | ✓                   | ✓                      | ✓                     |
-| `config switch`                | ✓                   | ✓                   | ✓                      | ✓                     |
-| `logout`                       | ✓                   | ✓                   | ✓                      | ✓                     |
-| `cache`                        | ✓                   | ✓                   | ✓                      | ✓                     |
-| `clear`                        | ✓                   | ✓                   | ✓                      | ✓                     |
-| Multi-WA accounts              | ✓                   | ✓                   | ✓                      | ✓                     |
-| Programmatic API               | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
-| TypeScript types               | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
-| Multi-config profiles          | ✓                   | ✓                   | ✓                      | ✓                     |
-| Run tests                      | —                   | —                   | —                      | ✓ `npm test`          |
-| Hot-reload                     | —                   | —                   | —                      | ✓ `tsx --watch`       |
+| Feature               | Global              | Local (npx)         | Git Clone (built)      | Git Clone (tsx)       |
+| --------------------- | ------------------- | ------------------- | ---------------------- | --------------------- |
+| `setup`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| `login`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| `account switch`      | ✓                   | ✓                   | ✓                      | ✓                     |
+| `start`               | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
+| `version`             | ✓                   | ✓                   | ✓                      | ✓                     |
+| `doctor`              | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config show / reset` | ✓                   | ✓                   | ✓                      | ✓                     |
+| `config switch`       | ✓                   | ✓                   | ✓                      | ✓                     |
+| `logout`              | ✓                   | ✓                   | ✓                      | ✓                     |
+| `cache`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| `clear`               | ✓                   | ✓                   | ✓                      | ✓                     |
+| Multi-WA accounts     | ✓                   | ✓                   | ✓                      | ✓                     |
+| Programmatic API      | ✓ `import from pkg` | ✓ `import from pkg` | ✓ `import from ./dist` | ✓ `import from ./src` |
+| TypeScript types      | ✓ auto              | ✓ auto              | ✓ from `dist/`         | ✓ from `src/`         |
+| Multi-config profiles | ✓                   | ✓                   | ✓                      | ✓                     |
+| Run tests             | —                   | —                   | —                      | ✓ `npm test`          |
+| Hot-reload            | —                   | —                   | —                      | ✓ `tsx --watch`       |
 
 ---
 
@@ -487,7 +487,12 @@ import {
   validateConfigName,
 } from 'gimirick-replypilot';
 import { createConfigStore, getConfigFilePath, getWhatsAppSessionDir } from 'gimirick-replypilot';
-import { removeWhatsAppSessionData, removeWhatsAppSessionAccount, clearActiveWhatsAppAccount, type ReplyPilotConfigStore } from 'gimirick-replypilot';
+import {
+  removeWhatsAppSessionData,
+  removeWhatsAppSessionAccount,
+  clearActiveWhatsAppAccount,
+  type ReplyPilotConfigStore,
+} from 'gimirick-replypilot';
 import { runSetupWizard, promptForConfig, createConfigFromSetupAnswers } from 'gimirick-replypilot';
 import { type PromptAdapter, type SetupAnswers } from 'gimirick-replypilot';
 import { parseAppConfig, mergeAppConfig, redactConfig } from 'gimirick-replypilot';
@@ -609,10 +614,11 @@ WhatsApp Web ──> Client.on('message')
                   ┌─────┴─────┐
                   │           │
                   ▼           ▼
-          ╔══════════════╗  ╔═══════════════════╗
-          ║ image/sticker║  ║   voice note?     ║
-          ║ → download   ║  ║ (message.type===' ║
-          ║ → imageData  ║  ║       ptt')       ║
+          ╔════════════════╗  ╔═══════════════════╗
+           ║ image/sticker  ║  ║   voice note?     ║
+           ║ → download     ║  ║ (message.type===' ║
+           ║   (retry 3×)   ║  ║       ptt')       ║
+           ║ → imageData    ║  ║   (retry 3×)      ║
           ╚══════════════╝  ╚═══╤═══╤═══╤═══╤═══╝
                                 │   │   │   │   │
                   mode: ignore  │   │   │   │   │
@@ -680,14 +686,16 @@ WhatsApp Web ──> Client.on('message')
 
 Three modes are available, configured during `replypilot setup`:
 
-| Mode | Audio Flow | LLM Receives |
-| --- | --- | --- |
-| `whisper_cloud` | OGG→MP3 → `POST /v1/audio/transcriptions` → transcription text | Transcribed text as message body |
-| `whisper_local` | OGG→MP3 → `POST /inference` (whisper.cpp) → transcription text | Transcribed text as message body |
-| `native_audio` | OGG→MP3 → attached as `{type:"input_audio", input_audio:{data,format:"mp3"}}` | Raw audio content part (multimodal model required) |
-| `ignore` | Skipped entirely | Message labeled `[voice note]` |
+| Mode            | Audio Flow                                                                    | LLM Receives                                       |
+| --------------- | ----------------------------------------------------------------------------- | -------------------------------------------------- |
+| `whisper_cloud` | OGG→MP3 → `POST /v1/audio/transcriptions` → transcription text                | Transcribed text as message body                   |
+| `whisper_local` | OGG→MP3 → `POST /inference` (whisper.cpp) → transcription text                | Transcribed text as message body                   |
+| `native_audio`  | OGG→MP3 → attached as `{type:"input_audio", input_audio:{data,format:"mp3"}}` | Raw audio content part (multimodal model required) |
+| `ignore`        | Skipped entirely                                                              | Message labeled `[voice note]`                     |
 
 Whisper models available for cloud mode: `whisper-1` (default), `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, or a custom model name.
+
+Media download from WhatsApp Web is retried up to 3 times with a 1-second delay between attempts, handling transient Puppeteer CDP serialization errors that can occur when decryption keys are not yet available. This applies to both image/sticker downloads and voice note downloads. If all retries fail, processing continues without the media.
 
 OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 120-second timeout. Conversion failures are caught and logged; the voice note is replaced with `[voice note]` text.
 
@@ -727,27 +735,27 @@ replypilot start
 
 ### Component Responsibilities
 
-| Layer | File | Role |
-| --- | --- | --- |
-| **CLI** | `cli.ts` | Commander program, 12 commands, dependency injection for testability |
-| **Config** | `schema.ts` | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation |
-| **Config** | `store.ts` | Persistent JSON store via `conf`, multi-config profiles, multi-WA account tracking, session dir management |
-| **Config** | `setup.ts` | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow) |
-| **Runtime** | `automation.ts` | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation` |
-| **Runtime** | `queue.ts` | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`) |
-| **Runtime** | `logger.ts` | Pino logger with API key redaction |
-| **Runtime** | `errors.ts` | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.) |
-| **Runtime** | `metrics.ts` | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time |
-| **Runtime** | `health-server.ts` | `HealthServer` — optional HTTP endpoint (`:port/health`, `:port/metrics`) using Node.js built-in `http` |
-| **LLM** | `provider.ts` | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types |
-| **LLM** | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race |
-| **LLM** | `prompt.ts` | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio) |
-| **WhatsApp** | `client.ts` | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
-| **WhatsApp** | `context.ts` | Chat history fetch (`fetchChatContext`), message normalization, media type labels |
-| **WhatsApp** | `filters.ts` | `getIgnoreReason`, `DuplicateMessageGuard` with FIFO pruning |
-| **Audio** | `convert.ts` | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout |
-| **Audio** | `transcriber.ts` | Cloud (`transcribeCloud`) and local (`transcribeLocal`) Whisper transcription |
-| **Doctor** | `doctor.ts` | `runDoctor` health checks (Node, config, provider reachability, ffmpeg availability) |
+| Layer        | File                   | Role                                                                                                                                                              |
+| ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CLI**      | `cli.ts`               | Commander program, 12 commands, dependency injection for testability                                                                                              |
+| **Config**   | `schema.ts`            | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation                                                                                               |
+| **Config**   | `store.ts`             | Persistent JSON store via `conf`, multi-config profiles, multi-WA account tracking, session dir management                                                        |
+| **Config**   | `setup.ts`             | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow)                                                                             |
+| **Runtime**  | `automation.ts`        | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation`                                                               |
+| **Runtime**  | `queue.ts`             | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`)                                             |
+| **Runtime**  | `logger.ts`            | Pino logger with API key redaction                                                                                                                                |
+| **Runtime**  | `errors.ts`            | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.)                                                                                        |
+| **Runtime**  | `metrics.ts`           | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time                                                                     |
+| **Runtime**  | `health-server.ts`     | `HealthServer` — optional HTTP endpoint (`:port/health`, `:port/metrics`) using Node.js built-in `http`                                                           |
+| **LLM**      | `provider.ts`          | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types                                                                                        |
+| **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race                                                     |
+| **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio)                                            |
+| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
+| **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization, media type labels                                                                                 |
+| **WhatsApp** | `filters.ts`           | `getIgnoreReason`, `DuplicateMessageGuard` with FIFO pruning                                                                                                      |
+| **Audio**    | `convert.ts`           | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout                                                                                                        |
+| **Audio**    | `transcriber.ts`       | Cloud (`transcribeCloud`) and local (`transcribeLocal`) Whisper transcription                                                                                     |
+| **Doctor**   | `doctor.ts`            | `runDoctor` health checks (Node, config, provider reachability, ffmpeg availability)                                                                              |
 
 ---
 

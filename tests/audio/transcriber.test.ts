@@ -37,10 +37,13 @@ describe('transcribeCloud', () => {
 
   it('falls back to llm baseUrl when whisperBaseUrl is not set', async () => {
     const jsonResponse = { text: 'transcribed' };
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => jsonResponse,
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => jsonResponse,
+      })),
+    );
 
     const config = makeConfig({
       llm: { baseUrl: 'https://custom-llm.example/v1' },
@@ -63,10 +66,10 @@ describe('transcribeCloud', () => {
       llm: { apiKey: 'sk-llm-key' },
       voiceNote: { mode: 'whisper_cloud' },
     });
-    
+
     // delete so it must fall back
     delete config.voiceNote!.whisperApiKey;
-    
+
     await transcribeCloud('bXAzLWRhdGE=', config);
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -78,11 +81,14 @@ describe('transcribeCloud', () => {
   });
 
   it('throws on non-ok response', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: false,
-      status: 401,
-      statusText: 'Unauthorized',
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      })),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-bad' },
@@ -94,10 +100,13 @@ describe('transcribeCloud', () => {
   });
 
   it('throws when response has no text field', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({}),
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({}),
+      })),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-test' },
@@ -110,10 +119,13 @@ describe('transcribeCloud', () => {
 
   it('uses custom model when configured', async () => {
     const jsonResponse = { text: 'ok' };
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => jsonResponse,
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => jsonResponse,
+      })),
+    );
 
     const config = makeConfig({
       voiceNote: {
@@ -129,9 +141,12 @@ describe('transcribeCloud', () => {
   });
 
   it('rejects when fetch throws (network error)', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => {
-      throw new Error('Network failure');
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('Network failure');
+      }),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-test' },
@@ -142,9 +157,15 @@ describe('transcribeCloud', () => {
 
   it('aborts on timeout', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn(async (_url, init) => new Promise((_, reject) => {
-      init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async (_url, init) =>
+          new Promise((_, reject) => {
+            init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
+          }),
+      ),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-test' },
@@ -199,18 +220,18 @@ describe('transcribeLocal', () => {
     const result = await transcribeLocal('bXAzLWRhdGE=', config);
 
     expect(result).toBe('transcribed');
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:8080/inference',
-      expect.any(Object),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/inference', expect.any(Object));
   });
 
   it('throws on non-ok response from local server', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_local' },
@@ -222,10 +243,13 @@ describe('transcribeLocal', () => {
   });
 
   it('throws when local response has no text field', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ error: 'no text' }),
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ error: 'no text' }),
+      })),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_local' },
@@ -237,7 +261,9 @@ describe('transcribeLocal', () => {
   });
 
   it('does not send Authorization header for local requests', async () => {
-    const fetchMock = vi.fn<(...args: unknown[]) => Promise<{ ok: boolean; json: () => Promise<{ text: string }> }>>(async () => ({
+    const fetchMock = vi.fn<
+      (...args: unknown[]) => Promise<{ ok: boolean; json: () => Promise<{ text: string }> }>
+    >(async () => ({
       ok: true,
       json: async () => ({ text: 'ok' }),
     }));
@@ -255,9 +281,15 @@ describe('transcribeLocal', () => {
 
   it('aborts on timeout', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn(async (_url, init) => new Promise((_, reject) => {
-      init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async (_url, init) =>
+          new Promise((_, reject) => {
+            init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
+          }),
+      ),
+    );
 
     const config = makeConfig({
       voiceNote: { mode: 'whisper_local' },

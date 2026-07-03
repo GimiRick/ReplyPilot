@@ -112,7 +112,10 @@ export class MetricsCollector {
         count: this.llmCalls,
       },
       processingTimeMs: {
-        avg: this.processingCount > 0 ? Math.round(this.processingTotalLatency / this.processingCount) : 0,
+        avg:
+          this.processingCount > 0
+            ? Math.round(this.processingTotalLatency / this.processingCount)
+            : 0,
         min: this.processingCount > 0 ? this.processingMinLatency : 0,
         max: this.processingCount > 0 ? this.processingMaxLatency : 0,
         count: this.processingCount,

@@ -26,7 +26,9 @@ export async function transcribeCloud(mp3Base64: string, config: AppConfig): Pro
     });
 
     if (!response.ok) {
-      throw new Error(`Whisper cloud transcription failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Whisper cloud transcription failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = (await response.json()) as { text?: string };
@@ -57,7 +59,9 @@ export async function transcribeLocal(mp3Base64: string, config: AppConfig): Pro
     });
 
     if (!response.ok) {
-      throw new Error(`Whisper local transcription failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Whisper local transcription failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = (await response.json()) as { text?: string };

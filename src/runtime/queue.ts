@@ -14,7 +14,9 @@ export class MessageQueue {
   constructor(options: MessageQueueOptions = {}) {
     this.globalQueue = new PQueue({
       concurrency: options.globalConcurrency ?? 2,
-      ...(options.maxCallsPerMinute ? { interval: 60000, intervalCap: options.maxCallsPerMinute } : {}),
+      ...(options.maxCallsPerMinute
+        ? { interval: 60000, intervalCap: options.maxCallsPerMinute }
+        : {}),
     });
     this.perChatConcurrency = options.perChatConcurrency ?? 1;
   }

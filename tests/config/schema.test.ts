@@ -176,7 +176,13 @@ describe('config schema', () => {
 
   it('redacts whisperApiKey in config show', () => {
     const redacted = redactConfig(
-      makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperApiKey: 'sk-whisper', whisperModel: 'whisper-1' } }),
+      makeConfig({
+        voiceNote: {
+          mode: 'whisper_cloud',
+          whisperApiKey: 'sk-whisper',
+          whisperModel: 'whisper-1',
+        },
+      }),
     );
 
     expect(redacted.voiceNote?.whisperApiKey).toBe('[redacted]');

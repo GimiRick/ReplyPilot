@@ -70,9 +70,9 @@ describe('OpenAiCompatibleProvider', () => {
   });
 
   it('does not retry 429 rate-limited errors', async () => {
-    const create = vi.fn().mockRejectedValue(
-      Object.assign(new Error('rate limited'), { statusCode: 429 }),
-    );
+    const create = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('rate limited'), { statusCode: 429 }));
     const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
     const provider = new OpenAiCompatibleProvider({
       provider: 'custom',
@@ -113,7 +113,8 @@ describe('OpenAiCompatibleProvider', () => {
   });
 
   it('retries when error is ProviderTimeoutError', async () => {
-    const create = vi.fn()
+    const create = vi
+      .fn()
       .mockRejectedValueOnce(new ProviderTimeoutError(1000))
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
     const provider = makeProvider(create, { maxRetries: 1 });
@@ -121,7 +122,8 @@ describe('OpenAiCompatibleProvider', () => {
   });
 
   it('retries when error is APITimeoutError', async () => {
-    const create = vi.fn()
+    const create = vi
+      .fn()
       .mockRejectedValueOnce(Object.assign(new Error('timeout'), { name: 'APITimeoutError' }))
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
     const provider = makeProvider(create, { maxRetries: 1 });
@@ -169,9 +171,9 @@ describe('OpenAiCompatibleProvider', () => {
   });
 
   it('fails when all keys are exhausted', async () => {
-    const create = vi.fn().mockRejectedValue(
-      Object.assign(new Error('always fails'), { status: 500 }),
-    );
+    const create = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('always fails'), { status: 500 }));
     const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
     const provider = new OpenAiCompatibleProvider({

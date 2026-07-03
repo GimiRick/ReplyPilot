@@ -13,9 +13,7 @@ export type PromptMessage = {
 function buildUserContent(input: GenerateReplyInput): string | UserContentPart[] {
   const contextBlock = formatChatContext(input.messages);
 
-  const userParts: string[] = [
-    `Model label: ${input.modelLabel}`,
-  ];
+  const userParts: string[] = [`Model label: ${input.modelLabel}`];
 
   if (input.chatName) {
     userParts.push(`Chat: ${input.chatName}`);
@@ -36,14 +34,14 @@ function buildUserContent(input: GenerateReplyInput): string | UserContentPart[]
   const msgLabel = input.isGroup ? 'Incoming group message' : 'Incoming message';
   userParts.push(`${msgLabel}: ${normalizeInlineText(input.incomingMessage)}`);
   userParts.push('');
-  userParts.push('Write only the next WhatsApp reply from the owner. Do not prefix it with a label.');
+  userParts.push(
+    'Write only the next WhatsApp reply from the owner. Do not prefix it with a label.',
+  );
 
   const textContent = userParts.join('\n');
 
   if (input.imageData || input.audioData) {
-    const parts: UserContentPart[] = [
-      { type: 'text', text: textContent },
-    ];
+    const parts: UserContentPart[] = [{ type: 'text', text: textContent }];
 
     if (input.imageData) {
       parts.push({

@@ -1,7 +1,12 @@
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
 import { getActiveWhatsAppAccount, loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
-import { type AudioData, type ChatContextMessage, type ImageData, type LlmProvider } from '../llm/provider';
+import {
+  type AudioData,
+  type ChatContextMessage,
+  type ImageData,
+  type LlmProvider,
+} from '../llm/provider';
 import { DuplicateMessageGuard, getIgnoreReason, type IgnoreReason } from '../whatsapp/filters';
 import { createLogger, type Logger } from './logger';
 import { MessageQueue } from './queue';
@@ -60,11 +65,13 @@ export class ReplyAutomation {
     this.config = options.config;
     this.llmProvider = options.llmProvider;
     this.logger = options.logger ?? createLogger(options.config.logging.level);
-    this.queue = options.queue ?? new MessageQueue({
-      globalConcurrency: 2,
-      perChatConcurrency: 1,
-      maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
-    });
+    this.queue =
+      options.queue ??
+      new MessageQueue({
+        globalConcurrency: 2,
+        perChatConcurrency: 1,
+        maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
+      });
     this.duplicateGuard = options.duplicateGuard ?? new DuplicateMessageGuard();
     this.metrics = options.metrics ?? new MetricsCollector();
   }
@@ -125,21 +132,23 @@ export class ReplyAutomation {
         }
         this.activeBatches.delete(chatId);
 
-        this.queue.add(chatId, () =>
-          processIncomingMessageBatch({
-            messages: batch!.messages,
-            config: this.config,
-            llmProvider: this.llmProvider,
-            logger: this.logger,
-            metrics: this.metrics,
-          }).catch((error) => {
-            this.metrics.recordMessageFailed();
-            this.logger.error({ error, chatId }, 'Message processing failed');
-            return { status: 'failed' as const, error };
-          }),
-        ).then((result) => {
-          batch!.resolvers.forEach((r) => r(result));
-        });
+        this.queue
+          .add(chatId, () =>
+            processIncomingMessageBatch({
+              messages: batch!.messages,
+              config: this.config,
+              llmProvider: this.llmProvider,
+              logger: this.logger,
+              metrics: this.metrics,
+            }).catch((error) => {
+              this.metrics.recordMessageFailed();
+              this.logger.error({ error, chatId }, 'Message processing failed');
+              return { status: 'failed' as const, error };
+            }),
+          )
+          .then((result) => {
+            batch!.resolvers.forEach((r) => r(result));
+          });
       }, this.config.automation.debounceMs);
     });
   }
@@ -152,21 +161,23 @@ export class ReplyAutomation {
       }
       this.activeBatches.delete(chatId);
 
-      this.queue.add(chatId, () =>
-        processIncomingMessageBatch({
-          messages: batch.messages,
-          config: this.config,
-          llmProvider: this.llmProvider,
-          logger: this.logger,
-          metrics: this.metrics,
-        }).catch((error) => {
-          this.metrics.recordMessageFailed();
-          this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
-          return { status: 'failed' as const, error };
-        }),
-      ).then((result) => {
-        batch.resolvers.forEach((r) => r(result));
-      });
+      this.queue
+        .add(chatId, () =>
+          processIncomingMessageBatch({
+            messages: batch.messages,
+            config: this.config,
+            llmProvider: this.llmProvider,
+            logger: this.logger,
+            metrics: this.metrics,
+          }).catch((error) => {
+            this.metrics.recordMessageFailed();
+            this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
+            return { status: 'failed' as const, error };
+          }),
+        )
+        .then((result) => {
+          batch.resolvers.forEach((r) => r(result));
+        });
     }
     await this.queue.onIdle();
   }
@@ -190,21 +201,32 @@ export async function processIncomingMessageBatch(options: {
 
   const lastMessage = messages[messages.length - 1];
   const firstMessage = messages[0];
-  
-  const allContext = await lastMessage.fetchContext(config.context.messageCount + messages.length);
-  const batchedIds = new Set(messages.map(m => m.id));
-  const context = allContext.filter(c => !c.id || !batchedIds.has(c.id)).slice(-config.context.messageCount);
 
-  const combinedBody = messages.map(m => m.body).filter(Boolean).join('\n');
+  const allContext = await lastMessage.fetchContext(config.context.messageCount + messages.length);
+  const batchedIds = new Set(messages.map((m) => m.id));
+  const context = allContext
+    .filter((c) => !c.id || !batchedIds.has(c.id))
+    .slice(-config.context.messageCount);
+
+  const combinedBody = messages
+    .map((m) => m.body)
+    .filter(Boolean)
+    .join('\n');
   const quotedMessage = firstMessage.quotedMessage
     ? {
         body: firstMessage.quotedMessage.body,
-        direction: firstMessage.quotedMessage.fromMe === true ? 'owner' as const : 'contact' as const,
+        direction:
+          firstMessage.quotedMessage.fromMe === true ? ('owner' as const) : ('contact' as const),
       }
     : undefined;
 
-  const imageData = config.llm.visionSupport ? messages.find(m => m.imageData)?.imageData : undefined;
-  const audioData = config.voiceNote?.mode === 'native_audio' ? messages.find(m => m.audioData)?.audioData : undefined;
+  const imageData = config.llm.visionSupport
+    ? messages.find((m) => m.imageData)?.imageData
+    : undefined;
+  const audioData =
+    config.voiceNote?.mode === 'native_audio'
+      ? messages.find((m) => m.audioData)?.audioData
+      : undefined;
 
   let reply;
   try {
@@ -230,7 +252,10 @@ export async function processIncomingMessageBatch(options: {
 
     if (config.safety.dryRun) {
       metrics?.recordMessageProcessed();
-      logger?.info({ chatId: lastMessage.chatId, reply: reply.text }, 'Dry-run generated WhatsApp reply');
+      logger?.info(
+        { chatId: lastMessage.chatId, reply: reply.text },
+        'Dry-run generated WhatsApp reply',
+      );
       return { status: 'dry-run', reply: reply.text };
     }
 

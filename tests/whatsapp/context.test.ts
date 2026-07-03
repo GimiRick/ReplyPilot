@@ -67,9 +67,7 @@ describe('WhatsApp chat context', () => {
     ['vcard', '[contact card]'],
     ['unknown', '[media message]'],
   ])('labels media type %s as %s', (type, expected) => {
-    expect(
-      normalizeChatMessage({ id: 'm1', hasMedia: true, type })?.body,
-    ).toBe(expected);
+    expect(normalizeChatMessage({ id: 'm1', hasMedia: true, type })?.body).toBe(expected);
   });
 
   it('drops empty non-media messages', () => {

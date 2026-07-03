@@ -145,8 +145,12 @@ describe('runtime message processing', () => {
     // Message 'two' (timestamp 200) arrives to `handleIncomingMessage` FIRST.
     // Message 'one' (timestamp 100) arrives to `handleIncomingMessage` SECOND.
     await Promise.all([
-      automation.handleIncomingMessage(makeMessage({ id: '2', timestamp: 200, body: 'two', chatId: 'chat-a' })),
-      automation.handleIncomingMessage(makeMessage({ id: '1', timestamp: 100, body: 'one', chatId: 'chat-a' })),
+      automation.handleIncomingMessage(
+        makeMessage({ id: '2', timestamp: 200, body: 'two', chatId: 'chat-a' }),
+      ),
+      automation.handleIncomingMessage(
+        makeMessage({ id: '1', timestamp: 100, body: 'one', chatId: 'chat-a' }),
+      ),
     ]);
 
     // The batcher should sort by timestamp, resulting in "one\ntwo"
@@ -263,7 +267,9 @@ describe('runtime message processing', () => {
         logger: makeLogger(),
       });
 
-      const pending = automation.handleIncomingMessage(makeMessage({ id: 'pending-1', sendMessage }));
+      const pending = automation.handleIncomingMessage(
+        makeMessage({ id: 'pending-1', sendMessage }),
+      );
       const stopPromise = automation.stop();
 
       await expect(pending).resolves.toEqual({ status: 'sent', reply: 'Flushed reply' });

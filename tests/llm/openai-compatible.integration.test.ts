@@ -67,7 +67,9 @@ describe('OpenAiCompatibleProvider HTTP integration', () => {
       requestUrl = req.url;
 
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         requestBody = body;
         jsonResponse(res, 200, {

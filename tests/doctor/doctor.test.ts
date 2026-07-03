@@ -99,9 +99,7 @@ describe('doctor checks', () => {
       const report = await runDoctor();
 
       expect(report.ok).toBe(false);
-      expect(report.checks.some(
-        (c) => c.name === 'Config' && c.status === 'fail',
-      )).toBe(true);
+      expect(report.checks.some((c) => c.name === 'Config' && c.status === 'fail')).toBe(true);
     } finally {
       spy.mockRestore();
     }
@@ -148,7 +146,9 @@ describe('doctor checks', () => {
   });
 
   it('reports warning when ffmpeg is not installed', async () => {
-    vi.mocked(execSync).mockImplementationOnce(() => { throw new Error('not found'); });
+    vi.mocked(execSync).mockImplementationOnce(() => {
+      throw new Error('not found');
+    });
 
     const report = await runDoctor({
       config: makeConfig({ voiceNote: { mode: 'whisper_cloud', whisperModel: 'whisper-1' } }),
@@ -171,7 +171,7 @@ describe('doctor checks', () => {
 
     try {
       const report = await runDoctor({ nodeVersionCheck: () => true });
-      expect(report.checks.find(c => c.name === 'Provider')?.status).toBe('pass');
+      expect(report.checks.find((c) => c.name === 'Provider')?.status).toBe('pass');
     } finally {
       globalThis.fetch = originalFetch;
       spyStore.mockRestore();

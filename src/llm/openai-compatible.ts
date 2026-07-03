@@ -16,7 +16,10 @@ type ChatCompletionResult = {
 type ChatCompletionClient = {
   chat: {
     completions: {
-      create: (request: unknown, options?: { signal?: AbortSignal }) => Promise<ChatCompletionResult>;
+      create: (
+        request: unknown,
+        options?: { signal?: AbortSignal },
+      ) => Promise<ChatCompletionResult>;
     };
   };
 };
@@ -80,10 +83,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
           () => {
             const ctrl = new AbortController();
             return withTimeout(
-              client.chat.completions.create(
-                baseRequest,
-                { signal: ctrl.signal },
-              ),
+              client.chat.completions.create(baseRequest, { signal: ctrl.signal }),
               this.timeoutMs,
               ctrl,
             );

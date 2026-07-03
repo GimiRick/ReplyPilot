@@ -41,9 +41,9 @@ describe('WhatsApp message filters', () => {
   it('ignores status@broadcast even when allowBroadcasts is enabled', () => {
     const config = makeConfig({ whatsapp: { allowBroadcasts: true } });
 
-    expect(
-      getIgnoreReason({ id: '1', body: 'hello', chatId: 'status@broadcast' }, config),
-    ).toBe('status_broadcast');
+    expect(getIgnoreReason({ id: '1', body: 'hello', chatId: 'status@broadcast' }, config)).toBe(
+      'status_broadcast',
+    );
     expect(
       shouldProcessMessage({ id: '1', body: 'hello', chatId: 'status@broadcast' }, config),
     ).toBe(false);
@@ -55,16 +55,17 @@ describe('WhatsApp message filters', () => {
     });
 
     expect(
-      getIgnoreReason({ id: '1', body: 'hello', chatId: 'status@broadcast', isBroadcast: true, isGroup: false }, config),
+      getIgnoreReason(
+        { id: '1', body: 'hello', chatId: 'status@broadcast', isBroadcast: true, isGroup: false },
+        config,
+      ),
     ).toBe('status_broadcast');
   });
 
   it('does not affect regular broadcast list messages when broadcasts are enabled', () => {
     const config = makeConfig({ whatsapp: { allowBroadcasts: true } });
 
-    expect(
-      shouldProcessMessage({ id: '1', body: 'hello', isBroadcast: true }, config),
-    ).toBe(true);
+    expect(shouldProcessMessage({ id: '1', body: 'hello', isBroadcast: true }, config)).toBe(true);
   });
 
   it('processes direct contact messages', () => {
@@ -72,9 +73,7 @@ describe('WhatsApp message filters', () => {
   });
 
   it('processes media-only messages without text body', () => {
-    expect(
-      shouldProcessMessage({ id: '1', body: '', hasMedia: true }, makeConfig()),
-    ).toBe(true);
+    expect(shouldProcessMessage({ id: '1', body: '', hasMedia: true }, makeConfig())).toBe(true);
   });
 
   it('ignores voice notes when voiceNote mode is ignore', () => {
@@ -116,10 +115,10 @@ describe('WhatsApp message filters', () => {
     const guard = new DuplicateMessageGuard(0);
     const seenMap = (guard as unknown as { seen: Map<string, number> }).seen;
     const originalKeys = seenMap.keys;
-    seenMap.keys = function() {
+    seenMap.keys = function () {
       return { next: () => ({ value: undefined, done: true }) } as unknown as MapIterator<string>;
     };
-    
+
     try {
       guard.markIfNew('test');
       expect(guard.has('test')).toBe(true);

@@ -138,9 +138,9 @@ describe('setup wizard config creation', () => {
     await promptForConfig(prompts);
 
     const getValidate = (target: typeof prompts.input | typeof prompts.editor, msg: string) => {
-      const call = vi.mocked(target).mock.calls.find(
-        (c) => (c[0] as { message: string }).message.includes(msg)
-      )!;
+      const call = vi
+        .mocked(target)
+        .mock.calls.find((c) => (c[0] as { message: string }).message.includes(msg))!;
       return (call[0] as { validate: (v: unknown) => true | string }).validate;
     };
 
@@ -280,21 +280,66 @@ describe('setup wizard config creation', () => {
 
   it('validates custom whisper model names', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', false, 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_cloud', 'http://whisper', 'key', '__custom__', 'my-model'
+      'lmstudio',
+      'http://localhost',
+      'key',
+      false,
+      'model',
+      'Model',
+      false,
+      undefined,
+      false,
+      false,
+      'tone',
+      false,
+      false,
+      false,
+      true,
+      'whisper_cloud',
+      'http://whisper',
+      'key',
+      '__custom__',
+      'my-model',
     ]);
     await promptForConfig(prompts);
-    const customModelCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Custom Whisper model name')!;
-    const customModelOptions = customModelCall[0]! as { validate: (value: string) => true | string };
+    const customModelCall = vi
+      .mocked(prompts.input)
+      .mock.calls.find(
+        (call) => (call[0] as { message?: string }).message === 'Custom Whisper model name',
+      )!;
+    const customModelOptions = customModelCall[0]! as {
+      validate: (value: string) => true | string;
+    };
     expect(customModelOptions.validate('')).toBe('Model name is required');
     expect(customModelOptions.validate('my-model')).toBe(true);
   });
 
   it('validates local whisper URLs', async () => {
     const prompts = makePromptAdapter([
-      'lmstudio', 'http://localhost', 'key', false, 'model', 'Model', false, undefined, false, false, 'tone', false, false, false, true, 'whisper_local', 'http://localhost:9000/transcribe'
+      'lmstudio',
+      'http://localhost',
+      'key',
+      false,
+      'model',
+      'Model',
+      false,
+      undefined,
+      false,
+      false,
+      'tone',
+      false,
+      false,
+      false,
+      true,
+      'whisper_local',
+      'http://localhost:9000/transcribe',
     ]);
     await promptForConfig(prompts);
-    const localUrlCall = vi.mocked(prompts.input).mock.calls.find((call) => (call[0] as { message?: string }).message === 'Local Whisper URL')!;
+    const localUrlCall = vi
+      .mocked(prompts.input)
+      .mock.calls.find(
+        (call) => (call[0] as { message?: string }).message === 'Local Whisper URL',
+      )!;
     const localUrlOptions = localUrlCall[0]! as { validate: (value: string) => true | string };
     expect(localUrlOptions.validate('')).toBe('URL is required');
     expect(localUrlOptions.validate('not-a-url')).toBe('Local Whisper URL must be a valid URL');
@@ -366,9 +411,9 @@ describe('setup wizard config creation', () => {
 
       await runSetupWizard({ prompts, store });
 
-      const namePromptCall = vi.mocked(prompts.input).mock.calls.find(
-        (c) => (c[0] as { message: string }).message === 'Configuration name',
-      )!;
+      const namePromptCall = vi
+        .mocked(prompts.input)
+        .mock.calls.find((c) => (c[0] as { message: string }).message === 'Configuration name')!;
       const validate = (namePromptCall[0] as { validate: (v: string) => true | string }).validate;
 
       expect(validate('work')).toBe('A configuration named "work" already exists.');

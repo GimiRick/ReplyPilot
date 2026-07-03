@@ -84,7 +84,7 @@ describe('startAutomation', () => {
     vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    
+
     try {
       await startAutomation();
 
@@ -106,7 +106,7 @@ describe('startAutomation', () => {
     vi.spyOn(console, 'error').mockImplementation((message) => errors.push(String(message)));
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    
+
     try {
       await startAutomation();
 
@@ -121,7 +121,9 @@ describe('startAutomation', () => {
 
   it('registers graceful shutdown handler and calls stop on client', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
-    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
+    const processExit = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
 
     const stopMock = vi.fn().mockResolvedValue(undefined);
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
@@ -133,16 +135,16 @@ describe('startAutomation', () => {
     });
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    
+
     try {
       await startAutomation();
-      
-      const sigintCall = processOn.mock.calls.find(c => c[0] === 'SIGINT');
+
+      const sigintCall = processOn.mock.calls.find((c) => c[0] === 'SIGINT');
       expect(sigintCall).toBeDefined();
-      
+
       const shutdown = sigintCall![1] as () => Promise<void>;
       await shutdown();
-      
+
       expect(stopMock).toHaveBeenCalled();
       expect(processExit).toHaveBeenCalledWith(0);
     } finally {
@@ -153,7 +155,9 @@ describe('startAutomation', () => {
 
   it('handles errors during graceful shutdown', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
-    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
+    const processExit = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as unknown as (...args: unknown[]) => never);
 
     const stopMock = vi.fn().mockRejectedValue(new Error('stop failed'));
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
@@ -165,14 +169,14 @@ describe('startAutomation', () => {
     });
 
     const { startAutomation } = await import('../../src/runtime/automation');
-    
+
     try {
       await startAutomation();
-      
-      const sigintCall = processOn.mock.calls.find(c => c[0] === 'SIGINT');
+
+      const sigintCall = processOn.mock.calls.find((c) => c[0] === 'SIGINT');
       const shutdown = sigintCall![1] as () => Promise<void>;
       await shutdown();
-      
+
       expect(stopMock).toHaveBeenCalled();
       expect(processExit).toHaveBeenCalledWith(0);
     } finally {
@@ -184,9 +188,9 @@ describe('startAutomation', () => {
   it('passes messages from whatsapp to automation handler', async () => {
     const { startAutomation } = await import('../../src/runtime/automation');
     await startAutomation({ automation: { debounceMs: 0 } });
-    
+
     const onMessageCallback = mocks.onMessage.mock.calls[0][0];
-    
+
     const message = {
       id: '123',
       chatId: 'c1',
@@ -195,7 +199,7 @@ describe('startAutomation', () => {
       fetchContext: async () => [],
       sendMessage: async () => {},
     };
-    
+
     await expect(onMessageCallback(message)).resolves.toBeUndefined();
   });
 

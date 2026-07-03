@@ -48,7 +48,10 @@ export type CliDependencies = {
   listWhatsAppAccounts: typeof listWhatsAppAccounts;
   confirm: typeof confirm;
   select: SelectFn;
-  input: (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>;
+  input: (config: {
+    message: string;
+    validate?: (value: string) => true | string;
+  }) => Promise<string>;
   exec: (command: string) => { stdout: string; stderr: string };
   output: (message: string) => void;
   error: (message: string) => void;
@@ -77,7 +80,10 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     listWhatsAppAccounts,
     confirm,
     select: select as SelectFn,
-    input: input as (config: { message: string; validate?: (value: string) => true | string }) => Promise<string>,
+    input: input as (config: {
+      message: string;
+      validate?: (value: string) => true | string;
+    }) => Promise<string>,
     exec: (command) => {
       const stdout = execSync(command, { encoding: 'utf8', timeout: 30_000 });
       return { stdout, stderr: '' };

@@ -67,12 +67,17 @@ export function listConfigNames(store: ReplyPilotConfigStore = getConfigStore())
   return Object.keys(configs);
 }
 
-export function getActiveConfigName(store: ReplyPilotConfigStore = getConfigStore()): string | undefined {
+export function getActiveConfigName(
+  store: ReplyPilotConfigStore = getConfigStore(),
+): string | undefined {
   ensureMigrated(store);
   return store.get(ACTIVE_CONFIG_KEY);
 }
 
-export function setActiveConfigName(name: string, store: ReplyPilotConfigStore = getConfigStore()): void {
+export function setActiveConfigName(
+  name: string,
+  store: ReplyPilotConfigStore = getConfigStore(),
+): void {
   const trimmed = validateConfigName(name);
   const configs = store.get(CONFIGS_KEY) ?? {};
   if (!configs[trimmed]) {
@@ -196,12 +201,11 @@ export function setActiveWhatsAppAccount(
   store.set('activeWhatsAppAccount', trimmed);
 }
 
-export function listWhatsAppAccounts(
-  store: ReplyPilotConfigStore = getConfigStore(),
-): string[] {
+export function listWhatsAppAccounts(store: ReplyPilotConfigStore = getConfigStore()): string[] {
   const dir = getWhatsAppSessionDir(store);
   try {
-    return fs.readdirSync(dir, { withFileTypes: true })
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
       .filter((dirent) => dirent.isDirectory())
       .map((dirent) => dirent.name);
   } catch {
@@ -233,9 +237,7 @@ export function removeWhatsAppSessionAccount(
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-export function clearActiveWhatsAppAccount(
-  store: ReplyPilotConfigStore = getConfigStore(),
-): void {
+export function clearActiveWhatsAppAccount(store: ReplyPilotConfigStore = getConfigStore()): void {
   store.delete('activeWhatsAppAccount');
 }
 

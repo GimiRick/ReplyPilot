@@ -54,13 +54,17 @@ export const appConfigSchema = z
     context: z.object({
       messageCount: z.number().int().min(1).max(200).default(30),
     }),
-    voiceNote: z.object({
-      mode: z.enum(['ignore', 'whisper_cloud', 'whisper_local', 'native_audio']).default('ignore'),
-      whisperBaseUrl: z.string().trim().url().optional(),
-      whisperApiKey: z.string().optional(),
-      whisperModel: z.string().trim().min(1).default('whisper-1'),
-      localWhisperUrl: z.string().trim().url().optional(),
-    }).default({ mode: 'ignore', whisperModel: 'whisper-1' }),
+    voiceNote: z
+      .object({
+        mode: z
+          .enum(['ignore', 'whisper_cloud', 'whisper_local', 'native_audio'])
+          .default('ignore'),
+        whisperBaseUrl: z.string().trim().url().optional(),
+        whisperApiKey: z.string().optional(),
+        whisperModel: z.string().trim().min(1).default('whisper-1'),
+        localWhisperUrl: z.string().trim().url().optional(),
+      })
+      .default({ mode: 'ignore', whisperModel: 'whisper-1' }),
     safety: z.object({
       dryRun: z.boolean().default(false),
       ignoreSelf: z.boolean().default(true),
@@ -68,10 +72,12 @@ export const appConfigSchema = z
     logging: z.object({
       level: logLevelSchema.default('info'),
     }),
-    automation: z.object({
-      debounceMs: z.number().int().min(0).max(600_000).default(10000),
-      maxCallsPerMinute: z.number().int().min(1).max(120).optional(),
-    }).default({ debounceMs: 10000 }),
+    automation: z
+      .object({
+        debounceMs: z.number().int().min(0).max(600_000).default(10000),
+        maxCallsPerMinute: z.number().int().min(1).max(120).optional(),
+      })
+      .default({ debounceMs: 10000 }),
   })
   .strict();
 
@@ -161,7 +167,12 @@ function deepMerge<T extends Record<string, unknown>>(
   const output: Record<string, unknown> = { ...base };
 
   for (const [key, value] of Object.entries(overrides)) {
-    if (value === undefined || key === '__proto__' || key === 'constructor' || key === 'prototype') {
+    if (
+      value === undefined ||
+      key === '__proto__' ||
+      key === 'constructor' ||
+      key === 'prototype'
+    ) {
       continue;
     }
 

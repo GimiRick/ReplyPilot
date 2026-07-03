@@ -79,14 +79,11 @@ describe('oggToMp3', () => {
     const result = await promise;
 
     expect(result).toBe(outputBuffer.toString('base64'));
-    expect(spawn).toHaveBeenCalledWith('ffmpeg', [
-      '-i', 'pipe:0',
-      '-f', 'mp3',
-      '-acodec', 'libmp3lame',
-      '-b:a', '16k',
-      '-ac', '1',
-      'pipe:1',
-    ], { stdio: ['pipe', 'pipe', 'ignore'] });
+    expect(spawn).toHaveBeenCalledWith(
+      'ffmpeg',
+      ['-i', 'pipe:0', '-f', 'mp3', '-acodec', 'libmp3lame', '-b:a', '16k', '-ac', '1', 'pipe:1'],
+      { stdio: ['pipe', 'pipe', 'ignore'] },
+    );
   });
 
   it('rejects when ffmpeg exits with non-zero code', async () => {
@@ -136,9 +133,7 @@ describe('oggToMp3', () => {
 
   it('times out after FFMPEG_TIMEOUT_MS', async () => {
     const timeoutCallback: Array<() => void> = [];
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
-      cb: () => void,
-    ) => {
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((cb: () => void) => {
       timeoutCallback.push(cb);
       return { unref: vi.fn() } as unknown as NodeJS.Timeout;
     }) as typeof setTimeout);

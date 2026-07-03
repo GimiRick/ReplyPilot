@@ -8,7 +8,14 @@ export function createLogger(level: LogLevel = 'info'): Logger {
   return pino({
     level,
     redact: {
-      paths: ['llm.apiKey', '*.apiKey', 'apiKey', 'voiceNote.whisperApiKey', '*.whisperApiKey', 'whisperApiKey'],
+      paths: [
+        'llm.apiKey',
+        '*.apiKey',
+        'apiKey',
+        'voiceNote.whisperApiKey',
+        '*.whisperApiKey',
+        'whisperApiKey',
+      ],
       censor: '[redacted]',
     },
   });

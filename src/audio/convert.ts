@@ -6,14 +6,11 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
   const oggBuffer = Buffer.from(oggBase64, 'base64');
 
   const mp3Buffer = await new Promise<Buffer>((resolve, reject) => {
-    const ffmpeg = spawn('ffmpeg', [
-      '-i', 'pipe:0',
-      '-f', 'mp3',
-      '-acodec', 'libmp3lame',
-      '-b:a', '16k',
-      '-ac', '1',
-      'pipe:1',
-    ], { stdio: ['pipe', 'pipe', 'ignore'] });
+    const ffmpeg = spawn(
+      'ffmpeg',
+      ['-i', 'pipe:0', '-f', 'mp3', '-acodec', 'libmp3lame', '-b:a', '16k', '-ac', '1', 'pipe:1'],
+      { stdio: ['pipe', 'pipe', 'ignore'] },
+    );
 
     const chunks: Buffer[] = [];
     let settled = false;

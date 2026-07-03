@@ -7,7 +7,12 @@ import {
   type LlmProviderName,
   parseAppConfig,
 } from './schema';
-import { listConfigNames, saveConfig, validateConfigName, type ReplyPilotConfigStore } from './store';
+import {
+  listConfigNames,
+  saveConfig,
+  validateConfigName,
+  type ReplyPilotConfigStore,
+} from './store';
 
 export type SetupAnswers = {
   configName?: string;
@@ -318,8 +323,14 @@ export async function promptForConfig(
         message: 'Whisper model',
         choices: [
           { name: 'whisper-1 — OpenAI open-source Whisper V2', value: 'whisper-1' },
-          { name: 'gpt-4o-mini-transcribe — GPT-4o mini transcription', value: 'gpt-4o-mini-transcribe' },
-          { name: 'gpt-4o-transcribe — GPT-4o transcription (best accuracy)', value: 'gpt-4o-transcribe' },
+          {
+            name: 'gpt-4o-mini-transcribe — GPT-4o mini transcription',
+            value: 'gpt-4o-mini-transcribe',
+          },
+          {
+            name: 'gpt-4o-transcribe — GPT-4o transcription (best accuracy)',
+            value: 'gpt-4o-transcribe',
+          },
           { name: 'Custom', value: '__custom__' },
         ],
       });

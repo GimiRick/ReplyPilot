@@ -354,7 +354,9 @@ describe('CLI commands', () => {
     const { program, output, deps } = makeProgram({
       listConfigNames: vi.fn(() => []),
       confirm: vi.fn(async () => true),
-      exec: vi.fn(() => { throw new Error('npm not found'); }),
+      exec: vi.fn(() => {
+        throw new Error('npm not found');
+      }),
     });
 
     await program.parseAsync(['node', 'replypilot', 'clear']);
@@ -421,10 +423,12 @@ describe('CLI commands', () => {
     let validateResult: string | true | undefined;
     const { program, deps } = makeProgram({
       listWhatsAppAccounts: vi.fn(() => ['existing-account']),
-      input: vi.fn(async (config: { message: string; validate?: (value: string) => true | string }) => {
-        validateResult = config.validate?.('existing-account');
-        return 'different-name';
-      }) as unknown as CliDependencies['input'],
+      input: vi.fn(
+        async (config: { message: string; validate?: (value: string) => true | string }) => {
+          validateResult = config.validate?.('existing-account');
+          return 'different-name';
+        },
+      ) as unknown as CliDependencies['input'],
     });
 
     await program.parseAsync(['node', 'replypilot', 'login']);

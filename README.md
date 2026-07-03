@@ -401,6 +401,7 @@ replypilot clear
 ```
 
 Wipes everything: runs `npm cache clean --force`, deletes all saved configurations, removes all WhatsApp accounts, and clears the WhatsApp web client cache. You'll be prompted to confirm before anything is deleted.
+
 ---
 
 ## Getting Started (Step by Step)
@@ -615,11 +616,11 @@ WhatsApp Web ──> Client.on('message')
                   │           │
                   ▼           ▼
           ╔════════════════╗  ╔═══════════════════╗
-           ║ image/sticker  ║  ║   voice note?     ║
-           ║ → download     ║  ║ (message.type===' ║
-           ║   (retry 3×)   ║  ║       ptt')       ║
-           ║ → imageData    ║  ║   (retry 3×)      ║
-          ╚══════════════╝  ╚═══╤═══╤═══╤═══╤═══╝
+          ║ image/sticker  ║  ║   voice note?     ║
+          ║ → download     ║  ║ (message.type===' ║
+          ║   (retry 3×)   ║  ║       ptt')       ║
+          ║ → imageData    ║  ║   (retry 3×)      ║
+          ╚════════════════╝  ╚═══╤═══╤═══╤═══╤═══╝
                                 │   │   │   │   │
                   mode: ignore  │   │   │   │   │
                   ──────────────┘   │   │   │   │

@@ -77,7 +77,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       modelLabel,
       visionSupport: answers.visionSupport ?? false,
       timeoutMs: 60_000,
-      maxRetries: 1,
+      maxRetries: 2,
     },
     personality: {
       ownerStylePrompt:

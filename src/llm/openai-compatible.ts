@@ -61,7 +61,6 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     return new OpenAI({
       apiKey,
       baseURL: this.baseUrl,
-      timeout: this.timeoutMs,
       maxRetries: 0,
     }) as ChatCompletionClient;
   }
@@ -113,6 +112,12 @@ export class OpenAiCompatibleProvider implements LlmProvider {
             { keyIndex: i, totalKeys: this.apiKeys.length },
             'Key failed, trying next API key',
           );
+
+          if (isTransientProviderError(error)) {
+            const backoffMs = Math.min(1000 * Math.pow(2, i), 10_000);
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          }
+
           continue;
         }
 
@@ -142,7 +147,9 @@ async function retryTransient<T>(
 
       attempt += 1;
       logger?.warn({ attempt, error }, 'Retrying transient LLM provider failure');
-      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      const baseDelay = 1000 * Math.pow(2, attempt - 1);
+      const jitter = Math.round(Math.random() * 500);
+      await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
     }
   }
 }

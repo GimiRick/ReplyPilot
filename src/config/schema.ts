@@ -46,7 +46,7 @@ export const appConfigSchema = z
       modelLabel: nonEmptyString('LLM model label'),
       visionSupport: z.boolean().default(false),
       timeoutMs: z.number().int().positive().default(60_000),
-      maxRetries: z.number().int().min(0).max(5).default(1),
+      maxRetries: z.number().int().min(0).max(5).default(2),
       fallbackApiKeys: z.array(z.string().trim().min(1)).default([]),
     }),
     personality: z.object({
@@ -105,7 +105,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     modelLabel: PROVIDER_DEFAULTS.lmstudio.modelLabel,
     visionSupport: false,
     timeoutMs: 60_000,
-    maxRetries: 1,
+    maxRetries: 2,
     fallbackApiKeys: [],
   },
   personality: {

@@ -10,7 +10,7 @@ Use this checklist before publishing or before trusting a new environment.
    - Ollama default: `http://localhost:11434/v1`
 3. Run `replypilot setup`.
 4. Accept the default config name (press Enter).
-5. Select the provider and model.
+5. Select the provider and model (if you pick Ollama, you'll also choose between Ollama Cloud and Ollama Local).
 6. Set context message count to `30`.
 7. Optionally configure a rate limit for LLM API calls (or skip for no limit).
 8. Optionally configure a wait time before sending messages (or skip for immediate send).

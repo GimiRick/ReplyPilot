@@ -184,6 +184,11 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         deps.output(`Using config: ${activeName}`);
       }
 
+      const activeAccount = deps.getActiveWhatsAppAccount();
+      if (activeAccount) {
+        deps.output(`Using account: ${activeAccount}`);
+      }
+
       await deps.startAutomation();
     });
 

@@ -74,6 +74,6 @@ Use this checklist before publishing or before trusting a new environment.
 4. Run `replypilot config switch` — select `work`. Confirm `Switched to configuration: work`.
 5. Run `replypilot config show` — confirm it shows `Active config: work`.
 6. Run `replypilot config reset` — confirm a selection list appears with `work`, `personal`, and `Reset all configurations`.
-7. Select `work`. Confirm `Configuration "work" reset.` appears.
+7. Select `work`. Confirm `Configuration "work" deleted.` appears.
 8. Confirm the active config falls back to `personal`.
 9. Run `replypilot config reset` again and select `Reset all configurations`. Confirm all configs removed, then run `replypilot setup` to recreate them.

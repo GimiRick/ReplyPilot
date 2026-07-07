@@ -34,6 +34,21 @@ describe('setup wizard config creation', () => {
     expect(config.llm.apiKey).toBe('ollama');
   });
 
+  it('applies Ollama Cloud defaults when explicitly passed', () => {
+    const config = createConfigFromSetupAnswers({
+      provider: 'ollama',
+      baseUrl: 'https://ollama.com/v1',
+      apiKey: 'ollama',
+      modelName: 'gemma4:31b-cloud',
+      modelLabel: 'Ollama Cloud',
+    });
+
+    expect(config.llm.baseUrl).toBe('https://ollama.com/v1');
+    expect(config.llm.apiKey).toBe('ollama');
+    expect(config.llm.modelName).toBe('gemma4:31b-cloud');
+    expect(config.llm.modelLabel).toBe('Ollama Cloud');
+  });
+
   it('requires custom provider details', () => {
     expect(() =>
       createConfigFromSetupAnswers({
@@ -81,6 +96,36 @@ describe('setup wizard config creation', () => {
     expect(config.context.messageCount).toBe(30);
     expect(config.personality.ownerStylePrompt).toBe('Reply in my tone.');
     expect(config.automation.debounceMs).toBe(0);
+  });
+
+  it('collects Ollama Cloud answers with wizard defaults', async () => {
+    const prompts = makePromptAdapter([
+      'ollama',
+      'cloud',
+      'https://ollama.com/v1',
+      'ollama',
+      false,
+      'gemma4:31b-cloud',
+      'Ollama Cloud',
+      false,
+      undefined,
+      false,
+      false,
+      'Reply naturally and concisely.',
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.llm.provider).toBe('ollama');
+    expect(config.llm.baseUrl).toBe('https://ollama.com/v1');
+    expect(config.llm.apiKey).toBe('ollama');
+    expect(config.llm.modelName).toBe('gemma4:31b-cloud');
+    expect(config.llm.modelLabel).toBe('Ollama Cloud');
+    expect(config.context.messageCount).toBe(30);
   });
 
   it('collects custom provider answers with the password prompt', async () => {
@@ -353,6 +398,7 @@ describe('setup wizard config creation', () => {
       const prompts = makePromptAdapter([
         'default',
         'ollama',
+        'local',
         'http://localhost:11434/v1',
         'ollama',
         false,
@@ -393,6 +439,7 @@ describe('setup wizard config creation', () => {
       const prompts = makePromptAdapter([
         'work',
         'ollama',
+        'local',
         'http://localhost:11434/v1',
         'ollama',
         false,

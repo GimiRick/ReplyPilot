@@ -120,7 +120,23 @@ export async function promptForConfig(
     ],
   });
 
-  const providerDefaults = provider === 'custom' ? undefined : PROVIDER_DEFAULTS[provider];
+  let ollamaMode: 'cloud' | 'local' | undefined;
+  if (provider === 'ollama') {
+    ollamaMode = await prompts.select<'cloud' | 'local'>({
+      message: 'Select Ollama mode:',
+      choices: [
+        { name: 'Ollama Cloud', value: 'cloud' },
+        { name: 'Ollama Local', value: 'local' },
+      ],
+    });
+  }
+
+  const providerDefaults =
+    provider === 'custom'
+      ? undefined
+      : ollamaMode === 'cloud'
+        ? { baseUrl: 'https://ollama.com/v1', apiKey: 'ollama', modelLabel: 'Ollama Cloud' }
+        : PROVIDER_DEFAULTS[provider as Exclude<LlmProviderName, 'custom'>];
 
   const baseUrl = await prompts.input({
     message: 'LLM base URL',
@@ -178,6 +194,7 @@ export async function promptForConfig(
 
   const modelName = await prompts.input({
     message: 'Model name',
+    default: ollamaMode === 'cloud' ? 'gemma4:31b-cloud' : undefined,
     validate: (value) => (value.trim() ? true : 'Model name is required'),
   });
 

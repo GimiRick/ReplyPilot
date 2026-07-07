@@ -60,7 +60,7 @@ export const appConfigSchema = z
           .enum(['ignore', 'whisper_cloud', 'whisper_local', 'native_audio'])
           .default('ignore'),
         whisperBaseUrl: z.string().trim().url().optional(),
-        whisperApiKey: z.string().optional(),
+        whisperApiKey: z.string().trim().optional(),
         whisperModel: z.string().trim().min(1).default('whisper-1'),
         localWhisperUrl: z.string().trim().url().optional(),
       })

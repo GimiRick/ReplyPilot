@@ -86,6 +86,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
               client.chat.completions.create(baseRequest, { signal: ctrl.signal }),
               this.timeoutMs,
               ctrl,
+              this.logger,
             );
           },
           this.maxRetries,
@@ -127,7 +128,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 async function retryTransient<T>(
   action: () => Promise<T>,
   maxRetries: number,
-  logger?: Pick<Logger, 'warn'>,
+  logger?: Pick<Logger, 'warn' | 'error'>,
 ): Promise<T> {
   let attempt = 0;
 
@@ -150,18 +151,24 @@ function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   controller?: AbortController,
+  logger?: Pick<Logger, 'warn'>,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
 
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
+      timedOut = true;
       controller?.abort();
       reject(new ProviderTimeoutError(timeoutMs));
     }, timeoutMs);
   });
 
-  // Prevent unhandled rejections when timeout wins and `promise` rejects later.
-  promise.catch(() => {});
+  promise.catch((err) => {
+    if (timedOut) {
+      logger?.warn({ err }, 'LLM response arrived after timeout, discarding');
+    }
+  });
 
   return Promise.race([promise, timeout]).finally(() => {
     if (timer) clearTimeout(timer);

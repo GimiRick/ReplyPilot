@@ -317,6 +317,12 @@ export async function startAutomation(
     }
     shuttingDown = true;
     logger.info('Shutting down ReplyPilot gracefully...');
+
+    const forceExitTimer = setTimeout(() => {
+      logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
+      process.exit(0);
+    }, config.automation.shutdownTimeoutMs);
+
     try {
       await automation.stop();
       await whatsapp.stop();
@@ -326,20 +332,26 @@ export async function startAutomation(
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
     } finally {
+      clearTimeout(forceExitTimer);
       process.off('SIGINT', shutdown);
-      process.off('SIGTERM', shutdown);
+      if (process.platform !== 'win32') {
+        process.off('SIGTERM', shutdown);
+      }
     }
-    process.exit(0);
   };
 
   process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  if (process.platform !== 'win32') {
+    process.on('SIGTERM', shutdown);
+  }
 
   try {
     await whatsapp.start();
   } catch (error) {
     process.off('SIGINT', shutdown);
-    process.off('SIGTERM', shutdown);
+    if (process.platform !== 'win32') {
+      process.off('SIGTERM', shutdown);
+    }
     await whatsapp.stop().catch(() => {});
     console.error('');
     console.error('ReplyPilot could not connect to WhatsApp.');

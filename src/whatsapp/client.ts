@@ -311,7 +311,11 @@ function isBroadcastMessage(message: Message, chatId: string): boolean {
   );
 }
 
-export async function loginWhatsAppAccount(accountName: string, logger: Logger): Promise<void> {
+export async function loginWhatsAppAccount(
+  accountName: string,
+  logger: Logger,
+  loginDelayMs: number = 500,
+): Promise<void> {
   const client = new Client({
     authStrategy: new LocalAuth({
       clientId: accountName,
@@ -356,7 +360,7 @@ export async function loginWhatsAppAccount(accountName: string, logger: Logger):
         settled = true;
         resolve();
         client.destroy().catch(() => {});
-      }, 2000);
+      }, loginDelayMs);
     });
 
     client.on('auth_failure', (msg) => {

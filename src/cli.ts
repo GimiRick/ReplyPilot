@@ -23,6 +23,7 @@ import {
   removeWhatsAppSessionData,
   setActiveConfigName,
   setActiveWhatsAppAccount,
+  tryLoadConfig,
 } from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
@@ -33,6 +34,7 @@ export type CliDependencies = {
   runSetupWizard: typeof runSetupWizard;
   startAutomation: typeof startAutomation;
   loadConfig: typeof loadConfig;
+  tryLoadConfig: typeof tryLoadConfig;
   deleteConfig: typeof deleteConfig;
   listConfigNames: typeof listConfigNames;
   getActiveConfigName: typeof getActiveConfigName;
@@ -65,6 +67,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     runSetupWizard,
     startAutomation,
     loadConfig,
+    tryLoadConfig,
     deleteConfig,
     listConfigNames,
     getActiveConfigName,
@@ -437,7 +440,9 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       const trimmed = accountName.trim();
 
       try {
-        await deps.loginWhatsAppAccount(trimmed, createLogger('info'));
+        const config = deps.tryLoadConfig();
+        const loginDelayMs = config?.whatsapp?.loginDelayMs ?? 500;
+        await deps.loginWhatsAppAccount(trimmed, createLogger('info'), loginDelayMs);
         deps.setActiveWhatsAppAccount(trimmed);
         deps.output(`Account "${trimmed}" is now active.`);
       } catch (error) {

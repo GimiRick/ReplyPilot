@@ -304,7 +304,7 @@ During setup, after entering your primary API key, ReplyPilot asks if you'd like
 ? Do you want to add another fallback API key? (y/N)
 ```
 
-If a request with the current key fails (rate limited, out of balance, server error, timeout, etc.), ReplyPilot automatically rotates to the next key and retries. If all keys fail, the error is reported. Fallback keys are optional, you can press enter (defaults to `n`) to skip.
+If a request with the current key fails, ReplyPilot first retries the request with exponential backoff (1s, 2s, 4s — up to the configured max retries). Transient errors like HTTP 429 (rate limited), 503, 408, 504, and network errors (ECONNRESET, ETIMEDOUT) are retried automatically. If all retries fail, ReplyPilot rotates to the next fallback key and retries. If all keys fail, the error is reported. Fallback keys are optional, you can press enter (defaults to `n`) to skip.
 
 ---
 
@@ -422,6 +422,46 @@ To use a different account or a different AI setup later, just use `replypilot a
 - Status and broadcast auto-replies are disabled by default.
 - Voice notes are ignored by default (`ignore` mode).
 - Dry-run can be enabled during setup to log replies without sending them.
+
+---
+
+## Advanced Configuration
+
+These settings are not exposed in the setup wizard, but can be added directly to your config file (`replypilot config show` to view the current config).
+
+### Login Delay
+
+```json
+{
+  "whatsapp": {
+    "loginDelayMs": 500
+  }
+}
+```
+
+Controls how long (in milliseconds) the app waits after WhatsApp confirms it's ready before completing the login process. This delay ensures the session data is saved to disk.
+
+- **Default:** `500` (0.5 seconds)
+- **Range:** `0` – `30,000`
+- **Increase** (e.g., `2000`) if you keep getting QR code prompts on every login (slow I/O).
+- **Decrease** (e.g., `0`) to log in faster, at the risk of the session not persisting.
+
+### Shutdown Timeout
+
+```json
+{
+  "automation": {
+    "shutdownTimeoutMs": 15000
+  }
+}
+```
+
+Controls how long (in milliseconds) the app waits for a graceful shutdown before force-exiting. When you press Ctrl+C, the app completes all pending messages, then stops WhatsApp and the AI provider. If this takes longer than the timeout, it force-closes.
+
+- **Default:** `15000` (15 seconds)
+- **Range:** `1,000` – `120,000`
+- **Increase** (e.g., `30000`) if you have slow connections that need more time to shut down.
+- **Decrease** (e.g., `5000`) to make the app exit faster when stuck.
 
 ---
 
@@ -666,19 +706,21 @@ WhatsApp Web ──> Client.on('message')
                      │ buildReplyPrompt   owner style + context + incoming
                      │ (may include       + optional image/audio content parts
                      │  input_audio part  → UserContentPart[])
-                     └──────┬─────────┘
-                            ▼
-                     ┌──────────────┐
-                     │ llmProvider.generateReply()
-                     │  - withTimeout / retryTransient
-                     │  - key rotation on failure (all errors)
-                     │  - ProviderTimeoutError if no response
-                     │  - cleanGeneratedReply
-                     └──────┬─────────┘
-                            ▼
-                     ┌──────────────┐
-                     │  dryRun? ──yes──> log only (status: 'dry-run')
-                     │  no
+                      └──────┬─────────┘
+                             ▼
+                      ┌──────────────┐
+                      │ llmProvider.generateReply()
+                      │  - withTimeout / retryTransient
+                      │    * retries transient errors (429, 503, 408, 504, network failures)
+                      │    * exponential backoff: 1s, 2s, 4s...
+                      │  - key rotation on persistent failure
+                      │  - ProviderTimeoutError if no response
+                      │  - cleanGeneratedReply
+                      └──────┬─────────┘
+                             ▼
+                      ┌──────────────┐
+                      │  dryRun? ──yes──> log only (status: 'dry-run')
+                      │  no
                      ▼
                chat.sendMessage(reply)  ──> WhatsApp Web
 ```

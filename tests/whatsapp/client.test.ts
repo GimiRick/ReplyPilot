@@ -82,7 +82,7 @@ describe('loginWhatsAppAccount', () => {
     expect(client).toBeDefined();
 
     client!.emit('ready');
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(500);
 
     await expect(loginPromise).resolves.toBeUndefined();
     expect(client!.destroy).toHaveBeenCalled();

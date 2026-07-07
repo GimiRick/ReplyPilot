@@ -414,7 +414,7 @@ describe('CLI commands', () => {
 
     await program.parseAsync(['node', 'replypilot', 'login']);
 
-    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('work-account', expect.anything());
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('work-account', expect.anything(), 500);
     expect(deps.setActiveWhatsAppAccount).toHaveBeenCalledWith('work-account');
     expect(output).toContain('Account "work-account" is now active.');
   });
@@ -434,7 +434,7 @@ describe('CLI commands', () => {
     await program.parseAsync(['node', 'replypilot', 'login']);
 
     expect(validateResult).toBe('An account named "existing-account" already exists.');
-    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('different-name', expect.anything());
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('different-name', expect.anything(), 500);
   });
 
   it('reports error when no accounts exist for account switch', async () => {
@@ -484,6 +484,7 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
     runSetupWizard: vi.fn(async () => ({ config: makeConfig(), configName: 'default' })),
     startAutomation: vi.fn(async () => undefined),
     loadConfig: vi.fn(() => makeConfig()),
+    tryLoadConfig: vi.fn(() => makeConfig()),
     deleteConfig: vi.fn(),
     listConfigNames: vi.fn(() => ['default']),
     getActiveConfigName: vi.fn(() => undefined),

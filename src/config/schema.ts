@@ -36,6 +36,7 @@ export const appConfigSchema = z
       sessionName: nonEmptyString('WhatsApp session name').default('default'),
       allowGroups: z.boolean().default(false),
       allowBroadcasts: z.boolean().default(false),
+      loginDelayMs: z.number().int().min(0).max(30_000).default(500),
     }),
     llm: z.object({
       provider: providerSchema,
@@ -76,8 +77,9 @@ export const appConfigSchema = z
       .object({
         debounceMs: z.number().int().min(0).max(600_000).default(10000),
         maxCallsPerMinute: z.number().int().min(1).max(120).optional(),
+        shutdownTimeoutMs: z.number().int().min(1_000).max(120_000).default(15000),
       })
-      .default({ debounceMs: 10000 }),
+      .default({ debounceMs: 10000, shutdownTimeoutMs: 15000 }),
   })
   .strict();
 
@@ -93,6 +95,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     sessionName: 'default',
     allowGroups: false,
     allowBroadcasts: false,
+    loginDelayMs: 500,
   },
   llm: {
     provider: 'lmstudio',
@@ -124,6 +127,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   },
   automation: {
     debounceMs: 10000,
+    shutdownTimeoutMs: 15000,
   },
 };
 
@@ -167,12 +171,14 @@ function deepMerge<T extends Record<string, unknown>>(
   const output: Record<string, unknown> = { ...base };
 
   for (const [key, value] of Object.entries(overrides)) {
-    if (
-      value === undefined ||
-      key === '__proto__' ||
-      key === 'constructor' ||
-      key === 'prototype'
-    ) {
+    if (value === undefined) {
+      continue;
+    }
+
+    // Prototype pollution guard — Object.entries returns own keys only, but
+    // a malicious caller can fabricate '__proto__' via Object.defineProperty
+    // or JSON.parse. This blocks those and other prototype-pollution vectors.
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       continue;
     }
 

@@ -69,7 +69,7 @@ describe('OpenAiCompatibleProvider', () => {
     await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderTimeoutError);
   });
 
-  it('does not retry 429 rate-limited errors', async () => {
+  it('retries 429 rate-limited errors', async () => {
     const create = vi
       .fn()
       .mockRejectedValue(Object.assign(new Error('rate limited'), { statusCode: 429 }));
@@ -87,7 +87,7 @@ describe('OpenAiCompatibleProvider', () => {
     });
 
     await expect(provider.generateReply(makeInput())).rejects.toThrow('rate limited');
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it('retries transient network code failures', async () => {

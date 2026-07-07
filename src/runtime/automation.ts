@@ -155,30 +155,36 @@ export class ReplyAutomation {
 
   async stop(): Promise<void> {
     this.stopped = true;
+    const batchPromises: Promise<void>[] = [];
+
     for (const [chatId, batch] of this.activeBatches.entries()) {
       if (batch.timer) {
         clearTimeout(batch.timer);
       }
       this.activeBatches.delete(chatId);
 
-      this.queue
-        .add(chatId, () =>
-          processIncomingMessageBatch({
-            messages: batch.messages,
-            config: this.config,
-            llmProvider: this.llmProvider,
-            logger: this.logger,
-            metrics: this.metrics,
-          }).catch((error) => {
-            this.metrics.recordMessageFailed();
-            this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
-            return { status: 'failed' as const, error };
+      batchPromises.push(
+        this.queue
+          .add(chatId, () =>
+            processIncomingMessageBatch({
+              messages: batch.messages,
+              config: this.config,
+              llmProvider: this.llmProvider,
+              logger: this.logger,
+              metrics: this.metrics,
+            }).catch((error) => {
+              this.metrics.recordMessageFailed();
+              this.logger.error({ error, chatId }, 'Message processing failed during shutdown');
+              return { status: 'failed' as const, error };
+            }),
+          )
+          .then((result) => {
+            batch.resolvers.forEach((r) => r(result));
           }),
-        )
-        .then((result) => {
-          batch.resolvers.forEach((r) => r(result));
-        });
+      );
     }
+
+    await Promise.all(batchPromises);
     await this.queue.onIdle();
   }
 }

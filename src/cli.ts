@@ -149,8 +149,13 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     .command('setup')
     .description('Run the configuration wizard to create a new config.')
     .action(async () => {
-      await deps.runSetupWizard();
-      deps.output('ReplyPilot configuration saved.');
+      try {
+        await deps.runSetupWizard();
+        deps.output('ReplyPilot configuration saved.');
+      } catch (error) {
+        deps.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      }
     });
 
   program

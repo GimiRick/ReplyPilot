@@ -180,7 +180,7 @@ function isTransientProviderError(error: unknown): boolean {
 
   const status = getErrorNumber(error, 'status') ?? getErrorNumber(error, 'statusCode');
   if (status !== undefined) {
-    return status === 408 || status === 409 || status === 425 || status >= 500;
+    return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
   }
 
   const code = getErrorString(error, 'code');

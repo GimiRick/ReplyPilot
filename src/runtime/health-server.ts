@@ -78,7 +78,9 @@ export class HealthServer {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));
     } catch {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+      }
       res.end(JSON.stringify({ error: 'Internal server error' }));
     }
   }

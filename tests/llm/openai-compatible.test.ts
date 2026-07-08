@@ -1,3 +1,4 @@
+import OpenAI from 'openai';
 import { describe, expect, it, vi } from 'vitest';
 
 import { OpenAiCompatibleProvider } from '../../src/llm/openai-compatible';
@@ -192,6 +193,211 @@ describe('OpenAiCompatibleProvider', () => {
     await expect(provider.generateReply(makeInput())).rejects.toThrow('always fails');
     expect(create).toHaveBeenCalledTimes(3);
     expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls through to fallback key on non-transient error', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('bad request'), { status: 400 }))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Fallback worked' } }] });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary',
+      fallbackApiKeys: ['fallback'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('Fallback worked');
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls through to fallback key on empty reply (ProviderResponseError)', async () => {
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce({ choices: [{ message: { content: '   ' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Fallback replied' } }] });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary',
+      fallbackApiKeys: ['fallback'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('Fallback replied');
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses third fallback key when first two fail', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('key1 failed'), { status: 429 }))
+      .mockRejectedValueOnce(Object.assign(new Error('key2 failed'), { status: 500 }))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Third key worked' } }] });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'key-1',
+      fallbackApiKeys: ['key-2', 'key-3'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('Third key worked');
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+  });
+
+  it('primary exhausts retries then fallback succeeds', async () => {
+    vi.useFakeTimers();
+
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('server error'), { status: 503 }))
+      .mockRejectedValueOnce(Object.assign(new Error('server error'), { status: 503 }))
+      .mockRejectedValueOnce(Object.assign(new Error('server error'), { status: 503 }))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Fallback after retries' } }] });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary',
+      fallbackApiKeys: ['fallback'],
+      timeoutMs: 10_000,
+      maxRetries: 2,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    const resultPromise = provider.generateReply(makeInput());
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    const result = await resultPromise;
+
+    expect(result.text).toBe('Fallback after retries');
+    expect(create).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
+  });
+
+  it('treats APIConnectionTimeoutError as transient for retry', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(new OpenAI.APIConnectionTimeoutError())
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered' } }] });
+    const provider = makeProvider(create, { maxRetries: 1 });
+
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered' });
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats APIUserAbortError as transient for retry', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(new OpenAI.APIUserAbortError())
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered after abort' } }] });
+    const provider = makeProvider(create, { maxRetries: 1 });
+
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered after abort' });
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('all keys exhaust retries without fallback on permanent failure', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('permanent failure'), { status: 400 }));
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'key-1',
+      fallbackApiKeys: ['key-2'],
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    await expect(provider.generateReply(makeInput())).rejects.toThrow('permanent failure');
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls through 10 fallback API keys until one succeeds', async () => {
+    const keys = Array.from({ length: 10 }, (_, i) => `fallback-key-${i + 1}`);
+    const create = vi.fn();
+    for (let i = 0; i < keys.length; i++) {
+      create.mockRejectedValueOnce(
+        Object.assign(new Error(`key ${i + 1} failed`), { status: 400 }),
+      );
+    }
+    create.mockResolvedValueOnce({
+      choices: [{ message: { content: '10th key worked' } }],
+    });
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary-key',
+      fallbackApiKeys: keys,
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('10th key worked');
+    expect(create).toHaveBeenCalledTimes(11);
+    expect(logger.warn).toHaveBeenCalledTimes(10);
+  });
+
+  it('exhausts all 10 fallback API keys and throws', async () => {
+    const keys = Array.from({ length: 10 }, (_, i) => `fallback-key-${i + 1}`);
+    const create = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('all keys exhausted'), { status: 400 }));
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'primary-key',
+      fallbackApiKeys: keys,
+      timeoutMs: 1_000,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    await expect(provider.generateReply(makeInput())).rejects.toThrow('all keys exhausted');
+    expect(create).toHaveBeenCalledTimes(11);
+    expect(logger.warn).toHaveBeenCalledTimes(10);
     expect(logger.error).toHaveBeenCalledTimes(1);
   });
 });

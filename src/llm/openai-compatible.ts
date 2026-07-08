@@ -192,6 +192,10 @@ function isTransientProviderError(error: unknown): boolean {
     return true;
   }
 
+  if (error instanceof OpenAI.APIConnectionTimeoutError || error instanceof OpenAI.APIUserAbortError) {
+    return true;
+  }
+
   const status = getErrorNumber(error, 'status') ?? getErrorNumber(error, 'statusCode');
   if (status !== undefined) {
     return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;

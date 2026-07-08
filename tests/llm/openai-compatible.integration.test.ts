@@ -1,6 +1,6 @@
 import http from 'node:http';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { OpenAiCompatibleProvider } from '../../src/llm/openai-compatible';
 import { type GenerateReplyInput } from '../../src/llm/provider';
@@ -168,4 +168,79 @@ describe('OpenAiCompatibleProvider HTTP integration', () => {
     const provider = createProvider(port);
     await expect(provider.generateReply(makeInput())).rejects.toThrow();
   });
+
+  it('falls through primary timeout and HTTP error fallbacks to last success', async () => {
+    const usedKeys: string[] = [];
+
+    const port = await startServer((req, res) => {
+      const auth = req.headers.authorization ?? '';
+      usedKeys.push(auth);
+
+      if (auth.includes('fallback-last')) {
+        jsonResponse(res, 200, {
+          choices: [{ message: { content: 'OK from fallback' } }],
+        });
+      } else if (auth.includes('fallback-503')) {
+        jsonResponse(res, 503, { error: 'Service Unavailable' });
+      } else {
+        // primary key: don't respond — will trigger timeout
+      }
+    });
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'test-http',
+      baseUrl: `http://127.0.0.1:${port}/v1`,
+      apiKey: 'primary-key',
+      fallbackApiKeys: ['fallback-503', 'fallback-last'],
+      timeoutMs: 300,
+      maxRetries: 0,
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('OK from fallback');
+    expect(usedKeys.length).toBe(3);
+    expect(usedKeys[0]).toContain('primary-key');
+    expect(usedKeys[1]).toContain('fallback-503');
+    expect(usedKeys[2]).toContain('fallback-last');
+  }, 30_000);
+
+  it('retries 503 within a single key then falls through to next', async () => {
+    const requestLog: { key: string; time: number }[] = [];
+    let attemptCount = 0;
+    const startTime = Date.now();
+
+    const port = await startServer((req, res) => {
+      attemptCount += 1;
+      requestLog.push({ key: req.headers.authorization ?? '', time: Date.now() - startTime });
+
+      // Return 503 for the first 3 requests (primary key with 2 retries)
+      if (attemptCount <= 3) {
+        return jsonResponse(res, 503, { error: 'Service Unavailable' });
+      }
+
+      // Fourth request → fallback key succeeds
+      jsonResponse(res, 200, {
+        choices: [{ message: { content: 'Recovered after retries' } }],
+      });
+    });
+
+    const logger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
+
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'test-http',
+      baseUrl: `http://127.0.0.1:${port}/v1`,
+      apiKey: 'primary-key',
+      fallbackApiKeys: ['fallback-key'],
+      timeoutMs: 10_000,
+      maxRetries: 2,
+      logger,
+    });
+
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('Recovered after retries');
+    expect(attemptCount).toBe(4);
+    expect(logger.warn).toHaveBeenCalled();
+  }, 30_000);
 });

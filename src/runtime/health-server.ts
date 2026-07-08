@@ -44,6 +44,7 @@ export class HealthServer {
 
   stop(): Promise<void> {
     return new Promise((resolve) => {
+      this.server.closeAllConnections();
       this.server.close(() => resolve());
     });
   }

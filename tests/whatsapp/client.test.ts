@@ -233,12 +233,9 @@ describe('downloadMediaWithRetry', () => {
       await promise;
 
       const sleepCalls = setTimeoutSpy.mock.calls.filter(
-        ([, ms]) => typeof ms === 'number' && ms > 0,
+        ([, ms]) => typeof ms === 'number' && ms === 1000,
       );
       expect(sleepCalls.length).toBeGreaterThanOrEqual(2);
-      for (const [, ms] of sleepCalls) {
-        expect(ms).toBe(1000);
-      }
     } finally {
       vi.useRealTimers();
     }

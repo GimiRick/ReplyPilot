@@ -498,6 +498,29 @@ Controls how long (in milliseconds) the app waits for a graceful shutdown before
 - **Increase** (e.g., `30000`) if you have slow connections that need more time to shut down.
 - **Decrease** (e.g., `5000`) to make the app exit faster when stuck.
 
+### Log Level
+
+```json
+{
+  "logging": {
+    "level": "info"
+  }
+}
+```
+
+Controls the verbosity of log output. ReplyPilot uses [Pino](https://getpino.io) with numeric levels:
+
+| Level    | Value | Description                      |
+| -------- | ----- | -------------------------------- |
+| `debug`  | 20    | Detailed diagnostic information  |
+| `info`   | 30    | Normal operational messages      |
+| `warn`   | 40    | Non-critical issues              |
+| `error`  | 50    | Errors that need attention       |
+
+- **Default:** `info` (30)
+- **Set to `debug`** to see why individual messages are being ignored or processed.
+- **Set to `warn` or `error`** to reduce log noise in production.
+
 ---
 
 ## Feature Availability

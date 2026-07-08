@@ -148,7 +148,7 @@ describe('setup wizard config creation', () => {
       false,
       true,
       true,
-      false,
+      true,
       false,
     ]);
 
@@ -158,6 +158,7 @@ describe('setup wizard config creation', () => {
     expect(config.llm.apiKey).toBe('secret-key');
     expect(config.whatsapp.allowGroups).toBe(true);
     expect(config.whatsapp.allowBroadcasts).toBe(true);
+    expect(config.whatsapp.allowArchived).toBe(true);
     expect(config.automation.debounceMs).toBe(0);
     expect(prompts.password).toHaveBeenCalledOnce();
   });

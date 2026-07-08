@@ -5,6 +5,7 @@ import {
   PROVIDER_DEFAULTS,
   type AppConfig,
   type LlmProviderName,
+  type LogLevel,
   parseAppConfig,
 } from './schema';
 import {
@@ -37,6 +38,9 @@ export type SetupAnswers = {
   allowGroups?: boolean;
   allowBroadcasts?: boolean;
   allowArchived?: boolean;
+  logLevel?: LogLevel;
+  shutdownTimeoutMs?: number;
+  ignoreSelf?: boolean;
 };
 
 export type PromptAdapter = {
@@ -99,14 +103,14 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
     automation: {
       debounceMs: answers.waitBeforeSending === false ? 0 : (answers.debounceMs ?? 10000),
       maxCallsPerMinute: answers.maxCallsPerMinute,
-      shutdownTimeoutMs: 15000,
+      shutdownTimeoutMs: answers.shutdownTimeoutMs ?? 15000,
     },
     safety: {
       dryRun: answers.dryRun ?? false,
-      ignoreSelf: true,
+      ignoreSelf: answers.ignoreSelf ?? true,
     },
     logging: {
-      level: 'info',
+      level: answers.logLevel ?? 'info',
     },
   });
 }
@@ -275,6 +279,20 @@ export async function promptForConfig(
     });
   }
 
+  const shutdownTimeoutSec = await prompts.number({
+    message: 'Shutdown timeout (in seconds)',
+    default: 15,
+    validate: (value) => {
+      if (value === undefined) {
+        return true;
+      }
+      if (!Number.isInteger(value)) {
+        return 'Value must be an integer';
+      }
+      return value >= 1 && value <= 300 ? true : 'Choose a value from 1 to 300';
+    },
+  });
+
   const ownerStylePrompt = await prompts.editor({
     message: 'Owner personality and style prompt',
     default: 'Reply naturally, concisely, and in my usual WhatsApp style.',
@@ -285,6 +303,17 @@ export async function promptForConfig(
   const dryRun = await prompts.confirm({
     message: 'Enable dry-run mode?',
     default: false,
+  });
+
+  const logLevel = await prompts.select<LogLevel>({
+    message: 'Log level',
+    default: 'info',
+    choices: [
+      { name: 'Debug', value: 'debug' },
+      { name: 'Info', value: 'info' },
+      { name: 'Warn', value: 'warn' },
+      { name: 'Error', value: 'error' },
+    ],
   });
 
   const allowGroups = await prompts.confirm({
@@ -300,6 +329,11 @@ export async function promptForConfig(
   const allowArchived = await prompts.confirm({
     message: 'Auto-reply in archived chats?',
     default: false,
+  });
+
+  const ignoreSelf = await prompts.confirm({
+    message: 'Ignore messages sent by yourself?',
+    default: true,
   });
 
   const interactVoiceNotes = await prompts.confirm({
@@ -403,9 +437,12 @@ export async function promptForConfig(
     debounceMs: debounceMs !== undefined ? debounceMs * 1000 : undefined,
     ownerStylePrompt,
     dryRun,
+    logLevel,
     allowGroups,
     allowBroadcasts,
     allowArchived,
+    ignoreSelf,
+    shutdownTimeoutMs: shutdownTimeoutSec !== undefined ? shutdownTimeoutSec * 1000 : undefined,
   });
 }
 

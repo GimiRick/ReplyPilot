@@ -71,7 +71,7 @@ export class ReplyAutomation {
     this.queue =
       options.queue ??
       new MessageQueue({
-        globalConcurrency: 2,
+        globalConcurrency: 1,
         perChatConcurrency: 1,
         maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
       });
@@ -286,11 +286,24 @@ export async function startAutomation(
   let statusInterval: NodeJS.Timeout | undefined;
   const statusBarStream = new Writable({
     write(chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+      const writeChunk = () => {
+        const drained = process.stderr.write(chunk.toString());
+        if (drained) {
+          callback();
+        } else {
+          process.stderr.once('drain', callback);
+        }
+      };
       if (lastStatusLen > 0) {
-        process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
+        const cleared = process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
+        if (cleared) {
+          writeChunk();
+        } else {
+          process.stderr.once('drain', writeChunk);
+        }
+      } else {
+        writeChunk();
       }
-      process.stderr.write(chunk.toString());
-      callback();
     },
   });
   const logger = createLogger(config.logging.level, statusBarStream);
@@ -334,7 +347,7 @@ export async function startAutomation(
 
     const forceExitTimer = setTimeout(() => {
       logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
-      process.exit(0);
+      process.exit(1);
     }, config.automation.shutdownTimeoutMs);
 
     try {

@@ -94,6 +94,14 @@ describe('WhatsApp message filters', () => {
     ).toBe(true);
   });
 
+  it('passes archived messages when allowArchived is enabled', () => {
+    const config = makeConfig({ whatsapp: { allowArchived: true } });
+
+    expect(
+      shouldProcessMessage({ id: '1', body: 'hello', archived: true }, config),
+    ).toBe(true);
+  });
+
   it('passes voice notes when voiceNote mode is not ignore', () => {
     const config = makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } });
 

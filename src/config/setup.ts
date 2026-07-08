@@ -36,6 +36,7 @@ export type SetupAnswers = {
   dryRun?: boolean;
   allowGroups?: boolean;
   allowBroadcasts?: boolean;
+  allowArchived?: boolean;
 };
 
 export type PromptAdapter = {
@@ -67,6 +68,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
       sessionName: 'default',
       allowGroups: answers.allowGroups ?? false,
       allowBroadcasts: answers.allowBroadcasts ?? false,
+      allowArchived: answers.allowArchived ?? false,
     },
     llm: {
       provider: answers.provider,
@@ -294,6 +296,11 @@ export async function promptForConfig(
     default: false,
   });
 
+  const allowArchived = await prompts.confirm({
+    message: 'Auto-reply in archived chats?',
+    default: false,
+  });
+
   const interactVoiceNotes = await prompts.confirm({
     message: 'Do you want the LLM to interact with voice notes?',
     default: false,
@@ -397,6 +404,7 @@ export async function promptForConfig(
     dryRun,
     allowGroups,
     allowBroadcasts,
+    allowArchived,
   });
 }
 

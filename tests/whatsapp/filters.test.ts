@@ -82,6 +82,18 @@ describe('WhatsApp message filters', () => {
     ).toBe('voice_note_ignored');
   });
 
+  it('ignores messages from archived chats', () => {
+    expect(
+      getIgnoreReason({ id: '1', body: 'hello', archived: true }, makeConfig()),
+    ).toBe('archived');
+  });
+
+  it('passes messages from non-archived chats', () => {
+    expect(
+      shouldProcessMessage({ id: '1', body: 'hello', archived: false }, makeConfig()),
+    ).toBe(true);
+  });
+
   it('passes voice notes when voiceNote mode is not ignore', () => {
     const config = makeConfig({ voiceNote: { mode: 'native_audio', whisperModel: 'whisper-1' } });
 

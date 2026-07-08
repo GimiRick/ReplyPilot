@@ -41,6 +41,7 @@ export const appConfigSchema = z
       sessionName: whatsappSessionName.default('default'),
       allowGroups: z.boolean().default(false),
       allowBroadcasts: z.boolean().default(false),
+      allowArchived: z.boolean().default(false),
       loginDelayMs: z.number().int().min(0).max(30_000).default(500),
     }),
     llm: z.object({
@@ -100,6 +101,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     sessionName: 'default',
     allowGroups: false,
     allowBroadcasts: false,
+    allowArchived: false,
     loginDelayMs: 500,
   },
   llm: {

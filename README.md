@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-259%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-281%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-95.8%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -422,9 +422,41 @@ To use a different account or a different AI setup later, just use `replypilot a
 - Messages sent by you are ignored.
 - Group auto-replies are disabled by default.
 - Broadcast list auto-replies are disabled by default.
+- Archived chat auto-replies are disabled by default.
 - WhatsApp status broadcasts are always ignored.
 - Voice notes are ignored by default (`ignore` mode).
 - Dry-run can be enabled during setup to log replies without sending them.
+
+### Archived Chat Handling
+
+Archived chats are ignored by default. When a message arrives from an archived chat, the following pipeline runs to block the reply:
+
+```text
+message.getChat() → chat.archived === true
+         ↓
+toFilterableMessage() → filterable.archived = true
+         ↓
+client.ts:123 getIgnoreReason() → 'archived' → skipMediaProcessing = true
+         ↓
+toLightweightRuntimeMessage() → runtimeMessage.archived = true
+         ↓
+messageHandler(runtimeMessage) → automation.handleIncomingMessage()
+         ↓
+automation.ts:92 getIgnoreReason(message, config)
+         ↓
+filters.ts:42 message.archived && !config.whatsapp.allowArchived
+         ↓  true && true  =  true
+         ↓
+returns 'archived' → message IGNORED → LLM does NOT reply
+```
+
+If you want the LLM to interact with archived chats, enable it during `replypilot setup`:
+
+```text
+? Auto-reply in archived chats? (y/N)
+```
+
+Or add `"allowArchived": true` to your config's `whatsapp` section.
 
 ---
 
@@ -689,11 +721,12 @@ WhatsApp Web ──> Client.on('message')
                  ┌───────┴───────┐
                  │               │
                  ▼               ▼
-         getIgnoreReason()    duplicateGuard
-         {self, empty,        {seen IDs}
-          group, broadcast,
-          status_broadcast,
-          voice_note_ignored}
+          getIgnoreReason()    duplicateGuard
+          {self, empty,        {seen IDs}
+           group, broadcast,
+           status_broadcast,
+           archived,
+           voice_note_ignored}
                 │               │
                 └───────┬───────┘
                    [ignored] │ [pass]
@@ -799,7 +832,7 @@ replypilot start
 | **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio)                                            |
 | **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization, media type labels                                                                                 |
-| **WhatsApp** | `filters.ts`           | `getIgnoreReason`, `DuplicateMessageGuard` with FIFO pruning                                                                                                      |
+| **WhatsApp** | `filters.ts`           | `getIgnoreReason` (self, empty, group, broadcast, archived, voice_note, status_broadcast), `DuplicateMessageGuard` with FIFO pruning                              |
 | **Audio**    | `convert.ts`           | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout                                                                                                        |
 | **Audio**    | `transcriber.ts`       | Cloud (`transcribeCloud`) and local (`transcribeLocal`) Whisper transcription                                                                                     |
 | **Doctor**   | `doctor.ts`            | `runDoctor` health checks (Node, config, provider reachability, ffmpeg availability)                                                                              |

@@ -88,6 +88,8 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -112,6 +114,8 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'Reply naturally and concisely.',
+      false,
+      false,
       false,
       false,
       false,
@@ -145,6 +149,7 @@ describe('setup wizard config creation', () => {
       true,
       true,
       false,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -170,6 +175,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -226,6 +232,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
       true,
       'whisper_cloud',
       'https://whisper.example/v1',
@@ -254,6 +261,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -286,6 +294,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
       true,
       'whisper_local',
       'http://localhost:9000/transcribe',
@@ -313,6 +322,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
       true,
       'native_audio',
     ]);
@@ -336,6 +346,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'tone',
+      false,
       false,
       false,
       false,
@@ -375,6 +386,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
       true,
       'whisper_local',
       'http://localhost:9000/transcribe',
@@ -410,6 +422,7 @@ describe('setup wizard config creation', () => {
         false,
         'Short and friendly.',
         true,
+        false,
         false,
         false,
         false,
@@ -454,6 +467,7 @@ describe('setup wizard config creation', () => {
         false,
         false,
         false,
+        false,
       ]);
 
       await runSetupWizard({ prompts, store });
@@ -488,6 +502,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -510,6 +525,7 @@ describe('setup wizard config creation', () => {
       true,
       30,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -538,6 +554,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
     ]);
 
     const config = await promptForConfig(prompts);
@@ -559,6 +576,7 @@ describe('setup wizard config creation', () => {
       true,
       undefined,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -593,6 +611,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       false,
+      false,
     ]);
 
     await promptForConfig(prompts);
@@ -620,6 +639,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,
@@ -657,6 +677,7 @@ describe('setup wizard config creation', () => {
       false,
       false,
       'Reply in my tone.',
+      false,
       false,
       false,
       false,

@@ -9,6 +9,7 @@ export type FilterableWhatsAppMessage = {
   hasMedia?: boolean;
   messageType?: string;
   chatId?: string;
+  archived?: boolean;
 };
 
 export type IgnoreReason =
@@ -19,6 +20,7 @@ export type IgnoreReason =
   | 'duplicate'
   | 'voice_note_ignored'
   | 'status_broadcast'
+  | 'archived'
   | 'shutting_down';
 
 export function getIgnoreReason(
@@ -35,6 +37,10 @@ export function getIgnoreReason(
 
   if (message.chatId === 'status@broadcast') {
     return 'status_broadcast';
+  }
+
+  if (message.archived && !config.whatsapp.allowArchived) {
+    return 'archived';
   }
 
   if (message.isGroup && !config.whatsapp.allowGroups) {

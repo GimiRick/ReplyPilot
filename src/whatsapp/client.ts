@@ -162,6 +162,7 @@ function toFilterableMessage(message: Message, chat: Chat) {
     hasMedia: message.hasMedia,
     messageType: message.type,
     chatId,
+    archived: Boolean(chat.archived),
   };
 }
 
@@ -180,6 +181,7 @@ function toLightweightRuntimeMessage(
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),
+    archived: Boolean(chat.archived),
     hasMedia: message.hasMedia,
     messageType: message.type,
     chatName: chat.name,
@@ -261,6 +263,7 @@ async function toRuntimeMessage(
     fromMe: message.fromMe,
     isGroup: Boolean(chat.isGroup),
     isBroadcast: isBroadcastMessage(message, chatId),
+    archived: Boolean(chat.archived),
     hasMedia: message.hasMedia,
     messageType: message.type,
     imageData,

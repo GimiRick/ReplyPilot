@@ -27,6 +27,7 @@ export type RuntimeIncomingMessage = {
   fromMe?: boolean;
   isGroup?: boolean;
   isBroadcast?: boolean;
+  archived?: boolean;
   hasMedia?: boolean;
   messageType?: string;
   imageData?: ImageData;

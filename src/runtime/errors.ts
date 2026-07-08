@@ -32,12 +32,6 @@ export class ProviderTimeoutError extends ReplyPilotError {
   }
 }
 
-export class DuplicateConfigError extends ReplyPilotError {
-  constructor(name: string) {
-    super(`A configuration named "${name}" already exists.`, 'DUPLICATE_CONFIG');
-  }
-}
-
 export class ConfigNotFoundError extends ReplyPilotError {
   constructor(name: string) {
     super(`Configuration "${name}" not found.`, 'CONFIG_NOT_FOUND');

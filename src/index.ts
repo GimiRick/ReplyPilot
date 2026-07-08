@@ -111,7 +111,6 @@ export {
 export {
   ConfigNotFoundError,
   ConfigValidationError,
-  DuplicateConfigError,
   MissingConfigError,
   ProviderResponseError,
   ProviderTimeoutError,

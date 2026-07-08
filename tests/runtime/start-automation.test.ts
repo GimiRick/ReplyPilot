@@ -33,6 +33,8 @@ vi.mock('../../src/llm/openai-compatible', () => ({
 describe('startAutomation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(globalThis, 'setInterval').mockReturnValue(123 as unknown as NodeJS.Timeout);
+    vi.spyOn(globalThis, 'clearInterval').mockImplementation(() => {});
     mocks.loadConfig.mockReturnValue(makeConfig());
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
       return {
@@ -43,6 +45,10 @@ describe('startAutomation', () => {
     });
     mocks.start.mockResolvedValue(undefined);
     mocks.stop.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('wires config, WhatsApp client, and message handler', async () => {

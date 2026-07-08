@@ -333,6 +333,8 @@ export async function startAutomation(
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
     } finally {
+      clearInterval(statusInterval);
+      process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
       clearTimeout(forceExitTimer);
       process.off('SIGINT', shutdown);
       if (process.platform !== 'win32') {
@@ -346,9 +348,21 @@ export async function startAutomation(
     process.on('SIGTERM', shutdown);
   }
 
+  process.stderr.write('\n');
+  let lastStatusLen = 0;
+  const statusInterval = setInterval(() => {
+    const snap = metrics.snapshot();
+    const line = `  LLM calls: ${snap.llmCalls}  |  errors: ${snap.llmErrors}  |  processed: ${snap.messagesProcessed}  |  ignored: ${snap.messagesIgnored}  |  uptime: ${snap.uptimeSeconds}s`;
+    const padding = ' '.repeat(Math.max(0, lastStatusLen - line.length));
+    lastStatusLen = line.length;
+    process.stderr.write(`\r${line}${padding}`);
+  }, 1000);
+
   try {
     await whatsapp.start();
   } catch (error) {
+    clearInterval(statusInterval);
+    process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
     process.off('SIGINT', shutdown);
     if (process.platform !== 'win32') {
       process.off('SIGTERM', shutdown);

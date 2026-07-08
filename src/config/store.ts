@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import Conf from 'conf';
 
-import { type AppConfig, parseAppConfig } from './schema';
+import { type AppConfig, parseAppConfig, WHATSAPP_ACCOUNT_NAME_REGEX } from './schema';
 import { MissingConfigError, ConfigNotFoundError } from '../runtime/errors';
 
 const CONFIG_KEY = 'config';
@@ -12,6 +12,7 @@ const ACTIVE_CONFIG_KEY = 'activeConfig';
 
 const CONFIG_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const DEFAULT_CONFIG_NAME = 'default';
+const LOCAL_AUTH_SESSION_PREFIX = 'session-';
 
 type StoreShape = {
   config?: AppConfig;
@@ -57,6 +58,19 @@ export function validateConfigName(name: string): string {
   }
   if (!CONFIG_NAME_REGEX.test(trimmed)) {
     throw new Error('Config name may only contain letters, numbers, hyphens, and underscores.');
+  }
+  return trimmed;
+}
+
+export function validateWhatsAppAccountName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error('WhatsApp account name cannot be empty.');
+  }
+  if (!WHATSAPP_ACCOUNT_NAME_REGEX.test(trimmed)) {
+    throw new Error(
+      'WhatsApp account name may only contain letters, numbers, hyphens, and underscores.',
+    );
   }
   return trimmed;
 }
@@ -187,27 +201,48 @@ function resolveConfigName(
 export function getActiveWhatsAppAccount(
   store: ReplyPilotConfigStore = getConfigStore(),
 ): string | undefined {
-  return store.get('activeWhatsAppAccount');
+  const accountName = store.get('activeWhatsAppAccount');
+  if (!accountName) {
+    return undefined;
+  }
+
+  try {
+    const normalized = normalizeStoredWhatsAppAccount(accountName, store);
+    if (normalized !== accountName) {
+      store.set('activeWhatsAppAccount', normalized);
+    }
+    return normalized;
+  } catch {
+    store.delete('activeWhatsAppAccount');
+    return undefined;
+  }
 }
 
 export function setActiveWhatsAppAccount(
   name: string,
   store: ReplyPilotConfigStore = getConfigStore(),
 ): void {
-  const trimmed = name.trim();
-  if (!trimmed) {
-    throw new Error('WhatsApp account name cannot be empty.');
-  }
+  const trimmed = validateWhatsAppAccountName(name);
   store.set('activeWhatsAppAccount', trimmed);
 }
 
 export function listWhatsAppAccounts(store: ReplyPilotConfigStore = getConfigStore()): string[] {
   const dir = getWhatsAppSessionDir(store);
   try {
-    return fs
-      .readdirSync(dir, { withFileTypes: true })
-      .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => dirent.name);
+    const accounts = new Set<string>();
+
+    for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!dirent.isDirectory()) {
+        continue;
+      }
+
+      const accountName = accountNameFromSessionDirName(dirent.name);
+      if (accountName) {
+        accounts.add(accountName);
+      }
+    }
+
+    return [...accounts];
   } catch {
     return [];
   }
@@ -233,8 +268,15 @@ export function removeWhatsAppSessionAccount(
   accountName: string,
   store: ReplyPilotConfigStore = getConfigStore(),
 ): void {
-  const dir = path.join(getWhatsAppSessionDir(store), accountName);
-  fs.rmSync(dir, { recursive: true, force: true });
+  const sessionRoot = getWhatsAppSessionDir(store);
+  const trimmed = validateWhatsAppAccountName(accountName);
+  fs.rmSync(path.join(sessionRoot, sessionDirNameForAccount(trimmed)), {
+    recursive: true,
+    force: true,
+  });
+  if (!trimmed.startsWith(LOCAL_AUTH_SESSION_PREFIX)) {
+    fs.rmSync(path.join(sessionRoot, trimmed), { recursive: true, force: true });
+  }
 }
 
 export function clearActiveWhatsAppAccount(store: ReplyPilotConfigStore = getConfigStore()): void {
@@ -247,4 +289,42 @@ export function getWhatsAppCacheDir(): string {
 
 export function removeWhatsAppCacheData(): void {
   fs.rmSync(getWhatsAppCacheDir(), { recursive: true, force: true });
+}
+
+function sessionDirNameForAccount(accountName: string): string {
+  return `${LOCAL_AUTH_SESSION_PREFIX}${accountName}`;
+}
+
+function accountNameFromSessionDirName(dirName: string): string | undefined {
+  const accountName = dirName.startsWith(LOCAL_AUTH_SESSION_PREFIX)
+    ? dirName.slice(LOCAL_AUTH_SESSION_PREFIX.length)
+    : dirName;
+
+  try {
+    return validateWhatsAppAccountName(accountName);
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeStoredWhatsAppAccount(
+  accountName: string,
+  store: ReplyPilotConfigStore,
+): string {
+  const trimmed = validateWhatsAppAccountName(accountName);
+
+  if (!trimmed.startsWith(LOCAL_AUTH_SESSION_PREFIX)) {
+    return trimmed;
+  }
+
+  const sessionRoot = getWhatsAppSessionDir(store);
+  const expectedDirForStoredName = path.join(sessionRoot, sessionDirNameForAccount(trimmed));
+  const rawStoredDir = path.join(sessionRoot, trimmed);
+
+  if (fs.existsSync(rawStoredDir) && !fs.existsSync(expectedDirForStoredName)) {
+    const unprefixed = trimmed.slice(LOCAL_AUTH_SESSION_PREFIX.length);
+    return validateWhatsAppAccountName(unprefixed);
+  }
+
+  return trimmed;
 }

@@ -80,6 +80,28 @@ describe('transcribeCloud', () => {
     );
   });
 
+  it('falls back to llm apiKey when whisperApiKey is blank', async () => {
+    const mockFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ text: 'transcribed' }),
+    }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const config = makeConfig({
+      llm: { apiKey: 'sk-llm-key' },
+      voiceNote: { mode: 'whisper_cloud', whisperApiKey: '   ' },
+    });
+
+    await transcribeCloud('bXAzLWRhdGE=', config);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer sk-llm-key' },
+      }),
+    );
+  });
+
   it('throws on non-ok response', async () => {
     vi.stubGlobal(
       'fetch',

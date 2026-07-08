@@ -157,6 +157,41 @@ describe('runtime message processing', () => {
     expect(events).toEqual(['start:one\ntwo']);
   });
 
+  it('uses the latest quoted message in a debounced batch', async () => {
+    const generateReply = vi.fn(async (input: GenerateReplyInput) => ({
+      text: 'Reply with quote',
+      provider: 'test',
+      model: input.model,
+    }));
+    const provider: LlmProvider = { generateReply };
+
+    const result = await processIncomingMessageBatch({
+      messages: [
+        makeMessage({
+          id: '1',
+          timestamp: 100,
+          body: 'first',
+          quotedMessage: { body: 'older quote', fromMe: false },
+        }),
+        makeMessage({
+          id: '2',
+          timestamp: 200,
+          body: 'second',
+          quotedMessage: { body: 'latest quote', fromMe: true },
+        }),
+      ],
+      config: makeConfig(),
+      llmProvider: provider,
+    });
+
+    expect(result.status).toBe('sent');
+    expect(generateReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incomingMessageQuoted: { body: 'latest quote', direction: 'owner' },
+      }),
+    );
+  });
+
   it('passes audioData to LLM when voiceNote mode is native_audio', async () => {
     const sendMessage = vi.fn(async () => undefined);
     const generateReply = vi.fn(async (input: GenerateReplyInput) => ({

@@ -61,6 +61,15 @@ describe('config schema', () => {
     ).toThrow(ConfigValidationError);
   });
 
+  it('rejects invalid WhatsApp session names before LocalAuth startup', () => {
+    expect(() =>
+      parseAppConfig({
+        ...DEFAULT_APP_CONFIG,
+        whatsapp: { ...DEFAULT_APP_CONFIG.whatsapp, sessionName: 'my account' },
+      }),
+    ).toThrow(ConfigValidationError);
+  });
+
   it('rejects an empty model name', () => {
     expect(() =>
       parseAppConfig({

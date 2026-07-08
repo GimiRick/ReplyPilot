@@ -206,7 +206,6 @@ export async function processIncomingMessageBatch(options: {
   const messages = [...options.messages].sort((a, b) => a.timestamp - b.timestamp);
 
   const lastMessage = messages[messages.length - 1];
-  const firstMessage = messages[0];
 
   const allContext = await lastMessage.fetchContext(config.context.messageCount + messages.length);
   const batchedIds = new Set(messages.map((m) => m.id));
@@ -218,11 +217,12 @@ export async function processIncomingMessageBatch(options: {
     .map((m) => m.body)
     .filter(Boolean)
     .join('\n');
-  const quotedMessage = firstMessage.quotedMessage
+  const quotedSource = [...messages].reverse().find((message) => message.quotedMessage);
+  const quotedMessage = quotedSource?.quotedMessage
     ? {
-        body: firstMessage.quotedMessage.body,
+        body: quotedSource.quotedMessage.body,
         direction:
-          firstMessage.quotedMessage.fromMe === true ? ('owner' as const) : ('contact' as const),
+          quotedSource.quotedMessage.fromMe === true ? ('owner' as const) : ('contact' as const),
       }
     : undefined;
 

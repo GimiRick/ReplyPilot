@@ -6,6 +6,7 @@ export const CONFIG_VERSION = 1 as const;
 
 export const providerSchema = z.enum(['lmstudio', 'ollama', 'custom']);
 export const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error']);
+export const WHATSAPP_ACCOUNT_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 
 export type ConfigVersion = typeof CONFIG_VERSION;
 export type LlmProviderName = z.infer<typeof providerSchema>;
@@ -28,12 +29,16 @@ export const PROVIDER_DEFAULTS: Record<
 };
 
 const nonEmptyString = (field: string) => z.string().trim().min(1, `${field} is required`);
+const whatsappSessionName = nonEmptyString('WhatsApp session name').regex(
+  WHATSAPP_ACCOUNT_NAME_REGEX,
+  'WhatsApp session name may only contain letters, numbers, hyphens, and underscores.',
+);
 
 export const appConfigSchema = z
   .object({
     version: z.literal(CONFIG_VERSION),
     whatsapp: z.object({
-      sessionName: nonEmptyString('WhatsApp session name').default('default'),
+      sessionName: whatsappSessionName.default('default'),
       allowGroups: z.boolean().default(false),
       allowBroadcasts: z.boolean().default(false),
       loginDelayMs: z.number().int().min(0).max(30_000).default(500),

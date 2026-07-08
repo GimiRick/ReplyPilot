@@ -23,6 +23,7 @@ by the maintainer.
 ## How has this been tested?
 
 - [ ] `npm test` passes
+- [ ] `npm run typecheck` passes
 - [ ] `npm run lint` passes
 - [ ] `npm run test:coverage` passes
 

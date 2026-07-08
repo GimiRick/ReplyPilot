@@ -290,7 +290,7 @@ export async function promptForConfig(
   });
 
   const allowBroadcasts = await prompts.confirm({
-    message: 'Auto-reply to status or broadcast messages?',
+    message: 'Auto-reply to broadcast list messages?',
     default: false,
   });
 

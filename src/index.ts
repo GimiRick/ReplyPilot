@@ -37,6 +37,7 @@ export {
   setActiveWhatsAppAccount,
   tryLoadConfig,
   validateConfigName,
+  validateWhatsAppAccountName,
   type ReplyPilotConfigStore,
 } from './config/store';
 export {

@@ -121,6 +121,14 @@ describe('loginWhatsAppAccount', () => {
     await expect(loginPromise).rejects.toThrow('browser missing');
     expect(client!.destroy).toHaveBeenCalled();
   });
+
+  it('rejects unsafe account names before creating a WhatsApp client', async () => {
+    const { loginWhatsAppAccount } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    await expect(loginWhatsAppAccount('../outside', logger)).rejects.toThrow('may only contain');
+    expect(mocks.Client).not.toHaveBeenCalled();
+  });
 });
 
 describe('downloadMediaWithRetry', () => {

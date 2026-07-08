@@ -4,7 +4,7 @@ import qrcode from 'qrcode-terminal';
 import type { Chat, Client as WhatsAppWebClient, Message } from 'whatsapp-web.js';
 
 import { type AppConfig } from '../config/schema';
-import { getWhatsAppSessionDir } from '../config/store';
+import { getWhatsAppSessionDir, validateWhatsAppAccountName } from '../config/store';
 import { type RuntimeIncomingMessage } from '../runtime/automation';
 import { type Logger } from '../runtime/logger';
 import { oggToMp3 } from '../audio/convert';
@@ -316,9 +316,10 @@ export async function loginWhatsAppAccount(
   logger: Logger,
   loginDelayMs: number = 500,
 ): Promise<void> {
+  const clientId = validateWhatsAppAccountName(accountName);
   const client = new Client({
     authStrategy: new LocalAuth({
-      clientId: accountName,
+      clientId,
       dataPath: getWhatsAppSessionDir(),
     }),
     userAgent: getPlatformUserAgent(),
@@ -352,7 +353,7 @@ export async function loginWhatsAppAccount(
     client.on('ready', () => {
       clearTimeout(timeout);
       authenticated = true;
-      logger.info(`WhatsApp account "${accountName}" authenticated and saved.`);
+      logger.info(`WhatsApp account "${clientId}" authenticated and saved.`);
       setTimeout(() => {
         if (settled) {
           return;

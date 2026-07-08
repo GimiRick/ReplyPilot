@@ -421,7 +421,8 @@ To use a different account or a different AI setup later, just use `replypilot a
 - Direct contact messages are processed.
 - Messages sent by you are ignored.
 - Group auto-replies are disabled by default.
-- Status and broadcast auto-replies are disabled by default.
+- Broadcast list auto-replies are disabled by default.
+- WhatsApp status broadcasts are always ignored.
 - Voice notes are ignored by default (`ignore` mode).
 - Dry-run can be enabled during setup to log replies without sending them.
 
@@ -691,6 +692,7 @@ WhatsApp Web ──> Client.on('message')
          getIgnoreReason()    duplicateGuard
          {self, empty,        {seen IDs}
           group, broadcast,
+          status_broadcast,
           voice_note_ignored}
                 │               │
                 └───────┬───────┘

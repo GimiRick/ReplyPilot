@@ -3,9 +3,9 @@ import { type AppConfig } from '../config/schema';
 const TRANSCRIBE_TIMEOUT_MS = 120_000;
 
 export async function transcribeCloud(mp3Base64: string, config: AppConfig): Promise<string> {
-  const baseUrl = config.voiceNote?.whisperBaseUrl ?? config.llm.baseUrl;
-  const apiKey = config.voiceNote?.whisperApiKey ?? config.llm.apiKey;
-  const model = config.voiceNote?.whisperModel ?? 'whisper-1';
+  const baseUrl = config.voiceNote?.whisperBaseUrl?.trim() || config.llm.baseUrl;
+  const apiKey = config.voiceNote?.whisperApiKey?.trim() || config.llm.apiKey;
+  const model = config.voiceNote?.whisperModel?.trim() || 'whisper-1';
 
   const url = `${baseUrl.replace(/\/+$/, '')}/audio/transcriptions`;
   const mp3Buffer = Buffer.from(mp3Base64, 'base64');

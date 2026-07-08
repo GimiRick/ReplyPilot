@@ -1,3 +1,5 @@
+import { Writable } from 'stream';
+
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
 import { getActiveWhatsAppAccount, loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
@@ -280,7 +282,18 @@ export async function startAutomation(
 ): Promise<void> {
   const storedConfig = loadConfig();
   const config = mergeAppConfig(storedConfig, configOverrides);
-  const logger = createLogger(config.logging.level);
+  let lastStatusLen = 0;
+  let statusInterval: NodeJS.Timeout | undefined;
+  const statusBarStream = new Writable({
+    write(chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+      if (lastStatusLen > 0) {
+        process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
+      }
+      process.stderr.write(chunk.toString());
+      callback();
+    },
+  });
+  const logger = createLogger(config.logging.level, statusBarStream);
   const llmProvider = new OpenAiCompatibleProvider({
     provider: config.llm.provider,
     baseUrl: config.llm.baseUrl,
@@ -333,7 +346,7 @@ export async function startAutomation(
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
     } finally {
-      clearInterval(statusInterval);
+      if (statusInterval) clearInterval(statusInterval);
       process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
       clearTimeout(forceExitTimer);
       process.off('SIGINT', shutdown);
@@ -348,20 +361,18 @@ export async function startAutomation(
     process.on('SIGTERM', shutdown);
   }
 
-  process.stderr.write('\n');
-  let lastStatusLen = 0;
-  const statusInterval = setInterval(() => {
-    const snap = metrics.snapshot();
-    const line = `  LLM calls: ${snap.llmCalls}  |  errors: ${snap.llmErrors}  |  processed: ${snap.messagesProcessed}  |  ignored: ${snap.messagesIgnored}  |  uptime: ${snap.uptimeSeconds}s`;
-    const padding = ' '.repeat(Math.max(0, lastStatusLen - line.length));
-    lastStatusLen = line.length;
-    process.stderr.write(`\r${line}${padding}`);
-  }, 1000);
-
   try {
     await whatsapp.start();
+
+    statusInterval = setInterval(() => {
+      const snap = metrics.snapshot();
+      const line = `  LLM calls: ${snap.llmCalls}  |  errors: ${snap.llmErrors}  |  processed: ${snap.messagesProcessed}  |  ignored: ${snap.messagesIgnored}  |  uptime: ${snap.uptimeSeconds}s`;
+      const padding = ' '.repeat(Math.max(0, lastStatusLen - line.length));
+      lastStatusLen = line.length;
+      process.stderr.write(`\r${line}${padding}`);
+    }, 1000);
   } catch (error) {
-    clearInterval(statusInterval);
+    if (statusInterval) clearInterval(statusInterval);
     process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
     process.off('SIGINT', shutdown);
     if (process.platform !== 'win32') {

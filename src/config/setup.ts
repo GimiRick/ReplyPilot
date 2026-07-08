@@ -99,6 +99,7 @@ export function createConfigFromSetupAnswers(answers: SetupAnswers): AppConfig {
     automation: {
       debounceMs: answers.waitBeforeSending === false ? 0 : (answers.debounceMs ?? 10000),
       maxCallsPerMinute: answers.maxCallsPerMinute,
+      shutdownTimeoutMs: 15000,
     },
     safety: {
       dryRun: answers.dryRun ?? false,

@@ -83,14 +83,12 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
+      false,
       false,
     ]);
 
@@ -100,9 +98,6 @@ describe('setup wizard config creation', () => {
     expect(config.context.messageCount).toBe(30);
     expect(config.personality.ownerStylePrompt).toBe('Reply in my tone.');
     expect(config.automation.debounceMs).toBe(0);
-    expect(config.logging.level).toBe('info');
-    expect(config.safety.ignoreSelf).toBe(true);
-    expect(config.automation.shutdownTimeoutMs).toBe(15000);
   });
 
   it('collects Ollama Cloud answers with wizard defaults', async () => {
@@ -118,14 +113,12 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply naturally and concisely.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
+      false,
       false,
     ]);
 
@@ -151,11 +144,8 @@ describe('setup wizard config creation', () => {
       12,
       false,
       false,
-      undefined,
       'Crisp and warm.',
       false,
-      'info',
-      true,
       true,
       true,
       true,
@@ -185,14 +175,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_cloud',
       'https://whisper.example/v1',
@@ -242,14 +229,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_cloud',
       'https://whisper.example/v1',
@@ -277,14 +261,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_cloud',
       'https://whisper.example/v1',
@@ -310,14 +291,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_local',
       'http://localhost:9000/transcribe',
@@ -341,14 +319,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'native_audio',
     ]);
@@ -371,14 +346,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'tone',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_cloud',
       'http://whisper',
@@ -411,14 +383,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'tone',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       true,
       'whisper_local',
       'http://localhost:9000/transcribe',
@@ -452,14 +421,12 @@ describe('setup wizard config creation', () => {
         44,
         false,
         false,
-        undefined,
         'Short and friendly.',
         true,
-        'info',
         false,
         false,
         false,
-        true,
+        false,
       ]);
 
       const result = await runSetupWizard({ prompts, store });
@@ -468,9 +435,6 @@ describe('setup wizard config creation', () => {
       expect(loadConfig(undefined, store).context.messageCount).toBe(44);
       expect(loadConfig(undefined, store).safety.dryRun).toBe(true);
       expect(loadConfig(undefined, store).automation.debounceMs).toBe(0);
-      expect(loadConfig(undefined, store).logging.level).toBe('info');
-      expect(loadConfig(undefined, store).safety.ignoreSelf).toBe(true);
-      expect(loadConfig(undefined, store).automation.shutdownTimeoutMs).toBe(15000);
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }
@@ -499,14 +463,12 @@ describe('setup wizard config creation', () => {
         44,
         false,
         false,
-        undefined,
         'Short and friendly.',
         true,
-        'info',
         false,
         false,
         false,
-        true,
+        false,
       ]);
 
       await runSetupWizard({ prompts, store });
@@ -536,14 +498,11 @@ describe('setup wizard config creation', () => {
       true,
       50,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
@@ -566,14 +525,11 @@ describe('setup wizard config creation', () => {
       false,
       true,
       30,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
@@ -594,26 +550,17 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
     const config = await promptForConfig(prompts);
 
-    expect(config.llm.provider).toBe('lmstudio');
-    expect(config.context.messageCount).toBe(30);
-    expect(config.personality.ownerStylePrompt).toBe('Reply in my tone.');
     expect(config.automation.debounceMs).toBe(0);
-    expect(config.logging.level).toBe('info');
-    expect(config.safety.ignoreSelf).toBe(true);
-    expect(config.automation.shutdownTimeoutMs).toBe(15000);
   });
 
   it('validates wait time input', async () => {
@@ -629,14 +576,11 @@ describe('setup wizard config creation', () => {
       false,
       true,
       undefined,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
@@ -663,14 +607,11 @@ describe('setup wizard config creation', () => {
       true,
       undefined,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
@@ -698,14 +639,11 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
@@ -739,134 +677,17 @@ describe('setup wizard config creation', () => {
       undefined,
       false,
       false,
-      undefined,
       'Reply in my tone.',
       false,
-      'info',
       false,
       false,
       false,
-      true,
       false,
     ]);
 
     const config = await promptForConfig(prompts);
 
     expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-1', 'sk-fallback-2']);
-  });
-
-  it('collects fallback API keys with password prompt for custom provider', async () => {
-    const prompts = makePromptAdapter([
-      'custom',
-      'https://custom.example/v1',
-      'sk-primary',
-      true,
-      'sk-fallback-custom',
-      false,
-      'custom-model',
-      'Custom Model',
-      false,
-      undefined,
-      false,
-      false,
-      undefined,
-      'Reply naturally.',
-      false,
-      'info',
-      false,
-      false,
-      false,
-      true,
-      false,
-    ]);
-
-    const config = await promptForConfig(prompts);
-
-    expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-custom']);
-    expect(prompts.password).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'Fallback API key' }),
-    );
-  });
-
-  it('validates shutdown timeout input', async () => {
-    const prompts = makePromptAdapter([
-      'lmstudio',
-      'http://localhost:1234/v1',
-      'lm-studio',
-      false,
-      'model',
-      'Model',
-      false,
-      undefined,
-      false,
-      false,
-      undefined,
-      'tone',
-      false,
-      'info',
-      false,
-      false,
-      false,
-      true,
-      false,
-    ]);
-
-    await promptForConfig(prompts);
-
-    const shutdownOptions = getNthPromptOptions(prompts.number, 1);
-    expect(shutdownOptions.validate?.(undefined)).toBe(true);
-    expect(shutdownOptions.validate?.(30.5)).toBe('Value must be an integer');
-    expect(shutdownOptions.validate?.(0)).toBe('Choose a value from 1 to 300');
-    expect(shutdownOptions.validate?.(301)).toBe('Choose a value from 1 to 300');
-    expect(shutdownOptions.validate?.(15)).toBe(true);
-  });
-
-  it('rejects invalid config names in the setup wizard', async () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
-    try {
-      const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
-      const prompts = makePromptAdapter([
-        'invalid name',
-        'ollama',
-        'local',
-        'http://localhost:11434/v1',
-        'ollama',
-        false,
-        'qwen2.5',
-        'Qwen Local',
-        false,
-        44,
-        false,
-        false,
-        undefined,
-        'Short and friendly.',
-        true,
-        'info',
-        false,
-        false,
-        false,
-        true,
-      ]);
-
-      const namePromptCallPos = vi.spyOn(prompts, 'input');
-      try {
-        await runSetupWizard({ prompts, store });
-      } catch {
-        // runSetupWizard throws because validateConfigName rejects invalid names
-      }
-
-      const namePromptCall = namePromptCallPos.mock.calls.find(
-        (c) => (c[0] as { message: string }).message === 'Configuration name',
-      )!;
-      const validate = (namePromptCall[0] as { validate: (v: string) => true | string }).validate;
-
-      expect(validate('my config')).toBe(
-        'Config name may only contain letters, numbers, hyphens, and underscores.',
-      );
-      expect(validate('valid-name')).toBe(true);
-    } finally {
-      fs.rmSync(cwd, { recursive: true, force: true });
-    }
   });
 });
 

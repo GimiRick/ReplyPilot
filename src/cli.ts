@@ -447,7 +447,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       try {
         const config = deps.tryLoadConfig();
         const loginDelayMs = config?.whatsapp?.loginDelayMs ?? 500;
-        await deps.loginWhatsAppAccount(trimmed, createLogger(config?.logging?.level ?? 'info'), loginDelayMs);
+        await deps.loginWhatsAppAccount(trimmed, createLogger('info'), loginDelayMs);
         deps.setActiveWhatsAppAccount(trimmed);
         deps.output(`Account "${trimmed}" is now active.`);
       } catch (error) {

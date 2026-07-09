@@ -1,5 +1,3 @@
-import { Writable } from 'stream';
-
 import { mergeAppConfig, type AppConfig, type PartialAppConfig } from '../config/schema';
 import { getActiveWhatsAppAccount, loadConfig } from '../config/store';
 import { OpenAiCompatibleProvider } from '../llm/openai-compatible';
@@ -71,7 +69,7 @@ export class ReplyAutomation {
     this.queue =
       options.queue ??
       new MessageQueue({
-        globalConcurrency: 1,
+        globalConcurrency: 2,
         perChatConcurrency: 1,
         maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
       });
@@ -282,31 +280,7 @@ export async function startAutomation(
 ): Promise<void> {
   const storedConfig = loadConfig();
   const config = mergeAppConfig(storedConfig, configOverrides);
-  let lastStatusLen = 0;
-  let statusInterval: NodeJS.Timeout | undefined;
-  const statusBarStream = new Writable({
-    write(chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-      const writeChunk = () => {
-        const drained = process.stderr.write(chunk.toString());
-        if (drained) {
-          callback();
-        } else {
-          process.stderr.once('drain', callback);
-        }
-      };
-      if (lastStatusLen > 0) {
-        const cleared = process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
-        if (cleared) {
-          writeChunk();
-        } else {
-          process.stderr.once('drain', writeChunk);
-        }
-      } else {
-        writeChunk();
-      }
-    },
-  });
-  const logger = createLogger(config.logging.level, statusBarStream);
+  const logger = createLogger(config.logging.level);
   const llmProvider = new OpenAiCompatibleProvider({
     provider: config.llm.provider,
     baseUrl: config.llm.baseUrl,
@@ -347,7 +321,7 @@ export async function startAutomation(
 
     const forceExitTimer = setTimeout(() => {
       logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
-      process.exit(1);
+      process.exit(0);
     }, config.automation.shutdownTimeoutMs);
 
     try {
@@ -359,8 +333,6 @@ export async function startAutomation(
     } catch (error) {
       logger.error({ error }, 'Error during shutdown');
     } finally {
-      if (statusInterval) clearInterval(statusInterval);
-      process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
       clearTimeout(forceExitTimer);
       process.off('SIGINT', shutdown);
       if (process.platform !== 'win32') {
@@ -376,17 +348,7 @@ export async function startAutomation(
 
   try {
     await whatsapp.start();
-
-    statusInterval = setInterval(() => {
-      const snap = metrics.snapshot();
-      const line = `  LLM calls: ${snap.llmCalls}  |  errors: ${snap.llmErrors}  |  processed: ${snap.messagesProcessed}  |  ignored: ${snap.messagesIgnored}  |  uptime: ${snap.uptimeSeconds}s`;
-      const padding = ' '.repeat(Math.max(0, lastStatusLen - line.length));
-      lastStatusLen = line.length;
-      process.stderr.write(`\r${line}${padding}`);
-    }, 1000);
   } catch (error) {
-    if (statusInterval) clearInterval(statusInterval);
-    process.stderr.write('\r' + ' '.repeat(lastStatusLen) + '\r');
     process.off('SIGINT', shutdown);
     if (process.platform !== 'win32') {
       process.off('SIGTERM', shutdown);

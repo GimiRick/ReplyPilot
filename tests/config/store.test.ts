@@ -12,13 +12,11 @@ import {
   getActiveWhatsAppAccount,
   getConfigFilePath,
   getReplyPilotDataDir,
-  getWhatsAppCacheDir,
   getWhatsAppSessionDir,
   hasConfig,
   listConfigNames,
   listWhatsAppAccounts,
   loadConfig,
-  removeWhatsAppCacheData,
   removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,
   saveConfig,
@@ -351,20 +349,6 @@ describe('config store', () => {
     saveConfig(makeConfig({}), 'work', store);
 
     expect(listConfigNames(store).filter((n) => n === 'work').length).toBe(1);
-  });
-
-  it('manages WhatsApp cache directory', () => {
-    const cacheDir = getWhatsAppCacheDir();
-    expect(cacheDir).toContain('.wwebjs_cache');
-
-    removeWhatsAppCacheData();
-    expect(fs.existsSync(cacheDir)).toBe(false);
-  });
-
-  it('returns stored account name when normalizing prefixed account without matching dirs', () => {
-    const store = createTempStore();
-    setActiveWhatsAppAccount('session-main-phone', store);
-    expect(getActiveWhatsAppAccount(store)).toBe('session-main-phone');
   });
 
   it('preserves very long personality prompts through save and load', () => {

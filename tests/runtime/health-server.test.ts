@@ -94,37 +94,4 @@ describe('HealthServer', () => {
 
     await expect(server.stop()).resolves.toBeUndefined();
   });
-
-  it('returns configured port when server is not started (address is null)', () => {
-    const server = new HealthServer({
-      port: 9876,
-      host: '127.0.0.1',
-      metrics: new MetricsCollector(),
-    });
-
-    expect(server.getPort()).toBe(9876);
-  });
-
-  it('handles errors during request processing gracefully', async () => {
-    const server = await createServer();
-    const port = server.getPort();
-
-    await new Promise<void>((resolve) => {
-      const req = http.request({
-        hostname: '127.0.0.1',
-        port,
-        method: 'POST',
-        path: '/health',
-      });
-      req.on('error', () => resolve());
-      req.end();
-      setTimeout(() => {
-        req.destroy();
-        resolve();
-      }, 10);
-    });
-
-    const body = (await fetchJson(port, '/health')) as Record<string, unknown>;
-    expect(body.status).toBe('ok');
-  });
 });

@@ -668,109 +668,146 @@ Each incoming WhatsApp message flows through these stages:
 WhatsApp Web ──> Client.on('message_create')
                        │
                        ▼
-                ╔═══════════════════╗
-                ║  toRuntimeMessage ║   raw Message + Chat → RuntimeIncomingMessage
-                ╚═══════╤═══════════╝
-                        │
-                  ┌─────┴─────┐
-                  │           │
-                  ▼           ▼
-          ╔════════════════╗  ╔═══════════════════╗
-          ║ image/sticker  ║  ║   voice note?     ║
-          ║ → download     ║  ║ (message.type===' ║
-          ║   (retry 3×)   ║  ║       ptt')       ║
-          ║ → imageData    ║  ║   (retry 3×)      ║
-          ╚════════════════╝  ╚═══╤═══╤═══╤═══╤═══╝
-                                │   │   │   │   │
-                  mode: ignore  │   │   │   │   │
-                  ──────────────┘   │   │   │   │
-                  mode: whisper_cloud   │   │   │
-                  → oggToMp3()      │   │   │   │
-                  → transcribeCloud()───┘   │   │
-                  mode: whisper_local       │   │
-                  → oggToMp3()      │       │   │
-                  → transcribeLocal()───────┘   │
-                  mode: native_audio│           │
-                  → oggToMp3()      │           │
-                  → audioData       ────────────┘
-                        │
-                        ▼
-           body = voiceBody ?? (message text or media label)
-           audioData passed through if native_audio
-                        │
-                        ▼
-                 ╔═══════════════════╗
-                 ║     Filtering     ║
-                 ╚═══════╤═══════════╝
+                ╔══════════════════════╗
+                ║   toRuntimeMessage   ║   raw Message + Chat → RuntimeIncomingMessage
+                ╚════════╤═════════════╝
                          │
-                 ┌───────┴───────┐
-                 │               │
-                 ▼               ▼
-           getIgnoreReason()    duplicateGuard
-           {self, empty,        {seen IDs}
-            group, broadcast,
-            status_broadcast,
-            archived,
-            voice_note_ignored}
-                 │               │
-           ┌─────┴─────┐         │
-           │           │         │
-      [self]          other  [pass]
-           │         reasons
-           │           │
-     ┌─────┴─────┐     │
-     │           │     │
-  isBotReply()  owner  │
-  (own msg)?  manual   │
-     │        reply?   │
-     │           │     │
-  [ignore]  cancel     │
-  silently  pending    │
-            batches    │
-              │        │
-          [ignored]    │
-                       │
-                  [pass]
-                       │
-                       ▼
-                      ┌──────────────┐
-                      │  MessageQueue     per-chat sequential, global-parallel
-                     └──────┬─────────┘
-                            ▼
-                     ┌──────────────┐
-                     │ fetchContext     chat history via whatsapp-web.js
-                     └──────┬─────────┘
-                            ▼
-                     ┌──────────────┐
-                     │ buildReplyPrompt   owner style + context + incoming
-                     │ (may include       + optional image/audio content parts
-                     │  input_audio part  → UserContentPart[])
-                      └──────┬─────────┘
-                             ▼
-                       ┌──────────────┐
-                       │ llmProvider.generateReply()
-                       │  - withTimeout / retryTransient
-                       │    * retries transient errors (429, 503, 408, 504, network failures)
-                       │    * exponential backoff: 1s, 2s, 4s...
-                       │  - key rotation only on transient/auth failures
-                       │  - ProviderTimeoutError if no response
-                       │  - cleanGeneratedReply
-                       └──────┬─────────┘
-                              ▼
-                       ┌──────────────────────────┐
-                       │ didUserReplyManuallyAfter │
-                       │ (owner replied during LLM │
-                       │  generation?)             │
-                       ├─────────┬────────────────┘
-                       │         │
-                     [yes]     [no]
-                       │         │
-                  [ignored]     ▼
-                       ┌──────────────┐
-                       │  dryRun? ──yes──> log only (status: 'dry-run')
-                       │  no
-                     ▼
-               chat.sendMessage(reply)  ──> WhatsApp Web
+                    ┌────┴────┐
+                    │         │
+                    ▼         ▼
+            ╔══════════════════╗  ╔═══════════════════════════╗
+            ║  image/sticker   ║  ║       voice note?         ║
+            ║  → download      ║  ║   (message.type ===       ║
+            ║    (retry 3×)    ║  ║         'ptt')            ║
+            ║  → imageData     ║  ║     (retry 3×)            ║
+            ╚══════════════════╝  ╚═══════╤═════╤═════╤══════╤╝
+                                          │     │     │      │
+                                          │     │     │      │
+                            ┌─────────────┘     │     │      │
+                            │ ignore            │     │      │
+                            │                   │     │      │
+                            │         ┌─────────┘     │      │
+                            │         │ whisper_cloud │      │
+                            │         │ → oggToMp3()  │      │
+                            │         │ → transcribe  │      │
+                            │         │   Cloud()─────┘      │
+                            │         │                      │
+                            │         │          ┌───────────┘
+                            │         │          │ whisper_local
+                            │         │          │ → oggToMp3()
+                            │         │          │ → transcribe
+                            │         │          │   Local()
+                            │         │          │
+                            │         │          │     ┌──────┘
+                            │         │          │     │ native_audio
+                            │         │          │     │ → oggToMp3()
+                            │         │          │     │ → audioData
+                            ▼         ▼          ▼     ▼
+
+                            │         │          │     │
+                            └─────────┴──────────┴─────┘
+                                        │
+                                        ▼
+                         body = voiceBody ?? (message text or media label)
+                         audioData passed through if native_audio
+                                        │
+                                        ▼
+                            ╔══════════════════════╗
+                            ║       Filtering      ║
+                            ╚════════╤═════════════╝
+                                     │
+                                ┌────┴────┐
+                                │         │
+                                ▼         ▼
+                        getIgnoreReason()    duplicateGuard
+                        {self, empty,        {seen IDs}
+                         group, broadcast,
+                         status_broadcast,
+                         archived,
+                         voice_note_ignored}
+                                │         │
+                           ┌────┴────┐    │
+                           │         │    │
+                      [self]       other  │
+                           │      reasons │
+                           │         │    │
+                      ┌────┴────┐    │    │
+                      │         │    │    │
+                  isBotReply()  owner     │
+                  (own msg)?  manual      │
+                      │      reply?       │
+                      │         │         │
+                  [ignore]  cancel        │
+                  silently  pending       │
+                            batches       │
+                              │           │
+                          [ignored]       │
+                                          │
+                                     [pass]
+                                          │
+                                          ▼
+                                   ┌───────────────────────┐
+                                   │     MessageQueue      │
+                                   │ per-chat sequential,  │
+                                   │   global-parallel     │
+                                   └──────────┬────────────┘
+                                              │
+                                              ▼
+                                   ┌───────────────────────┐
+                                   │     fetchContext      │
+                                   │ chat history via      │
+                                   │  whatsapp-web.js      │
+                                   └──────────┬────────────┘
+                                              │
+                                              ▼
+                                   ┌───────────────────────┐
+                                   │   buildReplyPrompt    │
+                                   │ owner style + context │
+                                   │  + incoming + image/  │
+                                   │   audio content parts │
+                                   │ → UserContentPart[]   │
+                                   └──────────┬────────────┘
+                                              │
+                                              ▼
+                                   ┌────────────────────────┐
+                                   │  llmProvider.          │
+                                   │  generateReply()       │
+                                   │  • withTimeout /       │
+                                   │    retryTransient      │
+                                   │    • retries transient │
+                                   │      errors (429, 503, │
+                                   │      408, 504, network │
+                                   │      failures)         │
+                                   │    • exponential       │
+                                   │      backoff: 1s, 2s,  │
+                                   │      4s...             │
+                                   │  • key rotation only   │
+                                   │    on transient/auth   │
+                                   │  • ProviderTimeoutError│
+                                   │    if no response      │
+                                   │  • cleanGeneratedReply │
+                                   └──────────┬─────────────┘
+                                              │
+                                              ▼
+                                   ┌──────────────────────┐
+                                   │ didUserReplyManually │
+                                   │ After (owner replied │
+                                   │ during LLM           │
+                                   │ generation?)         │
+                                   ├──────────┬───────────┘
+                                   │          │
+                                 [yes]      [no]
+                                   │          │
+                              [ignored]      ▼
+                                   ┌───────────────────────┐
+                                   │       dryRun?         │
+                                   │  ──yes──> log only    │
+                                   │  (status: 'dry-run')  │
+                                   │  no                   │
+                                   └──────────┬────────────┘
+                                              │
+                                              ▼
+                              chat.sendMessage(reply)  ──> WhatsApp Web
 ```
 
 ### Voice Note Processing Detail

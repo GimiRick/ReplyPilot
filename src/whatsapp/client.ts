@@ -64,7 +64,7 @@ export class WhatsAppClientAdapter {
   }
 
   async start(): Promise<void> {
-    this.client.on('message', (message) => {
+    this.client.on('message_create', (message) => {
       this.handleMessage(message).catch((error) => {
         this.logger.error(
           { error, messageId: message.id?._serialized },

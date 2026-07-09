@@ -107,7 +107,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       } catch (error) {
         lastError = error;
 
-        if (i < this.apiKeys.length - 1) {
+        if (i < this.apiKeys.length - 1 && shouldFallback(error)) {
           this.logger?.warn(
             { keyIndex: i, totalKeys: this.apiKeys.length },
             'Key failed, trying next API key',
@@ -203,6 +203,19 @@ function isTransientProviderError(error: unknown): boolean {
 
   const code = getErrorString(error, 'code');
   return Boolean(code && ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED'].includes(code));
+}
+
+function shouldFallback(error: unknown): boolean {
+  if (isTransientProviderError(error)) {
+    return true;
+  }
+
+  const status = getErrorNumber(error, 'status') ?? getErrorNumber(error, 'statusCode');
+  if (status !== undefined) {
+    return status === 401 || status === 403;
+  }
+
+  return false;
 }
 
 function getErrorNumber(error: unknown, key: string): number | undefined {

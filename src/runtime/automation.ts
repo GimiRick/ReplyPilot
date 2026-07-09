@@ -15,6 +15,32 @@ import { MessageQueue } from './queue';
 import { HealthServer } from './health-server';
 import { MetricsCollector } from './metrics';
 
+const recentBotRepliesCache = new Map<string, Set<string>>();
+const lastManualReplyTimestamps = new Map<string, number>();
+
+export function markBotReply(chatId: string, body: string) {
+  let cache = recentBotRepliesCache.get(chatId);
+  if (!cache) {
+    cache = new Set();
+    recentBotRepliesCache.set(chatId, cache);
+  }
+  cache.add(body);
+  setTimeout(() => cache!.delete(body), 60000);
+}
+
+export function isBotReply(chatId: string, body: string): boolean {
+  return recentBotRepliesCache.get(chatId)?.has(body) ?? false;
+}
+
+export function recordManualReply(chatId: string) {
+  lastManualReplyTimestamps.set(chatId, Date.now());
+}
+
+export function didUserReplyManuallyAfter(chatId: string, timestamp: number): boolean {
+  const lastReply = lastManualReplyTimestamps.get(chatId);
+  return lastReply !== undefined && lastReply > timestamp;
+}
+
 type ChatBatch = {
   messages: RuntimeIncomingMessage[];
   timer: NodeJS.Timeout | undefined;
@@ -99,6 +125,32 @@ export class ReplyAutomation {
         { messageId: message.id, reason: ignoreReason },
         'Ignoring WhatsApp message',
       );
+
+      if (ignoreReason === 'self') {
+        if (isBotReply(message.chatId, message.body || '')) {
+          this.logger.debug(
+            { chatId: message.chatId },
+            'Ignoring message sent by bot automation itself',
+          );
+          return Promise.resolve({ status: 'ignored', reason: 'self' });
+        }
+
+        recordManualReply(message.chatId);
+
+        const batch = this.activeBatches.get(message.chatId);
+        if (batch) {
+          this.logger.info(
+            { chatId: message.chatId },
+            'Cancelling pending automation because owner replied manually',
+          );
+          if (batch.timer) {
+            clearTimeout(batch.timer);
+          }
+          this.activeBatches.delete(message.chatId);
+          batch.resolvers.forEach((r) => r({ status: 'ignored', reason: 'self' }));
+        }
+      }
+
       return Promise.resolve({ status: 'ignored', reason: ignoreReason });
     }
 
@@ -259,6 +311,14 @@ export async function processIncomingMessageBatch(options: {
       throw error;
     }
 
+    if (didUserReplyManuallyAfter(lastMessage.chatId, batchStart)) {
+      logger?.info(
+        { chatId: lastMessage.chatId },
+        'Aborting automated reply because owner replied manually while LLM was generating',
+      );
+      return { status: 'ignored', reason: 'self' };
+    }
+
     if (config.safety.dryRun) {
       metrics?.recordMessageProcessed();
       logger?.info(
@@ -268,6 +328,7 @@ export async function processIncomingMessageBatch(options: {
       return { status: 'dry-run', reply: reply.text };
     }
 
+    markBotReply(lastMessage.chatId, reply.text);
     await lastMessage.sendMessage(reply.text);
     metrics?.recordMessageProcessed();
     return { status: 'sent', reply: reply.text };
@@ -329,8 +390,6 @@ export async function startAutomation(
       host: '127.0.0.1',
       metrics,
     });
-    await healthServer.start();
-    logger.info({ port: healthServerPort }, 'Health server started');
   }
 
   whatsapp.onMessage(async (message) => {
@@ -375,6 +434,10 @@ export async function startAutomation(
   }
 
   try {
+    if (healthServer) {
+      await healthServer.start();
+      logger.info({ port: healthServerPort }, 'Health server started');
+    }
     await whatsapp.start();
 
     statusInterval = setInterval(() => {

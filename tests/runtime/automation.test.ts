@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ReplyAutomation,
   processIncomingMessageBatch,
+  markBotReply,
+  recordManualReply,
   type RuntimeIncomingMessage,
 } from '../../src/runtime/automation';
 import { type GenerateReplyInput, type LlmProvider } from '../../src/llm/provider';
@@ -333,6 +335,57 @@ describe('runtime message processing', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('race conditions', () => {
+    it('ignores bot own replies and does not cancel active batches', async () => {
+      const automation = new ReplyAutomation({
+        config: makeConfig({ automation: { debounceMs: 5000 } }),
+        llmProvider: makeProvider(''),
+        logger: makeLogger(),
+      });
+
+      // Pretend the bot just generated and sent "Hello I am bot"
+      markBotReply('chat-1', 'Hello I am bot');
+
+      // Now a message_create event fires for the bot's own message
+      // and it looks like a manual reply (fromMe: true)
+      const message = makeMessage({
+        id: 'bot-msg-1',
+        chatId: 'chat-1',
+        body: 'Hello I am bot',
+        fromMe: true,
+      });
+
+      const result = await automation.handleIncomingMessage(message);
+      
+      // It should ignore it and NOT cancel batches (reason: 'self')
+      expect(result).toEqual({ status: 'ignored', reason: 'self' });
+    });
+
+    it('aborts automated reply if owner replied manually during LLM generation', async () => {
+      const sendMessage = vi.fn(async () => undefined);
+      
+      // We simulate a slow LLM
+      const provider = {
+        generateReply: vi.fn(async () => {
+          // Wait slightly so that Date.now() is strictly greater than batchStart
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          // While LLM is generating, owner replies manually!
+          recordManualReply('chat-1');
+          return { text: 'Bot response', provider: 'test', model: 'test' };
+        })
+      };
+
+      const result = await processIncomingMessageBatch({
+        messages: [makeMessage({ chatId: 'chat-1', sendMessage })],
+        config: makeConfig(),
+        llmProvider: provider as any,
+      });
+
+      expect(result).toEqual({ status: 'ignored', reason: 'self' });
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
   });
 });
 

@@ -15,17 +15,30 @@ import { MessageQueue } from './queue';
 import { HealthServer } from './health-server';
 import { MetricsCollector } from './metrics';
 
-const recentBotRepliesCache = new Map<string, Set<string>>();
+const recentBotRepliesCache = new Map<string, Map<string, NodeJS.Timeout>>();
 const lastManualReplyTimestamps = new Map<string, number>();
 
 export function markBotReply(chatId: string, body: string) {
   let cache = recentBotRepliesCache.get(chatId);
   if (!cache) {
-    cache = new Set();
+    cache = new Map();
     recentBotRepliesCache.set(chatId, cache);
   }
-  cache.add(body);
-  setTimeout(() => cache!.delete(body), 60000);
+
+  const existingTimer = cache.get(body);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  cache.set(
+    body,
+    setTimeout(() => {
+      cache!.delete(body);
+      if (cache!.size === 0) {
+        recentBotRepliesCache.delete(chatId);
+      }
+    }, 60000)
+  );
 }
 
 export function isBotReply(chatId: string, body: string): boolean {
@@ -282,11 +295,11 @@ export async function processIncomingMessageBatch(options: {
     : undefined;
 
   const imageData = config.llm.visionSupport
-    ? messages.find((m) => m.imageData)?.imageData
+    ? [...messages].reverse().find((m) => m.imageData)?.imageData
     : undefined;
   const audioData =
     config.voiceNote?.mode === 'native_audio'
-      ? messages.find((m) => m.audioData)?.audioData
+      ? [...messages].reverse().find((m) => m.audioData)?.audioData
       : undefined;
 
   let reply;

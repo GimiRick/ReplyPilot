@@ -64,7 +64,7 @@ export class WhatsAppClientAdapter {
   }
 
   async start(): Promise<void> {
-    this.client.on('message_create', (message) => {
+    this.client.on('message', (message) => {
       this.handleMessage(message).catch((error) => {
         this.logger.error(
           { error, messageId: message.id?._serialized },
@@ -334,11 +334,8 @@ export async function downloadMediaWithRetry(
   for (let attempt = 0; attempt < 3; attempt++) {
     let timeoutId: NodeJS.Timeout | undefined;
     try {
-      const mediaPromise = message.downloadMedia();
-      mediaPromise.catch(() => {}); // prevent unhandled rejections if it fails after timeout
-
       const media = await Promise.race([
-        mediaPromise,
+        message.downloadMedia(),
         new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error('downloadMedia timed out')), 30_000);
         }),

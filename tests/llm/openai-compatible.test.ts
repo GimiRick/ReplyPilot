@@ -196,10 +196,10 @@ describe('OpenAiCompatibleProvider', () => {
     expect(logger.error).toHaveBeenCalledTimes(1);
   });
 
-  it('falls through to fallback key on auth error', async () => {
+  it('falls through to fallback key on non-transient error', async () => {
     const create = vi
       .fn()
-      .mockRejectedValueOnce(Object.assign(new Error('unauthorized'), { status: 401 }))
+      .mockRejectedValueOnce(Object.assign(new Error('bad request'), { status: 400 }))
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Fallback worked' } }] });
     const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
@@ -220,7 +220,7 @@ describe('OpenAiCompatibleProvider', () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it('does not fall through to fallback key on empty reply (ProviderResponseError)', async () => {
+  it('falls through to fallback key on empty reply (ProviderResponseError)', async () => {
     const create = vi
       .fn()
       .mockResolvedValueOnce({ choices: [{ message: { content: '   ' } }] })
@@ -238,8 +238,10 @@ describe('OpenAiCompatibleProvider', () => {
       client: { chat: { completions: { create } } },
     });
 
-    await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderResponseError);
-    expect(create).toHaveBeenCalledTimes(1);
+    const result = await provider.generateReply(makeInput());
+
+    expect(result.text).toBe('Fallback replied');
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it('uses third fallback key when first two fail', async () => {
@@ -341,7 +343,7 @@ describe('OpenAiCompatibleProvider', () => {
     });
 
     await expect(provider.generateReply(makeInput())).rejects.toThrow('permanent failure');
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it('falls through 10 fallback API keys until one succeeds', async () => {
@@ -349,7 +351,7 @@ describe('OpenAiCompatibleProvider', () => {
     const create = vi.fn();
     for (let i = 0; i < keys.length; i++) {
       create.mockRejectedValueOnce(
-        Object.assign(new Error(`key ${i + 1} failed`), { status: 401 }),
+        Object.assign(new Error(`key ${i + 1} failed`), { status: 400 }),
       );
     }
     create.mockResolvedValueOnce({
@@ -379,7 +381,7 @@ describe('OpenAiCompatibleProvider', () => {
     const keys = Array.from({ length: 10 }, (_, i) => `fallback-key-${i + 1}`);
     const create = vi
       .fn()
-      .mockRejectedValue(Object.assign(new Error('all keys exhausted'), { status: 401 }));
+      .mockRejectedValue(Object.assign(new Error('all keys exhausted'), { status: 400 }));
     const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
     const provider = new OpenAiCompatibleProvider({

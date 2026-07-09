@@ -380,7 +380,7 @@ describe('runtime message processing', () => {
       const result = await processIncomingMessageBatch({
         messages: [makeMessage({ chatId: 'chat-1', sendMessage })],
         config: makeConfig(),
-        llmProvider: provider as any,
+        llmProvider: provider as LlmProvider,
       });
 
       expect(result).toEqual({ status: 'ignored', reason: 'self' });

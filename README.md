@@ -306,7 +306,7 @@ During setup, after entering your primary API key, ReplyPilot asks if you'd like
 ? Do you want to add another fallback API key? (y/N)
 ```
 
-If a request with the current key fails, ReplyPilot first retries the request with exponential backoff (1s, 2s, 4s — up to the configured max retries). Transient errors like HTTP 429 (rate limited), 503, 408, 504, and network errors (ECONNRESET, ETIMEDOUT) are retried automatically. If all retries fail, ReplyPilot rotates to the next fallback key and retries. If all keys fail, the error is reported. Fallback keys are optional, you can press enter (defaults to `n`) to skip.
+If a request with the current key fails, ReplyPilot first retries the request with exponential backoff (1s, 2s, 4s — up to the configured max retries). Transient errors like HTTP 429 (rate limited), 503, 408, 504, and network errors (ECONNRESET, ETIMEDOUT) are retried automatically. If all retries are exhausted, ReplyPilot rotates to the next fallback key — but only on transient errors or authentication failures (HTTP 401/403). Permanent failures (e.g., HTTP 400 bad request or an empty LLM reply) are not retried with a fallback key; the error is reported immediately. If all keys fail, the error is reported. Fallback keys are optional, you can press enter (defaults to `n`) to skip.
 
 ---
 
@@ -426,6 +426,8 @@ To use a different account or a different AI setup later, just use `replypilot a
 - WhatsApp status broadcasts are always ignored.
 - Voice notes are ignored by default (`ignore` mode).
 - Dry-run can be enabled during setup to log replies without sending them.
+- Self-reply detection prevents the bot from cancelling its own pending batches when it receives its own outgoing message.
+- Manual reply interruption: if the owner replies manually while a batch is pending, the batch is cancelled. If the owner replies during LLM generation, the generated reply is discarded without sending.
 
 ### Archived Chat Handling
 
@@ -663,7 +665,7 @@ to the LLM before the message enters the main pipeline.
 Each incoming WhatsApp message flows through these stages:
 
 ```text
-WhatsApp Web ──> Client.on('message')
+WhatsApp Web ──> Client.on('message_create')
                        │
                        ▼
                 ╔═══════════════════╗
@@ -704,18 +706,35 @@ WhatsApp Web ──> Client.on('message')
                  ┌───────┴───────┐
                  │               │
                  ▼               ▼
-          getIgnoreReason()    duplicateGuard
-          {self, empty,        {seen IDs}
-           group, broadcast,
-           status_broadcast,
-           archived,
-           voice_note_ignored}
-                │               │
-                └───────┬───────┘
-                   [ignored] │ [pass]
-                             ▼
-                     ┌──────────────┐
-                     │  MessageQueue     per-chat sequential, global-parallel
+           getIgnoreReason()    duplicateGuard
+           {self, empty,        {seen IDs}
+            group, broadcast,
+            status_broadcast,
+            archived,
+            voice_note_ignored}
+                 │               │
+           ┌─────┴─────┐         │
+           │           │         │
+      [self]          other  [pass]
+           │         reasons
+           │           │
+     ┌─────┴─────┐     │
+     │           │     │
+  isBotReply()  owner  │
+  (own msg)?  manual   │
+     │        reply?   │
+     │           │     │
+  [ignore]  cancel     │
+  silently  pending    │
+            batches    │
+              │        │
+          [ignored]    │
+                       │
+                  [pass]
+                       │
+                       ▼
+                      ┌──────────────┐
+                      │  MessageQueue     per-chat sequential, global-parallel
                      └──────┬─────────┘
                             ▼
                      ┌──────────────┐
@@ -728,19 +747,28 @@ WhatsApp Web ──> Client.on('message')
                      │  input_audio part  → UserContentPart[])
                       └──────┬─────────┘
                              ▼
-                      ┌──────────────┐
-                      │ llmProvider.generateReply()
-                      │  - withTimeout / retryTransient
-                      │    * retries transient errors (429, 503, 408, 504, network failures)
-                      │    * exponential backoff: 1s, 2s, 4s...
-                      │  - key rotation on persistent failure
-                      │  - ProviderTimeoutError if no response
-                      │  - cleanGeneratedReply
-                      └──────┬─────────┘
-                             ▼
-                      ┌──────────────┐
-                      │  dryRun? ──yes──> log only (status: 'dry-run')
-                      │  no
+                       ┌──────────────┐
+                       │ llmProvider.generateReply()
+                       │  - withTimeout / retryTransient
+                       │    * retries transient errors (429, 503, 408, 504, network failures)
+                       │    * exponential backoff: 1s, 2s, 4s...
+                       │  - key rotation only on transient/auth failures
+                       │  - ProviderTimeoutError if no response
+                       │  - cleanGeneratedReply
+                       └──────┬─────────┘
+                              ▼
+                       ┌──────────────────────────┐
+                       │ didUserReplyManuallyAfter │
+                       │ (owner replied during LLM │
+                       │  generation?)             │
+                       ├─────────┬────────────────┘
+                       │         │
+                     [yes]     [no]
+                       │         │
+                  [ignored]     ▼
+                       ┌──────────────┐
+                       │  dryRun? ──yes──> log only (status: 'dry-run')
+                       │  no
                      ▼
                chat.sendMessage(reply)  ──> WhatsApp Web
 ```
@@ -770,6 +798,8 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 - **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s, configurable via `replypilot setup`) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining. Set to 0 for immediate processing (no batching).
 - **Chat queues** are created lazily (one `PQueue` per `chatId`).
 - **Duplicate guard** tracks up to 5,000 seen message IDs, pruning oldest entries when full.
+- **Self-reply detection**: bot replies are cached per-chat for 60 seconds. When `message_create` fires for the bot's own message, it's silently ignored without cancelling pending batches.
+- **Manual reply interruption**: when the owner sends a message manually, any pending debounced batch for that chat is immediately cancelled. If the owner replies during LLM generation, the generated response is discarded and not sent.
 
 ### Startup Sequence
 
@@ -789,10 +819,12 @@ replypilot start
        ├── whatsapp.onMessage(handler)  register pipeline entry point
        ├── if healthServerPort given:
        │       └── new HealthServer({port, host: '127.0.0.1', metrics})
-       │           └── serve GET /health + /metrics
        ├── whatsapp.start()
-       │       ├── client.on('message')  attach raw message listener
-       │       └── client.initialize()   Puppeteer + QR scan
+       │       ├── client.on('message_create')  attach raw message listener (includes own messages)
+       │       └── client.initialize()           Puppeteer + QR scan
+       ├── if healthServerPort given:
+       │       └── healthServer.start()
+       │           └── serve GET /health + /metrics
        └── [waiting for messages]
 ```
 
@@ -804,16 +836,16 @@ replypilot start
 | **Config**   | `schema.ts`            | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation                                                                                               |
 | **Config**   | `store.ts`             | Persistent JSON store via `conf`, multi-config profiles, multi-WA account tracking, session dir management                                                        |
 | **Config**   | `setup.ts`             | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow)                                                                             |
-| **Runtime**  | `automation.ts`        | `ReplyAutomation` orchestrator (message batching), `processIncomingMessageBatch`, `startAutomation`                                                               |
+| **Runtime**  | `automation.ts`        | `ReplyAutomation` orchestrator (message batching, debouncing, self-reply detection, manual reply interruption), `processIncomingMessageBatch`, `startAutomation` |
 | **Runtime**  | `queue.ts`             | `MessageQueue` wrapping `p-queue` with chat-scoped sub-queues and optional global rate limiting (`maxCallsPerMinute`)                                             |
 | **Runtime**  | `logger.ts`            | Pino logger with API key redaction                                                                                                                                |
 | **Runtime**  | `errors.ts`            | Typed error hierarchy (`MissingConfigError`, `ProviderTimeoutError`, etc.)                                                                                        |
 | **Runtime**  | `metrics.ts`           | `MetricsCollector` — in-memory counters for messages, LLM calls, latency, and processing time                                                                     |
 | **Runtime**  | `health-server.ts`     | `HealthServer` — optional HTTP endpoint (`:port/health`, `:port/metrics`) using Node.js built-in `http`                                                           |
 | **LLM**      | `provider.ts`          | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types                                                                                        |
-| **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race                                                     |
+| **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on transient/auth failures only (`shouldFallback`), transient-error retry with exponential backoff + jitter, timeout race handling |
 | **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio)                                            |
-| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
+| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter` (uses `message_create` to receive own messages for self-reply detection), `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization, media type labels                                                                                 |
 | **WhatsApp** | `filters.ts`           | `getIgnoreReason` (self, empty, group, broadcast, archived, voice_note, status_broadcast), `DuplicateMessageGuard` with FIFO pruning                              |
 | **Audio**    | `convert.ts`           | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout                                                                                                        |

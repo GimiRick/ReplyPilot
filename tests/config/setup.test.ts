@@ -754,6 +754,120 @@ describe('setup wizard config creation', () => {
 
     expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-1', 'sk-fallback-2']);
   });
+
+  it('collects fallback API keys with password prompt for custom provider', async () => {
+    const prompts = makePromptAdapter([
+      'custom',
+      'https://custom.example/v1',
+      'sk-primary',
+      true,
+      'sk-fallback-custom',
+      false,
+      'custom-model',
+      'Custom Model',
+      false,
+      undefined,
+      false,
+      false,
+      undefined,
+      'Reply naturally.',
+      false,
+      'info',
+      false,
+      false,
+      false,
+      true,
+      false,
+    ]);
+
+    const config = await promptForConfig(prompts);
+
+    expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-custom']);
+    expect(prompts.password).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Fallback API key' }),
+    );
+  });
+
+  it('validates shutdown timeout input', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      false,
+      'model',
+      'Model',
+      false,
+      undefined,
+      false,
+      false,
+      undefined,
+      'tone',
+      false,
+      'info',
+      false,
+      false,
+      false,
+      true,
+      false,
+    ]);
+
+    await promptForConfig(prompts);
+
+    const shutdownOptions = getNthPromptOptions(prompts.number, 1);
+    expect(shutdownOptions.validate?.(undefined)).toBe(true);
+    expect(shutdownOptions.validate?.(30.5)).toBe('Value must be an integer');
+    expect(shutdownOptions.validate?.(0)).toBe('Choose a value from 1 to 300');
+    expect(shutdownOptions.validate?.(301)).toBe('Choose a value from 1 to 300');
+    expect(shutdownOptions.validate?.(15)).toBe(true);
+  });
+
+  it('rejects invalid config names in the setup wizard', async () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replypilot-test-'));
+    try {
+      const store = createConfigStore({ cwd, projectName: 'replypilot-test' });
+      const prompts = makePromptAdapter([
+        'invalid name',
+        'ollama',
+        'local',
+        'http://localhost:11434/v1',
+        'ollama',
+        false,
+        'qwen2.5',
+        'Qwen Local',
+        false,
+        44,
+        false,
+        false,
+        undefined,
+        'Short and friendly.',
+        true,
+        'info',
+        false,
+        false,
+        false,
+        true,
+      ]);
+
+      const namePromptCallPos = vi.spyOn(prompts, 'input');
+      try {
+        await runSetupWizard({ prompts, store });
+      } catch {
+        // runSetupWizard throws because validateConfigName rejects invalid names
+      }
+
+      const namePromptCall = namePromptCallPos.mock.calls.find(
+        (c) => (c[0] as { message: string }).message === 'Configuration name',
+      )!;
+      const validate = (namePromptCall[0] as { validate: (v: string) => true | string }).validate;
+
+      expect(validate('my config')).toBe(
+        'Config name may only contain letters, numbers, hyphens, and underscores.',
+      );
+      expect(validate('valid-name')).toBe(true);
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  });
 });
 
 function makePromptAdapter(values: unknown[]): PromptAdapter {

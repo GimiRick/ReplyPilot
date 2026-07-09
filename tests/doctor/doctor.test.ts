@@ -22,6 +22,19 @@ describe('doctor checks', () => {
     expect(isSupportedNodeVersion('22.12.9')).toBe(false);
   });
 
+  it('fails on unsupported Node version', async () => {
+    const report = await runDoctor({
+      config: makeConfig(),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => false,
+    });
+
+    const nodeCheck = report.checks.find((c) => c.name === 'Node.js');
+    expect(nodeCheck?.status).toBe('fail');
+    expect(nodeCheck?.message).toContain('is not supported');
+    expect(report.ok).toBe(false);
+  });
+
   it('warns when config is missing', async () => {
     const report = await runDoctor({ config: null });
 
@@ -70,6 +83,24 @@ describe('doctor checks', () => {
         expect.objectContaining({
           headers: { Authorization: 'Bearer lm-studio' },
         }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('handles base URL with trailing slash in provider reachability', async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async () => ({ ok: true })) as unknown as typeof fetch;
+    globalThis.fetch = fetchMock;
+
+    try {
+      const config = makeConfig({ llm: { baseUrl: 'http://localhost:1234/v1/' } });
+      await expect(checkProviderReachability(config)).resolves.toBe(true);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        new URL('http://localhost:1234/v1/models'),
+        expect.any(Object),
       );
     } finally {
       globalThis.fetch = originalFetch;

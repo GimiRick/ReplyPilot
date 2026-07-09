@@ -8,8 +8,8 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-282%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-95.8%25%20v8-brightgreen)](package.json)
+[![tests](https://img.shields.io/badge/tests-294%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![coverage](https://img.shields.io/badge/coverage-96.65%25%20lines%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 
@@ -481,46 +481,6 @@ Controls how long (in milliseconds) the app waits after WhatsApp confirms it's r
 - **Increase** (e.g., `2000`) if you keep getting QR code prompts on every login (slow I/O).
 - **Decrease** (e.g., `0`) to log in faster, at the risk of the session not persisting.
 
-### Shutdown Timeout
-
-```json
-{
-  "automation": {
-    "shutdownTimeoutMs": 15000
-  }
-}
-```
-
-Controls how long (in milliseconds) the app waits for a graceful shutdown before force-exiting. When you press Ctrl+C, the app completes all pending messages, then stops WhatsApp and the AI provider. If this takes longer than the timeout, it force-closes.
-
-- **Default:** `15000` (15 seconds)
-- **Range:** `1,000` – `120,000`
-- **Increase** (e.g., `30000`) if you have slow connections that need more time to shut down.
-- **Decrease** (e.g., `5000`) to make the app exit faster when stuck.
-
-### Log Level
-
-```json
-{
-  "logging": {
-    "level": "info"
-  }
-}
-```
-
-Controls the verbosity of log output. ReplyPilot uses [Pino](https://getpino.io) with numeric levels:
-
-| Level    | Value | Description                      |
-| -------- | ----- | -------------------------------- |
-| `debug`  | 20    | Detailed diagnostic information  |
-| `info`   | 30    | Normal operational messages      |
-| `warn`   | 40    | Non-critical issues              |
-| `error`  | 50    | Errors that need attention       |
-
-- **Default:** `info` (30)
-- **Set to `debug`** to see why individual messages are being ignored or processed.
-- **Set to `warn` or `error`** to reduce log noise in production.
-
 ---
 
 ## Feature Availability
@@ -804,7 +764,7 @@ OGG-to-MP3 conversion is handled by `src/audio/convert.ts` via `ffmpeg` with a 1
 
 ### Concurrency & Batching
 
-- **Global limit**: max 2 concurrent LLM requests (`globalConcurrency: 2`).
+- **Global limit**: max 1 concurrent LLM request (`globalConcurrency: 1`).
 - **Rate limit**: optionally configurable during `replypilot setup` — caps LLM calls per minute. When set, a rolling window (60s) prevents exceeding the configured ceiling.
 - **Per-chat serial**: messages in the same chat process one at a time (`perChatConcurrency: 1`).
 - **Message batching**: same-chat messages arriving within `automation.debounceMs` (default 10s, configurable via `replypilot setup`) are coalesced into a single LLM call. Bodies are joined with newlines; messages are sorted by timestamp before combining. Set to 0 for immediate processing (no batching).

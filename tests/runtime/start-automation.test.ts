@@ -199,6 +199,90 @@ describe('startAutomation', () => {
     await expect(onMessageCallback(message)).resolves.toBeUndefined();
   });
 
+  it('triggers force exit on shutdown timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
+      const processExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+      const { startAutomation } = await import('../../src/runtime/automation');
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
+        return {
+          onMessage: mocks.onMessage,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn(async () => {
+            // Simulate slow shutdown that exceeds timeout
+            await new Promise((resolve) => setTimeout(resolve, 20000));
+          }),
+        };
+      });
+
+      await startAutomation({ automation: { shutdownTimeoutMs: 1000 } });
+
+      const sigintCall = processOn.mock.calls.find((c) => c[0] === 'SIGINT');
+      const shutdown = sigintCall![1] as () => Promise<void>;
+      shutdown();
+
+      await vi.advanceTimersByTimeAsync(2000);
+      await vi.runAllTimersAsync();
+
+      expect(processExit).toHaveBeenCalledWith(1);
+      processOn.mockRestore();
+      processExit.mockRestore();
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('stops health server on graceful shutdown', async () => {
+    const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
+    const healthStopSpy = vi.spyOn(HealthServer.prototype, 'stop');
+
+    const { startAutomation } = await import('../../src/runtime/automation');
+
+    try {
+      await startAutomation({}, 0);
+
+      const sigintCall = processOn.mock.calls.find((c) => c[0] === 'SIGINT');
+      const shutdown = sigintCall![1] as () => Promise<void>;
+      await shutdown();
+
+      expect(healthStopSpy).toHaveBeenCalled();
+    } finally {
+      healthStopSpy.mockRestore();
+      processOn.mockRestore();
+    }
+  });
+
+  it('displays status bar metrics during automation', async () => {
+    vi.useFakeTimers();
+    try {
+      const { startAutomation } = await import('../../src/runtime/automation');
+      const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
+        return {
+          onMessage: mocks.onMessage,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+        };
+      });
+
+      await startAutomation({ automation: { debounceMs: 0 } });
+
+      await vi.advanceTimersByTimeAsync(1500);
+
+      expect(stderrWrite).toHaveBeenCalledWith(expect.stringContaining('LLM calls'));
+      stderrWrite.mockRestore();
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  });
+
   it('stops health server on WhatsApp connection failure', async () => {
     const previousExitCode = process.exitCode;
     const error = new Error('Failed to launch browser process');

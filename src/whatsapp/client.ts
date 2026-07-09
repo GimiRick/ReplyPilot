@@ -122,8 +122,8 @@ export class WhatsAppClientAdapter {
     const filterable = toFilterableMessage(message, chat);
     const skipMediaProcessing = getIgnoreReason(filterable, this.config) !== undefined;
     const runtimeMessage = skipMediaProcessing
-      ? toLightweightRuntimeMessage(message, chat, this.logger, this.client)
-      : await toRuntimeMessage(message, chat, this.config, this.logger, this.client);
+      ? toLightweightRuntimeMessage(message, chat, this.logger)
+      : await toRuntimeMessage(message, chat, this.config, this.logger);
 
     await this.messageHandler(runtimeMessage);
   }
@@ -170,7 +170,6 @@ function toLightweightRuntimeMessage(
   message: Message,
   chat: Chat,
   logger: Logger,
-  client: WhatsAppWebClient,
 ): RuntimeIncomingMessage {
   const chatId = getChatId(message, chat);
 
@@ -186,35 +185,13 @@ function toLightweightRuntimeMessage(
     hasMedia: message.hasMedia,
     messageType: message.type,
     chatName: chat.name,
-    fetchContext: async (limit) => {
-      try {
-        return await fetchChatContext(chat, limit);
-      } catch (error) {
-        if (isStaleReferenceError(error)) {
-          logger.warn({ error, chatId }, 'Stale chat reference in fetchContext, re-fetching chat');
-          const freshChat = await client.getChatById(chatId);
-          return await fetchChatContext(freshChat, limit);
-        }
-        throw error;
-      }
-    },
+    fetchContext: (limit) => fetchChatContext(chat, limit),
     sendMessage:
       chatId === 'status@broadcast'
         ? async () => {
             logger.debug({ chatId }, 'Status broadcast messages cannot be replied to');
           }
-        : async (text: string) => {
-            try {
-              await message.reply(text);
-            } catch (error) {
-              if (isStaleReferenceError(error)) {
-                logger.warn({ error, chatId }, 'Stale message reference in sendMessage, sending as new message');
-                await client.sendMessage(chatId, text);
-                return;
-              }
-              throw error;
-            }
-          },
+        : (text: string) => message.reply(text).then(() => undefined),
   };
 }
 
@@ -223,7 +200,6 @@ async function toRuntimeMessage(
   chat: Chat,
   config: AppConfig,
   logger: Logger,
-  client: WhatsAppWebClient,
 ): Promise<RuntimeIncomingMessage> {
   const chatId = getChatId(message, chat);
 
@@ -294,35 +270,13 @@ async function toRuntimeMessage(
     audioData,
     quotedMessage,
     chatName: chat.name,
-    fetchContext: async (limit) => {
-      try {
-        return await fetchChatContext(chat, limit);
-      } catch (error) {
-        if (isStaleReferenceError(error)) {
-          logger.warn({ error, chatId }, 'Stale chat reference in fetchContext, re-fetching chat');
-          const freshChat = await client.getChatById(chatId);
-          return await fetchChatContext(freshChat, limit);
-        }
-        throw error;
-      }
-    },
+    fetchContext: (limit) => fetchChatContext(chat, limit),
     sendMessage:
       chatId === 'status@broadcast'
         ? async () => {
             logger.debug({ chatId }, 'Status broadcast messages cannot be replied to');
           }
-        : async (text: string) => {
-            try {
-              await message.reply(text);
-            } catch (error) {
-              if (isStaleReferenceError(error)) {
-                logger.warn({ error, chatId }, 'Stale message reference in sendMessage, sending as new message');
-                await client.sendMessage(chatId, text);
-                return;
-              }
-              throw error;
-            }
-          },
+        : (text: string) => message.reply(text).then(() => undefined),
   };
 }
 
@@ -359,14 +313,6 @@ export async function downloadMediaWithRetry(
   }
   logger.warn(`${label} media download failed after 3 attempts, continuing without media data`);
   return undefined;
-}
-
-function isStaleReferenceError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const err = error as { name?: string; message?: string };
-  return err.name === 'ProtocolError' && typeof err.message === 'string' && err.message.includes('Promise was collected');
 }
 
 function isBroadcastMessage(message: Message, chatId: string): boolean {

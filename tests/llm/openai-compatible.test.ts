@@ -43,6 +43,17 @@ describe('OpenAiCompatibleProvider', () => {
     await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderResponseError);
   });
 
+  it('retries transient empty reply from LLM', async () => {
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce({ choices: [{ message: { content: '   ' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Retried successfully' } }] });
+    const provider = makeProvider(create, { maxRetries: 1 });
+
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Retried successfully' });
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it('retries transient provider failures once', async () => {
     const create = vi
       .fn()

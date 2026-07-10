@@ -21,6 +21,10 @@ describe('WhatsApp chat context', () => {
     expect(normalizeChatMessage({ id: 'm1', hasMedia: true })?.body).toBe('[media message]');
   });
 
+  it('includes media placeholder alongside text caption', () => {
+    expect(normalizeChatMessage({ id: 'm1', hasMedia: true, type: 'image', body: 'check this out' })?.body).toBe('check this out [image]');
+  });
+
   it('normalizes object message IDs and missing IDs', () => {
     expect(normalizeChatMessage({ id: { _serialized: 'serialized' }, body: 'hi' })?.id).toBe(
       'serialized',

@@ -74,6 +74,10 @@ export function normalizeChatMessage(message: WhatsAppRawMessage): ChatContextMe
 function normalizeMessageBody(message: WhatsAppRawMessage): string | undefined {
   const text = typeof message.body === 'string' ? message.body.trim() : undefined;
 
+  if (text && message.hasMedia) {
+    return `${text} ${mediaTypeLabel(message.type)}`;
+  }
+
   if (text) {
     return text;
   }

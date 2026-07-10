@@ -78,26 +78,25 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       const client = this.createClient(this.apiKeys[i]);
 
       try {
-        const completion = await retryTransient(
-          () => {
+        const text = await retryTransient(
+          async () => {
             const ctrl = new AbortController();
-            return withTimeout(
+            const completion = await withTimeout(
               client.chat.completions.create(baseRequest, { signal: ctrl.signal }),
               this.timeoutMs,
               ctrl,
               this.logger,
             );
+            const rawText = completion.choices?.[0]?.message?.content ?? '';
+            const cleaned = cleanGeneratedReply(rawText);
+            if (!cleaned) {
+              throw new ProviderResponseError('The LLM provider returned an empty reply.');
+            }
+            return cleaned;
           },
           this.maxRetries,
           this.logger,
         );
-
-        const rawText = completion.choices?.[0]?.message?.content ?? '';
-        const text = cleanGeneratedReply(rawText);
-
-        if (!text) {
-          throw new ProviderResponseError('The LLM provider returned an empty reply.');
-        }
 
         return {
           text,
@@ -183,7 +182,7 @@ function withTimeout<T>(
 }
 
 function isTransientProviderError(error: unknown): boolean {
-  if (error instanceof ProviderTimeoutError) {
+  if (error instanceof ProviderTimeoutError || error instanceof ProviderResponseError) {
     return true;
   }
 

@@ -156,6 +156,9 @@ export class ReplyAutomation {
           )
           .then((result) => {
             currentBatch.resolvers.forEach((r) => r(result));
+          })
+          .catch((error) => {
+            this.logger.error({ error, chatId }, 'Failed to resolve batch promises');
           });
       }, this.config.automation.debounceMs);
     });
@@ -192,6 +195,9 @@ export class ReplyAutomation {
           )
           .then((result) => {
             batch.resolvers.forEach((r) => r(result));
+          })
+          .catch((error) => {
+            this.logger.error({ error, chatId }, 'Failed to resolve batch promises during shutdown');
           }),
       );
     }
@@ -242,7 +248,7 @@ export async function processIncomingMessageBatch(options: {
     ? messages.find((m) => m.imageData)?.imageData
     : undefined;
   const audioData =
-    config.voiceNote?.mode === 'native_audio'
+    config.voiceNote.mode === 'native_audio'
       ? messages.find((m) => m.audioData)?.audioData
       : undefined;
 

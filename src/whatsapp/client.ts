@@ -287,9 +287,11 @@ export async function downloadMediaWithRetry(
 ): Promise<{ data: string; mimetype: string } | undefined> {
   for (let attempt = 0; attempt < 3; attempt++) {
     let timeoutId: NodeJS.Timeout | undefined;
+    let downloadPromise: Promise<{ data: string; mimetype: string } | undefined | null> | undefined;
     try {
+      downloadPromise = message.downloadMedia();
       const media = await Promise.race([
-        message.downloadMedia(),
+        downloadPromise,
         new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error('downloadMedia timed out')), 30_000);
         }),
@@ -309,6 +311,7 @@ export async function downloadMediaWithRetry(
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
+      downloadPromise?.catch(() => {});
     }
   }
   logger.warn(`${label} media download failed after 3 attempts, continuing without media data`);

@@ -12,11 +12,13 @@ import {
   getActiveWhatsAppAccount,
   getConfigFilePath,
   getReplyPilotDataDir,
+  getWhatsAppCacheDir,
   getWhatsAppSessionDir,
   hasConfig,
   listConfigNames,
   listWhatsAppAccounts,
   loadConfig,
+  removeWhatsAppCacheData,
   removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,
   saveConfig,
@@ -108,6 +110,22 @@ describe('config store', () => {
     expect(fs.existsSync(path.join(sessionDir, 'session-work'))).toBe(true);
   });
 
+  it('returns the WhatsApp web cache directory path', () => {
+    const cacheDir = getWhatsAppCacheDir();
+    expect(cacheDir).toBe(path.join(process.cwd(), '.wwebjs_cache'));
+  });
+
+  it('removes the WhatsApp web cache directory', () => {
+    const cacheDir = getWhatsAppCacheDir();
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, 'test-cache-entry'), 'data');
+    expect(fs.existsSync(cacheDir)).toBe(true);
+
+    removeWhatsAppCacheData();
+
+    expect(fs.existsSync(cacheDir)).toBe(false);
+  });
+
   it('clears the active WhatsApp account', () => {
     const store = createTempStore();
 
@@ -116,6 +134,16 @@ describe('config store', () => {
 
     clearActiveWhatsAppAccount(store);
     expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+  });
+
+  it('handles invalid stored WhatsApp account name gracefully', () => {
+    const store = createTempStore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (store as any).set('activeWhatsAppAccount', 'invalid name with spaces');
+
+    const result = getActiveWhatsAppAccount(store);
+
+    expect(result).toBeUndefined();
   });
 
   it('clearActiveWhatsAppAccount is safe when no account is set', () => {

@@ -161,6 +161,11 @@ describe('setup wizard config creation', () => {
     expect(config.whatsapp.allowArchived).toBe(true);
     expect(config.automation.debounceMs).toBe(0);
     expect(prompts.password).toHaveBeenCalledOnce();
+
+    const passwordCall = vi.mocked(prompts.password).mock.calls[0];
+    const passwordOptions = passwordCall[0] as { validate: (v: string) => true | string };
+    expect(passwordOptions.validate('')).toBe('API key is required');
+    expect(passwordOptions.validate('my-key')).toBe(true);
   });
 
   it('exposes prompt validation messages', async () => {
@@ -203,6 +208,10 @@ describe('setup wizard config creation', () => {
     expect(baseUrlValidate('')).toBe('Base URL is required');
     expect(baseUrlValidate('not-a-url')).toBe('LLM base URL must be a valid URL');
     expect(baseUrlValidate('http://localhost:1234/v1')).toBe(true);
+
+    const apiKeyValidate = getValidate(prompts.input, 'API key');
+    expect(apiKeyValidate('')).toBe('API key is required');
+    expect(apiKeyValidate('sk-real')).toBe(true);
 
     const numberOptions = getFirstPromptOptions(prompts.number);
     expect(numberOptions.validate?.(undefined)).toBe(true);
@@ -371,6 +380,45 @@ describe('setup wizard config creation', () => {
     expect(customModelOptions.validate('my-model')).toBe(true);
   });
 
+  it('validates model name and label inputs', async () => {
+    const prompts = makePromptAdapter([
+      'lmstudio',
+      'http://localhost:1234/v1',
+      'lm-studio',
+      false,
+      'loaded-model',
+      'Local Llama',
+      false,
+      undefined,
+      false,
+      false,
+      'Reply in my tone.',
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    await promptForConfig(prompts);
+
+    const inputCalls = vi.mocked(prompts.input).mock.calls;
+
+    const modelNameCall = inputCalls.find(
+      (call) => (call[0] as { message?: string }).message === 'Model name',
+    )!;
+    const modelNameOptions = modelNameCall[0] as { validate: (v: string) => true | string };
+    expect(modelNameOptions.validate('')).toBe('Model name is required');
+    expect(modelNameOptions.validate('my-model')).toBe(true);
+
+    const modelLabelCall = inputCalls.find(
+      (call) => (call[0] as { message?: string }).message === 'Model label',
+    )!;
+    const modelLabelOptions = modelLabelCall[0] as { validate: (v: string) => true | string };
+    expect(modelLabelOptions.validate('')).toBe('Model label is required');
+    expect(modelLabelOptions.validate('My Label')).toBe(true);
+  });
+
   it('validates local whisper URLs', async () => {
     const prompts = makePromptAdapter([
       'lmstudio',
@@ -480,6 +528,8 @@ describe('setup wizard config creation', () => {
 
       expect(validate('work')).toBe('A configuration named "work" already exists.');
       expect(validate('new-config')).toBe(true);
+      expect(validate('')).toBe('Config name may only contain letters, numbers, hyphens, and underscores.');
+      expect(validate('invalid name')).toBe('Config name may only contain letters, numbers, hyphens, and underscores.');
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }
@@ -661,6 +711,39 @@ describe('setup wizard config creation', () => {
     );
   });
 
+  it('validates fallback API key password input for custom provider', async () => {
+    const prompts = makePromptAdapter([
+      'custom',
+      'https://custom.example/v1',
+      'sk-key',
+      true,
+      'sk-fallback',
+      false,
+      'custom-model',
+      'Custom',
+      false,
+      12,
+      false,
+      false,
+      'Terse.',
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    await promptForConfig(prompts);
+
+    const passwordCalls = vi.mocked(prompts.password).mock.calls;
+    const fallbackCall = passwordCalls.find(
+      (call) => (call[0] as { message?: string }).message === 'Fallback API key',
+    )!;
+    const fallbackOptions = fallbackCall[0] as { validate: (v: string) => true | string };
+    expect(fallbackOptions.validate('')).toBe('Fallback API key is required');
+    expect(fallbackOptions.validate('sk-backup')).toBe(true);
+  });
+
   it('collects multiple fallback API keys', async () => {
     const prompts = makePromptAdapter([
       'lmstudio',
@@ -688,6 +771,14 @@ describe('setup wizard config creation', () => {
     const config = await promptForConfig(prompts);
 
     expect(config.llm.fallbackApiKeys).toEqual(['sk-fallback-1', 'sk-fallback-2']);
+
+    const inputCalls = vi.mocked(prompts.input).mock.calls;
+    const fallbackKeyCall = inputCalls.find(
+      (call) => (call[0] as { message?: string }).message === 'Fallback API key',
+    )!;
+    const fallbackKeyOptions = fallbackKeyCall[0] as { validate: (v: string) => true | string };
+    expect(fallbackKeyOptions.validate('')).toBe('Fallback API key is required');
+    expect(fallbackKeyOptions.validate('sk-backup')).toBe(true);
   });
 });
 

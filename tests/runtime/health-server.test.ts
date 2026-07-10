@@ -1,6 +1,7 @@
 import http from 'node:http';
+import net from 'node:net';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HealthServer } from '../../src/runtime/health-server';
 import { MetricsCollector } from '../../src/runtime/metrics';
@@ -83,6 +84,61 @@ describe('HealthServer', () => {
 
     const body = (await fetchJson(server.getPort(), '/health')) as Record<string, unknown>;
     expect(body.status).toBe('degraded');
+  });
+
+  it('returns the configured port before server starts', async () => {
+    const server = new HealthServer({
+      port: 12345,
+      host: '127.0.0.1',
+      metrics: new MetricsCollector(),
+    });
+
+    expect(server.getPort()).toBe(12345);
+  });
+
+  it('catches writeHead errors and sends 500 response', async () => {
+    const server = await createServer();
+    const port = server.getPort();
+
+    const origWriteHead = http.ServerResponse.prototype.writeHead;
+    const spy = vi.spyOn(http.ServerResponse.prototype, 'writeHead').mockImplementationOnce(
+      function (this: http.ServerResponse, ...args: Parameters<typeof http.ServerResponse.prototype.writeHead>) {
+        if (args[0] === 200) {
+          throw new Error('writeHead failed');
+        }
+        return origWriteHead.call(this, ...args);
+      },
+    );
+
+    try {
+      const res = await new Promise<http.IncomingMessage>((resolve) => {
+        http.get(`http://127.0.0.1:${port}/health`, resolve);
+      });
+
+      expect(res.statusCode).toBe(500);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('recovers from a client socket disconnect before a request is sent', async () => {
+    const server = await createServer();
+    const port = server.getPort();
+
+    // Connect and immediately destroy the socket. The server should not crash
+    // and should remain operational for subsequent requests.
+    await new Promise<void>((resolve) => {
+      const socket = new net.Socket();
+      socket.connect(port, '127.0.0.1', () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.on('error', () => resolve());
+    });
+
+    // Server should still be operational
+    const body = (await fetchJson(port, '/health')) as Record<string, unknown>;
+    expect(body.status).toBe('ok');
   });
 
   it('stops without error when not started', async () => {

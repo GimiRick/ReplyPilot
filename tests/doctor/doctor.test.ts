@@ -22,6 +22,18 @@ describe('doctor checks', () => {
     expect(isSupportedNodeVersion('22.12.9')).toBe(false);
   });
 
+  it('detects unsupported Node version', async () => {
+    const report = await runDoctor({
+      config: makeConfig(),
+      providerReachabilityCheck: async () => true,
+      nodeVersionCheck: () => false,
+    });
+
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'Node.js', status: 'fail' }),
+    );
+  });
+
   it('warns when config is missing', async () => {
     const report = await runDoctor({ config: null });
 
@@ -43,6 +55,23 @@ describe('doctor checks', () => {
         status: 'pass',
       }),
     );
+  });
+
+  it('normalizes base URL with trailing slash via ensureTrailingSlash', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('fetch error'));
+
+    try {
+      const result = await checkProviderReachability(
+        makeConfig({ llm: { baseUrl: 'http://localhost:9999/api' } }),
+      );
+
+      expect(result).toBe(false);
+      expect(spy.mock.calls[0][0].toString()).toBe(
+        'http://localhost:9999/api/models',
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('marks invalid config as failed', async () => {

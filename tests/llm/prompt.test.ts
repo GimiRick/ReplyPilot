@@ -85,6 +85,19 @@ describe('prompt builder', () => {
     expect(prompt[1].content).toContain('Chat: Family Group');
   });
 
+  it('includes sender name in incoming message label when provided', () => {
+    const prompt = buildReplyPrompt({
+      model: 'local-model',
+      modelLabel: 'Local Llama',
+      ownerStylePrompt: 'Short replies.',
+      messages: [],
+      incomingMessage: 'Are you free?',
+      incomingMessageAuthorName: 'Alice',
+    });
+
+    expect(prompt[1].content).toContain('Incoming message from Alice: Are you free?');
+  });
+
   it('labels group messages differently', () => {
     const prompt = buildReplyPrompt({
       model: 'local-model',

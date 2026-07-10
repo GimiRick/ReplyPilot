@@ -131,6 +131,14 @@ describe('oggToMp3', () => {
     await expect(promise).rejects.toThrow('ffmpeg exited with code 1');
   });
 
+  it('rejects when ffmpeg stdin stream is not available', async () => {
+    const ff = createMockFfmpeg();
+    const modifiedProc = { ...ff.proc, stdin: null };
+    vi.mocked(spawn).mockReturnValue(modifiedProc as unknown as ChildProcess);
+
+    await expect(oggToMp3('aW5wdXQ=')).rejects.toThrow('ffmpeg stdin stream is not available');
+  });
+
   it('times out after FFMPEG_TIMEOUT_MS', async () => {
     const timeoutCallback: Array<() => void> = [];
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(((cb: () => void) => {

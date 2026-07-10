@@ -31,10 +31,6 @@ export function getIgnoreReason(
     return 'self';
   }
 
-  if (!message.body?.trim() && !message.hasMedia) {
-    return 'empty';
-  }
-
   if (message.chatId === 'status@broadcast') {
     return 'status_broadcast';
   }
@@ -53,6 +49,10 @@ export function getIgnoreReason(
 
   if (message.hasMedia && message.messageType === 'ptt' && config.voiceNote?.mode === 'ignore') {
     return 'voice_note_ignored';
+  }
+
+  if (!message.body?.trim() && !message.hasMedia) {
+    return 'empty';
   }
 
   return undefined;

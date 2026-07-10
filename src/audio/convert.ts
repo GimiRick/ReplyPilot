@@ -69,8 +69,12 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
       }
     });
 
-    ffmpeg.stdin.write(oggBuffer);
-    ffmpeg.stdin.end();
+    if (ffmpeg.stdin) {
+      ffmpeg.stdin.write(oggBuffer);
+      ffmpeg.stdin.end();
+    } else {
+      settle(() => reject(new Error('ffmpeg stdin stream is not available')));
+    }
   });
 
   return mp3Buffer.toString('base64');

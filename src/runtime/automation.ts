@@ -17,6 +17,7 @@ type ChatBatch = {
   messages: RuntimeIncomingMessage[];
   timer: NodeJS.Timeout | undefined;
   resolvers: ((result: AutomationResult) => void)[];
+  processed: boolean;
 };
 
 export type RuntimeIncomingMessage = {
@@ -121,14 +122,20 @@ export class ReplyAutomation {
           messages: [message],
           timer: undefined,
           resolvers: [resolve],
+          processed: false,
         };
         this.activeBatches.set(chatId, batch);
       }
 
       batch.timer = setTimeout(() => {
+        const currentBatch = batch!;
+        if (currentBatch.processed) {
+          return;
+        }
+        currentBatch.processed = true;
         if (this.stopped) {
           this.activeBatches.delete(chatId);
-          batch!.resolvers.forEach((r) => r({ status: 'ignored', reason: 'shutting_down' }));
+          currentBatch.resolvers.forEach((r) => r({ status: 'ignored', reason: 'shutting_down' }));
           return;
         }
         this.activeBatches.delete(chatId);
@@ -136,7 +143,7 @@ export class ReplyAutomation {
         this.queue
           .add(chatId, () =>
             processIncomingMessageBatch({
-              messages: batch!.messages,
+              messages: currentBatch.messages,
               config: this.config,
               llmProvider: this.llmProvider,
               logger: this.logger,
@@ -148,7 +155,7 @@ export class ReplyAutomation {
             }),
           )
           .then((result) => {
-            batch!.resolvers.forEach((r) => r(result));
+            currentBatch.resolvers.forEach((r) => r(result));
           });
       }, this.config.automation.debounceMs);
     });
@@ -159,6 +166,10 @@ export class ReplyAutomation {
     const batchPromises: Promise<void>[] = [];
 
     for (const [chatId, batch] of this.activeBatches.entries()) {
+      if (batch.processed) {
+        continue;
+      }
+      batch.processed = true;
       if (batch.timer) {
         clearTimeout(batch.timer);
       }

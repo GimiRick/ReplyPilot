@@ -35,6 +35,7 @@ export type RuntimeIncomingMessage = {
   audioData?: AudioData;
   quotedMessage?: { id?: string; body: string; fromMe?: boolean };
   chatName?: string;
+  authorName?: string;
   fetchContext(limit: number): Promise<ChatContextMessage[]>;
   sendMessage(text: string): Promise<void>;
 };
@@ -244,6 +245,13 @@ export async function processIncomingMessageBatch(options: {
       }
     : undefined;
 
+  let incomingMessageAuthorName: string | undefined;
+  if (lastMessage.fromMe) {
+    incomingMessageAuthorName = 'the owner';
+  } else if (lastMessage.authorName) {
+    incomingMessageAuthorName = lastMessage.authorName;
+  }
+
   const imageData = config.llm.visionSupport
     ? messages.find((m) => m.imageData)?.imageData
     : undefined;
@@ -267,6 +275,7 @@ export async function processIncomingMessageBatch(options: {
         audioData,
         isGroup: lastMessage.isGroup,
         chatName: lastMessage.chatName,
+        incomingMessageAuthorName,
       });
       metrics?.recordLlmCall(Date.now() - llmStart);
     } catch (error) {

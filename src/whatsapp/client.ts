@@ -185,6 +185,11 @@ function toLightweightRuntimeMessage(
     hasMedia: message.hasMedia,
     messageType: message.type,
     chatName: chat.name,
+    authorName: message.fromMe
+      ? undefined
+      : message.author
+        ? message.author.replace(/@(c\.us|g\.us)$/, '')
+        : chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
     sendMessage:
       chatId === 'status@broadcast'
@@ -270,6 +275,11 @@ async function toRuntimeMessage(
     audioData,
     quotedMessage,
     chatName: chat.name,
+    authorName: message.fromMe
+      ? undefined
+      : message.author
+        ? message.author.replace(/@(c\.us|g\.us)$/, '')
+        : chat.name,
     fetchContext: (limit) => fetchChatContext(chat, limit),
     sendMessage:
       chatId === 'status@broadcast'

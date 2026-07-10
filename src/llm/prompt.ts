@@ -32,7 +32,8 @@ function buildUserContent(input: GenerateReplyInput): string | UserContentPart[]
   }
 
   const msgLabel = input.isGroup ? 'Incoming group message' : 'Incoming message';
-  userParts.push(`${msgLabel}: ${normalizeInlineText(input.incomingMessage)}`);
+  const fromPart = input.incomingMessageAuthorName ? ` from ${input.incomingMessageAuthorName}` : '';
+  userParts.push(`${msgLabel}${fromPart}: ${normalizeInlineText(input.incomingMessage)}`);
   userParts.push('');
   userParts.push(
     'Write only the next WhatsApp reply from the owner. Do not prefix it with a label.',

@@ -27,6 +27,7 @@ export type GenerateReplyInput = {
   audioData?: AudioData;
   isGroup?: boolean;
   chatName?: string;
+  incomingMessageAuthorName?: string;
 };
 
 export type GenerateReplyResult = {

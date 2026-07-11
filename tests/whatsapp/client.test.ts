@@ -132,6 +132,14 @@ describe('loginWhatsAppAccount', () => {
 });
 
 describe('downloadMediaWithRetry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function makeMessage(downloadMedia: () => Promise<unknown>): Message {
     return { downloadMedia } as unknown as Message;
   }
@@ -166,7 +174,9 @@ describe('downloadMediaWithRetry', () => {
     });
     const logger = makeLogger();
 
-    const result = await downloadMediaWithRetry(message, logger, 'image/sticker');
+    const promise = downloadMediaWithRetry(message, logger, 'image/sticker');
+    await vi.runAllTimersAsync();
+    const result = await promise;
 
     expect(result).toEqual({ data: 'recovered', mimetype: 'image/png' });
     expect(callCount).toBe(2);
@@ -183,7 +193,9 @@ describe('downloadMediaWithRetry', () => {
     });
     const logger = makeLogger();
 
-    const result = await downloadMediaWithRetry(message, logger, 'test');
+    const promise = downloadMediaWithRetry(message, logger, 'test');
+    await vi.runAllTimersAsync();
+    const result = await promise;
 
     expect(result).toBeUndefined();
     expect(logger.warn).toHaveBeenCalledTimes(4);
@@ -220,25 +232,20 @@ describe('downloadMediaWithRetry', () => {
   });
 
   it('waits 1 second between retries', async () => {
-    vi.useFakeTimers();
-    try {
-      const message = makeMessage(async () => {
-        throw Object.assign(new TypeError('fail'), { name: 'TypeError' });
-      });
-      const logger = makeLogger();
-      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    const message = makeMessage(async () => {
+      throw Object.assign(new TypeError('fail'), { name: 'TypeError' });
+    });
+    const logger = makeLogger();
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-      const promise = downloadMediaWithRetry(message, logger, 'test');
-      await vi.runAllTimersAsync();
-      await promise;
+    const promise = downloadMediaWithRetry(message, logger, 'test');
+    await vi.runAllTimersAsync();
+    await promise;
 
-      const sleepCalls = setTimeoutSpy.mock.calls.filter(
-        ([, ms]) => typeof ms === 'number' && ms === 1000,
-      );
-      expect(sleepCalls.length).toBeGreaterThanOrEqual(2);
-    } finally {
-      vi.useRealTimers();
-    }
+    const sleepCalls = setTimeoutSpy.mock.calls.filter(
+      ([, ms]) => typeof ms === 'number' && ms === 1000,
+    );
+    expect(sleepCalls.length).toBeGreaterThanOrEqual(2);
   });
 
   it('includes attempt number and error message in log', async () => {
@@ -247,7 +254,9 @@ describe('downloadMediaWithRetry', () => {
     });
     const logger = makeLogger();
 
-    await downloadMediaWithRetry(message, logger, 'test');
+    const promise = downloadMediaWithRetry(message, logger, 'test');
+    await vi.runAllTimersAsync();
+    await promise;
 
     for (let i = 0; i < 3; i++) {
       expect(logger.warn).toHaveBeenCalledWith(
@@ -263,7 +272,9 @@ describe('downloadMediaWithRetry', () => {
     });
     const logger = makeLogger();
 
-    const result = await downloadMediaWithRetry(message, logger, 'test');
+    const promise = downloadMediaWithRetry(message, logger, 'test');
+    await vi.runAllTimersAsync();
+    const result = await promise;
 
     expect(result).toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(

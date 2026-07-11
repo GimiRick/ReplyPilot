@@ -348,6 +348,31 @@ describe('config store', () => {
     expect(getActiveConfigName(store)).toBe('second');
   });
 
+  it('returns false when deleting a non-existent config', () => {
+    const store = createTempStore();
+
+    saveConfig(makeConfig({}), 'existing', store);
+
+    expect(deleteConfig('nonexistent', store)).toBe(false);
+    expect(getActiveConfigName(store)).toBe('existing');
+  });
+
+  it('clears stale active config pointer when config is externally removed', () => {
+    const store = createTempStore();
+
+    saveConfig(makeConfig({}), 'stale-config', store);
+    setActiveConfigName('stale-config', store);
+    expect(getActiveConfigName(store)).toBe('stale-config');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (store as any).set('configs', {});
+
+    const result = deleteConfig('stale-config', store);
+
+    expect(result).toBe(false);
+    expect(getActiveConfigName(store)).toBeUndefined();
+  });
+
   it('migrates old single config format on first access', () => {
     const store = createTempStore();
 

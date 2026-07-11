@@ -189,7 +189,12 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         deps.output(`Using account: ${activeAccount}`);
       }
 
-      await deps.startAutomation();
+      try {
+        await deps.startAutomation();
+      } catch (error) {
+        deps.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      }
     });
 
   program

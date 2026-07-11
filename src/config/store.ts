@@ -160,7 +160,7 @@ export function saveConfig(
 export function deleteConfig(
   configName?: string,
   store: ReplyPilotConfigStore = getConfigStore(),
-): void {
+): boolean {
   ensureMigrated(store);
   const configs = store.get(CONFIGS_KEY) ?? {};
   const name = configName ?? getActiveConfigName(store);
@@ -170,7 +170,10 @@ export function deleteConfig(
   }
 
   if (!configs[name]) {
-    return;
+    if (store.get(ACTIVE_CONFIG_KEY) === name) {
+      store.delete(ACTIVE_CONFIG_KEY);
+    }
+    return false;
   }
 
   const updated = { ...configs };
@@ -185,6 +188,8 @@ export function deleteConfig(
       store.delete(ACTIVE_CONFIG_KEY);
     }
   }
+
+  return true;
 }
 
 function resolveConfigName(

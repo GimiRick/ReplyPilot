@@ -46,6 +46,14 @@ npm uninstall gimirick-replypilot
 
 [npm package](https://www.npmjs.com/package/gimirick-replypilot)
 
+### Updating
+
+```bash
+npm update -g gimirick-replypilot
+```
+
+Updates the globally installed version to the latest release.
+
 ### Troubleshooting
 
 ```bash
@@ -471,16 +479,16 @@ These settings are not exposed in the setup wizard, but can be added directly to
 ```json
 {
   "whatsapp": {
-    "loginDelayMs": 500
+    "loginDelayMs": 5000
   }
 }
 ```
 
 Controls how long (in milliseconds) the app waits after WhatsApp confirms it's ready before completing the login process. This delay ensures the session data is saved to disk.
 
-- **Default:** `500` (0.5 seconds)
+- **Default:** `5000` (5 seconds)
 - **Range:** `0` – `30,000`
-- **Increase** (e.g., `2000`) if you keep getting QR code prompts on every login (slow I/O).
+- **Increase** (e.g., `10000`) if you keep getting QR code prompts on every login (slow I/O).
 - **Decrease** (e.g., `0`) to log in faster, at the risk of the session not persisting.
 
 ### Shutdown Timeout

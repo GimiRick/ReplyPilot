@@ -424,7 +424,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         return;
       }
 
-      deps.removeWhatsAppCacheData();
+      await deps.removeWhatsAppCacheData();
       deps.output('WhatsApp web client cache removed.');
     });
 
@@ -451,7 +451,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
 
       try {
         const config = deps.tryLoadConfig();
-        const loginDelayMs = config?.whatsapp?.loginDelayMs ?? 500;
+        const loginDelayMs = config?.whatsapp?.loginDelayMs ?? 5000;
         await deps.loginWhatsAppAccount(trimmed, createLogger('info'), loginDelayMs);
         deps.setActiveWhatsAppAccount(trimmed);
         deps.output(`Account "${trimmed}" is now active.`);

@@ -414,7 +414,7 @@ describe('CLI commands', () => {
 
     await program.parseAsync(['node', 'replypilot', 'login']);
 
-    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('work-account', expect.anything(), 500);
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('work-account', expect.anything(), 5000);
     expect(deps.setActiveWhatsAppAccount).toHaveBeenCalledWith('work-account');
     expect(output).toContain('Account "work-account" is now active.');
   });
@@ -434,7 +434,7 @@ describe('CLI commands', () => {
     await program.parseAsync(['node', 'replypilot', 'login']);
 
     expect(validateResult).toBe('An account named "existing-account" already exists.');
-    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('different-name', expect.anything(), 500);
+    expect(deps.loginWhatsAppAccount).toHaveBeenCalledWith('different-name', expect.anything(), 5000);
   });
 
   it('reports error when no accounts exist for account switch', async () => {

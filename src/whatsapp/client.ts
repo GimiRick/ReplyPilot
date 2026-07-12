@@ -43,6 +43,7 @@ export class WhatsAppClientAdapter {
     private readonly config: AppConfig,
     private readonly logger: Logger,
     sessionName?: string,
+    private readonly warmupMs: number = 10000,
   ) {
     this.client = new Client({
       authStrategy: new LocalAuth({
@@ -81,6 +82,25 @@ export class WhatsAppClientAdapter {
 
   async start(): Promise<void> {
     this.registerLifecycleEvents();
+
+    try {
+      await this.client.initialize();
+    } catch (error) {
+      await this.client.destroy().catch(() => {});
+      throw error;
+    }
+
+    // Warmup: wait for WhatsApp Web's internal message store to finish
+    // syncing before we register the message handler. On first run (or
+    // after a fresh login), the `ready` event fires before the chat
+    // store is fully initialized. Messages received during that window
+    // are historical sync events — replying to them with message.reply()
+    // resolves successfully but the reply is silently dropped by
+    // WhatsApp Web because the chat reference isn't ready. By deferring
+    // the listener, those false sync messages are naturally discarded.
+    this.logger.info('Warming up WhatsApp Web connection...');
+    await new Promise((resolve) => setTimeout(resolve, this.warmupMs));
+
     if (this.boundOnMessage) {
       this.client.removeListener('message', this.boundOnMessage);
     }
@@ -93,13 +113,6 @@ export class WhatsAppClientAdapter {
       });
     };
     this.client.on('message', this.boundOnMessage);
-
-    try {
-      await this.client.initialize();
-    } catch (error) {
-      await this.client.destroy().catch(() => {});
-      throw error;
-    }
   }
 
   async stop(): Promise<void> {
@@ -357,7 +370,7 @@ function isBroadcastMessage(message: Message, chatId: string): boolean {
 export async function loginWhatsAppAccount(
   accountName: string,
   logger: Logger,
-  loginDelayMs: number = 500,
+  loginDelayMs: number = 5000,
 ): Promise<void> {
   const clientId = validateWhatsAppAccountName(accountName);
   const client = new Client({
@@ -397,11 +410,23 @@ export async function loginWhatsAppAccount(
       clearTimeout(timeout);
       authenticated = true;
       logger.info(`WhatsApp account "${clientId}" authenticated and saved.`);
-      setTimeout(() => {
+      setTimeout(async () => {
         if (settled) {
           return;
         }
         settled = true;
+
+        // Navigate to about:blank before destroying the browser to allow WhatsApp Web
+        // to cleanly unload and flush its internal state (IndexedDB, localStorage, etc.)
+        try {
+          const page = client.pupPage;
+          if (page) {
+            await page.goto('about:blank', { waitUntil: 'load', timeout: 10000 }).catch(() => {});
+          }
+        } catch {
+          // Navigate succeeded or page already closed; either way, continue with destroy
+        }
+
         resolve();
         client.destroy().catch(() => {});
       }, loginDelayMs);

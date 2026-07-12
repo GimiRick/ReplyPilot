@@ -71,8 +71,6 @@ export class WhatsAppClientAdapter {
         this.logger.warn({ reason }, 'WhatsApp client disconnected');
       }
     };
-
-    this.registerLifecycleEvents();
   }
 
   private boundOnMessage: ((message: Message) => void) | undefined;
@@ -82,6 +80,7 @@ export class WhatsAppClientAdapter {
   }
 
   async start(): Promise<void> {
+    this.registerLifecycleEvents();
     if (this.boundOnMessage) {
       this.client.removeListener('message', this.boundOnMessage);
     }

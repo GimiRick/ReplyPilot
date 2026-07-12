@@ -90,12 +90,11 @@ export class DuplicateMessageGuard {
   }
 
   private prune(): void {
-    if (this.seen.size <= this.maxEntries) {
-      return;
-    }
-
-    const oldestId = this.seen.keys().next().value;
-    if (oldestId !== undefined) {
+    while (this.seen.size > this.maxEntries) {
+      const oldestId = this.seen.keys().next().value;
+      if (oldestId === undefined) {
+        break;
+      }
       this.seen.delete(oldestId);
     }
   }

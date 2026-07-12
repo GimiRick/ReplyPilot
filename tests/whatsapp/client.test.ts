@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => {
       this.handlers.set(event, existing);
     }
 
-    removeListener(event: string, handler: ClientHandler): void {
+    off(event: string, handler: ClientHandler): void {
       const existing = this.handlers.get(event);
       if (existing) {
         const idx = existing.indexOf(handler);
@@ -31,6 +31,10 @@ const mocks = vi.hoisted(() => {
           existing.splice(idx, 1);
         }
       }
+    }
+
+    removeListener(event: string, handler: ClientHandler): void {
+      this.off(event, handler);
     }
 
     emit(event: string, ...args: unknown[]): void {

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import Conf from 'conf';
@@ -279,22 +280,22 @@ export function getWhatsAppSessionDir(store: ReplyPilotConfigStore = getConfigSt
   return path.join(getReplyPilotDataDir(store), 'whatsapp-sessions');
 }
 
-export function removeWhatsAppSessionData(store: ReplyPilotConfigStore = getConfigStore()): void {
-  fs.rmSync(getWhatsAppSessionDir(store), { recursive: true, force: true });
+export async function removeWhatsAppSessionData(store: ReplyPilotConfigStore = getConfigStore()): Promise<void> {
+  await rm(getWhatsAppSessionDir(store), { recursive: true, force: true });
 }
 
-export function removeWhatsAppSessionAccount(
+export async function removeWhatsAppSessionAccount(
   accountName: string,
   store: ReplyPilotConfigStore = getConfigStore(),
-): void {
+): Promise<void> {
   const sessionRoot = getWhatsAppSessionDir(store);
   const trimmed = validateWhatsAppAccountName(accountName);
-  fs.rmSync(path.join(sessionRoot, sessionDirNameForAccount(trimmed)), {
+  await rm(path.join(sessionRoot, sessionDirNameForAccount(trimmed)), {
     recursive: true,
     force: true,
   });
   if (!trimmed.startsWith(LOCAL_AUTH_SESSION_PREFIX)) {
-    fs.rmSync(path.join(sessionRoot, trimmed), { recursive: true, force: true });
+    await rm(path.join(sessionRoot, trimmed), { recursive: true, force: true });
   }
 }
 
@@ -306,8 +307,8 @@ export function getWhatsAppCacheDir(): string {
   return path.join(process.cwd(), '.wwebjs_cache');
 }
 
-export function removeWhatsAppCacheData(): void {
-  fs.rmSync(getWhatsAppCacheDir(), { recursive: true, force: true });
+export async function removeWhatsAppCacheData(): Promise<void> {
+  await rm(getWhatsAppCacheDir(), { recursive: true, force: true });
 }
 
 function sessionDirNameForAccount(accountName: string): string {

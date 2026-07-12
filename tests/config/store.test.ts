@@ -58,18 +58,18 @@ describe('config store', () => {
     expect(sessionDir).toContain('whatsapp-sessions');
   });
 
-  it('removes WhatsApp session data', () => {
+  it('removes WhatsApp session data', async () => {
     const store = createTempStore();
     const sessionDir = getWhatsAppSessionDir(store);
     fs.mkdirSync(sessionDir, { recursive: true });
     fs.writeFileSync(path.join(sessionDir, 'session-file'), 'session');
 
-    removeWhatsAppSessionData(store);
+    await removeWhatsAppSessionData(store);
 
     expect(fs.existsSync(sessionDir)).toBe(false);
   });
 
-  it('removes a single WhatsApp account session', () => {
+  it('removes a single WhatsApp account session', async () => {
     const store = createTempStore();
     const sessionDir = getWhatsAppSessionDir(store);
     fs.mkdirSync(path.join(sessionDir, 'session-work'), { recursive: true });
@@ -77,34 +77,34 @@ describe('config store', () => {
     fs.writeFileSync(path.join(sessionDir, 'session-work', 'session.data'), 'dummy');
     fs.writeFileSync(path.join(sessionDir, 'session-personal', 'session.data'), 'dummy');
 
-    removeWhatsAppSessionAccount('work', store);
+    await removeWhatsAppSessionAccount('work', store);
 
     expect(fs.existsSync(path.join(sessionDir, 'session-work'))).toBe(false);
     expect(fs.existsSync(path.join(sessionDir, 'session-personal'))).toBe(true);
   });
 
-  it('removeWhatsAppSessionAccount does not throw for missing account', () => {
+  it('removeWhatsAppSessionAccount does not throw for missing account', async () => {
     const store = createTempStore();
-    expect(() => removeWhatsAppSessionAccount('nonexistent', store)).not.toThrow();
+    await expect(removeWhatsAppSessionAccount('nonexistent', store)).resolves.toBeUndefined();
   });
 
-  it('removes legacy unprefixed WhatsApp account session directories', () => {
+  it('removes legacy unprefixed WhatsApp account session directories', async () => {
     const store = createTempStore();
     const sessionDir = getWhatsAppSessionDir(store);
     fs.mkdirSync(path.join(sessionDir, 'work'), { recursive: true });
 
-    removeWhatsAppSessionAccount('work', store);
+    await removeWhatsAppSessionAccount('work', store);
 
     expect(fs.existsSync(path.join(sessionDir, 'work'))).toBe(false);
   });
 
-  it('does not remove another account when account name starts with session prefix', () => {
+  it('does not remove another account when account name starts with session prefix', async () => {
     const store = createTempStore();
     const sessionDir = getWhatsAppSessionDir(store);
     fs.mkdirSync(path.join(sessionDir, 'session-work'), { recursive: true });
     fs.mkdirSync(path.join(sessionDir, 'session-session-work'), { recursive: true });
 
-    removeWhatsAppSessionAccount('session-work', store);
+    await removeWhatsAppSessionAccount('session-work', store);
 
     expect(fs.existsSync(path.join(sessionDir, 'session-session-work'))).toBe(false);
     expect(fs.existsSync(path.join(sessionDir, 'session-work'))).toBe(true);
@@ -115,13 +115,13 @@ describe('config store', () => {
     expect(cacheDir).toBe(path.join(process.cwd(), '.wwebjs_cache'));
   });
 
-  it('removes the WhatsApp web cache directory', () => {
+  it('removes the WhatsApp web cache directory', async () => {
     const cacheDir = getWhatsAppCacheDir();
     fs.mkdirSync(cacheDir, { recursive: true });
     fs.writeFileSync(path.join(cacheDir, 'test-cache-entry'), 'data');
     expect(fs.existsSync(cacheDir)).toBe(true);
 
-    removeWhatsAppCacheData();
+    await removeWhatsAppCacheData();
 
     expect(fs.existsSync(cacheDir)).toBe(false);
   });
@@ -172,12 +172,12 @@ describe('config store', () => {
     expect(() => setActiveWhatsAppAccount('   ', store)).toThrow('empty');
   });
 
-  it('rejects unsafe WhatsApp account names', () => {
+  it('rejects unsafe WhatsApp account names', async () => {
     const store = createTempStore();
 
     expect(() => setActiveWhatsAppAccount('../outside', store)).toThrow('may only contain');
     expect(() => setActiveWhatsAppAccount('my account', store)).toThrow('may only contain');
-    expect(() => removeWhatsAppSessionAccount('../outside', store)).toThrow('may only contain');
+    await expect(removeWhatsAppSessionAccount('../outside', store)).rejects.toThrow('may only contain');
   });
 
   it('lists WhatsApp accounts from session directory', () => {

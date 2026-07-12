@@ -139,15 +139,17 @@ export class ReplyAutomation {
         this.activeBatches.set(chatId, batch);
       }
 
-      batch.timer = setTimeout(() => {
-        const currentBatch = batch!;
-        if (currentBatch.processed) {
+      const capturedBatch = batch;
+      capturedBatch.timer = setTimeout(() => {
+        if (capturedBatch.processed) {
           return;
         }
-        currentBatch.processed = true;
+        capturedBatch.processed = true;
         if (this.stopped) {
           this.activeBatches.delete(chatId);
-          currentBatch.resolvers.forEach((r) => r({ status: 'ignored', reason: 'shutting_down' }));
+          for (const r of capturedBatch.resolvers) {
+            try { r({ status: 'ignored', reason: 'shutting_down' }); } catch { /* logs downstream */ }
+          }
           return;
         }
         this.activeBatches.delete(chatId);
@@ -155,7 +157,7 @@ export class ReplyAutomation {
         this.queue
           .add(chatId, () =>
             processIncomingMessageBatch({
-              messages: currentBatch.messages,
+              messages: capturedBatch.messages,
               config: this.config,
               llmProvider: this.llmProvider,
               logger: this.logger,
@@ -167,7 +169,9 @@ export class ReplyAutomation {
             }),
           )
           .then((result) => {
-            currentBatch.resolvers.forEach((r) => r(result));
+            for (const r of capturedBatch.resolvers) {
+              try { r(result); } catch { /* individual resolver errors handled downstream */ }
+            }
           })
           .catch((error) => {
             this.logger.error({ error, chatId }, 'Failed to resolve batch promises');
@@ -206,7 +210,9 @@ export class ReplyAutomation {
             }),
           )
           .then((result) => {
-            batch.resolvers.forEach((r) => r(result));
+            for (const r of batch.resolvers) {
+              try { r(result); } catch { /* individual resolver errors handled downstream */ }
+            }
           })
           .catch((error) => {
             this.logger.error({ error, chatId }, 'Failed to resolve batch promises during shutdown');
@@ -226,7 +232,7 @@ export async function processIncomingMessageBatch(options: {
   logger?: Pick<Logger, 'info'>;
   metrics?: MetricsCollector;
 }): Promise<AutomationResult> {
-  const batchStart = Date.now();
+  const batchStart = performance.now();
   const { config, llmProvider, logger, metrics } = options;
 
   if (options.messages.length === 0) {
@@ -273,7 +279,7 @@ export async function processIncomingMessageBatch(options: {
 
   let reply;
   try {
-    const llmStart = Date.now();
+    const llmStart = performance.now();
     try {
       reply = await llmProvider.generateReply({
         model: config.llm.modelName,
@@ -288,7 +294,7 @@ export async function processIncomingMessageBatch(options: {
         chatName: lastMessage.chatName,
         incomingMessageAuthorName,
       });
-      metrics?.recordLlmCall(Date.now() - llmStart);
+      metrics?.recordLlmCall(Math.round(performance.now() - llmStart));
     } catch (error) {
       metrics?.recordLlmError();
       throw error;
@@ -307,7 +313,7 @@ export async function processIncomingMessageBatch(options: {
     metrics?.recordMessageProcessed();
     return { status: 'sent', reply: reply.text };
   } finally {
-    metrics?.recordProcessingTime(Date.now() - batchStart);
+    metrics?.recordProcessingTime(Math.round(performance.now() - batchStart));
   }
 }
 

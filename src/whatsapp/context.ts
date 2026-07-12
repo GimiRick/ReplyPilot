@@ -27,11 +27,11 @@ export async function fetchChatContext(
 }
 
 export function normalizeChatMessages(messages: WhatsAppRawMessage[]): ChatContextMessage[] {
-  let lastTimestamp = Date.now();
+  let lastTimestamp = 0;
   const messagesWithTime = messages.map((msg) => {
     let timestamp = msg.timestamp;
     if (timestamp !== undefined) {
-      lastTimestamp = timestamp;
+      lastTimestamp = Math.max(lastTimestamp, timestamp);
     } else {
       timestamp = lastTimestamp;
     }

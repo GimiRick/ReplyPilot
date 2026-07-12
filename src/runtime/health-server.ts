@@ -34,9 +34,10 @@ export class HealthServer {
 
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.server.once('error', reject);
+      const onError = (err: Error) => { reject(err); };
+      this.server.once('error', onError);
       this.server.listen(this.port, this.host, () => {
-        this.server.removeAllListeners('error');
+        this.server.off('error', onError);
         resolve();
       });
     });

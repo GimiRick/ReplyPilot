@@ -35,6 +35,9 @@ export type WhatsAppMessageHandler = (message: RuntimeIncomingMessage) => void |
 export class WhatsAppClientAdapter {
   private readonly client: WhatsAppWebClient;
   private messageHandler?: WhatsAppMessageHandler;
+  private readonly onLifecycleQr: (qr: string) => void;
+  private readonly onLifecycleReady: () => void;
+  private readonly onLifecycleDisconnected: (reason: string) => void;
 
   constructor(
     private readonly config: AppConfig,
@@ -55,6 +58,19 @@ export class WhatsAppClientAdapter {
         type: 'none',
       },
     });
+
+    this.onLifecycleQr = (qr) => {
+      this.logger.info('Scan this QR code with WhatsApp linked devices');
+      qrcode.generate(qr, { small: true });
+    };
+    this.onLifecycleReady = () => {
+      this.logger.info('ReplyPilot is connected to WhatsApp');
+    };
+    this.onLifecycleDisconnected = (reason) => {
+      if (reason !== 'LOGOUT') {
+        this.logger.warn({ reason }, 'WhatsApp client disconnected');
+      }
+    };
 
     this.registerLifecycleEvents();
   }
@@ -88,24 +104,20 @@ export class WhatsAppClientAdapter {
   }
 
   async stop(): Promise<void> {
+    this.unregisterLifecycleEvents();
     await this.client.destroy();
   }
 
   private registerLifecycleEvents(): void {
-    this.client.on('qr', (qr) => {
-      this.logger.info('Scan this QR code with WhatsApp linked devices');
-      qrcode.generate(qr, { small: true });
-    });
+    this.client.on('qr', this.onLifecycleQr);
+    this.client.on('ready', this.onLifecycleReady);
+    this.client.on('disconnected', this.onLifecycleDisconnected);
+  }
 
-    this.client.on('ready', () => {
-      this.logger.info('ReplyPilot is connected to WhatsApp');
-    });
-
-    this.client.on('disconnected', (reason) => {
-      if (reason !== 'LOGOUT') {
-        this.logger.warn({ reason }, 'WhatsApp client disconnected');
-      }
-    });
+  private unregisterLifecycleEvents(): void {
+    this.client.off('qr', this.onLifecycleQr);
+    this.client.off('ready', this.onLifecycleReady);
+    this.client.off('disconnected', this.onLifecycleDisconnected);
   }
 
   private async handleMessage(message: Message): Promise<void> {
@@ -403,7 +415,8 @@ export async function loginWhatsAppAccount(
       settled = true;
       clearTimeout(timeout);
       client.destroy().catch(() => {});
-      reject(new Error(`WhatsApp authentication failed: ${msg}`));
+      const authMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      reject(new Error(`WhatsApp authentication failed: ${authMsg}`));
     });
 
     client.on('disconnected', (reason) => {

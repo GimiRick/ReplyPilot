@@ -139,10 +139,10 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       deps.clearActiveWhatsAppAccount();
       deps.output('All configurations deleted.');
 
-      deps.removeWhatsAppSessionData();
+      await deps.removeWhatsAppSessionData();
       deps.output('All WhatsApp accounts removed.');
 
-      deps.removeWhatsAppCacheData();
+      await deps.removeWhatsAppCacheData();
       deps.output('WhatsApp web client cache cleared.');
 
       deps.output('ReplyPilot has been fully cleared.');
@@ -361,7 +361,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
           return;
         }
 
-        deps.removeWhatsAppSessionAccount(accountName);
+        await deps.removeWhatsAppSessionAccount(accountName);
         if (deps.getActiveWhatsAppAccount() === accountName) {
           deps.clearActiveWhatsAppAccount();
         }
@@ -388,7 +388,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
           return;
         }
 
-        deps.removeWhatsAppSessionData();
+        await deps.removeWhatsAppSessionData();
         deps.clearActiveWhatsAppAccount();
         deps.output('All WhatsApp session data removed.');
       } else {
@@ -402,7 +402,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
           return;
         }
 
-        deps.removeWhatsAppSessionAccount(action);
+        await deps.removeWhatsAppSessionAccount(action);
         if (deps.getActiveWhatsAppAccount() === action) {
           deps.clearActiveWhatsAppAccount();
         }

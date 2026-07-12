@@ -476,51 +476,6 @@ describe('CLI commands', () => {
     expect(deps.setActiveWhatsAppAccount).toHaveBeenCalledWith('personal');
     expect(output).toContain('Switched to WhatsApp account: personal');
   });
-
-  it('reports missing config on calibrate', async () => {
-    const { program, output } = makeProgram({
-      tryLoadConfig: vi.fn(() => undefined),
-    });
-
-    await program.parseAsync(['node', 'replypilot', 'calibrate']);
-
-    expect(output.join(' | ')).toContain('No saved configuration found');
-  });
-
-  it('reports missing WhatsApp account on calibrate', async () => {
-    const { program, output } = makeProgram({
-      getActiveWhatsAppAccount: vi.fn(() => undefined),
-    });
-
-    await program.parseAsync(['node', 'replypilot', 'calibrate']);
-
-    expect(output.join(' | ')).toContain('No WhatsApp account found');
-  });
-
-  it('runs calibrate and reports done', async () => {
-    const { program, output, deps } = makeProgram({
-      getActiveWhatsAppAccount: vi.fn(() => 'default'),
-    });
-
-    await program.parseAsync(['node', 'replypilot', 'calibrate']);
-
-    expect(deps.calibrateWhatsApp).toHaveBeenCalled();
-    expect(output.join(' | ')).toContain('Calibration complete');
-  });
-
-  it('handles calibrate failure gracefully', async () => {
-    const { program, output } = makeProgram({
-      getActiveWhatsAppAccount: vi.fn(() => 'default'),
-      calibrateWhatsApp: vi.fn(async () => {
-        throw new Error('Connection refused');
-      }),
-    });
-
-    await program.parseAsync(['node', 'replypilot', 'calibrate']);
-
-    expect(output).toContain('Connection refused');
-    expect(output.join(' | ')).not.toContain('Calibration complete');
-  });
 });
 
 function makeProgram(overrides: Partial<CliDependencies> = {}) {
@@ -542,10 +497,6 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
       ok: true,
       checks: [{ name: 'Node.js', status: 'pass' as const, message: 'Node is supported.' }],
     })),
-    calibrateWhatsApp: vi.fn(async (_name: string | undefined, _logger: Logger) => {
-      void _name;
-      void _logger;
-    }),
     loginWhatsAppAccount: vi.fn(async (_name: string, _logger: Logger) => {
       void _name;
       void _logger;

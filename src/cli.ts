@@ -27,7 +27,7 @@ import {
 } from './config/store';
 import { redactConfig } from './config/schema';
 import { runSetupWizard } from './config/setup';
-import { calibrateWhatsApp, loginWhatsAppAccount } from './whatsapp/client';
+import { loginWhatsAppAccount } from './whatsapp/client';
 import { createLogger } from './runtime/logger';
 
 export type CliDependencies = {
@@ -44,7 +44,6 @@ export type CliDependencies = {
   clearActiveWhatsAppAccount: typeof clearActiveWhatsAppAccount;
   removeWhatsAppCacheData: typeof removeWhatsAppCacheData;
   runDoctor: typeof runDoctor;
-  calibrateWhatsApp: typeof calibrateWhatsApp;
   loginWhatsAppAccount: typeof loginWhatsAppAccount;
   getActiveWhatsAppAccount: typeof getActiveWhatsAppAccount;
   setActiveWhatsAppAccount: typeof setActiveWhatsAppAccount;
@@ -78,7 +77,6 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     clearActiveWhatsAppAccount,
     removeWhatsAppCacheData,
     runDoctor,
-    calibrateWhatsApp,
     loginWhatsAppAccount,
     getActiveWhatsAppAccount,
     setActiveWhatsAppAccount,
@@ -207,38 +205,6 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       deps.output(formatDoctorReport(report));
 
       if (!report.ok) {
-        process.exitCode = 1;
-      }
-    });
-
-  program
-    .command('calibrate')
-    .description(
-      'Download browser files, sync WhatsApp, and prepare ReplyPilot for first use.',
-    )
-    .action(async () => {
-      const existingConfig = deps.tryLoadConfig();
-      if (!existingConfig) {
-        deps.error('No saved configuration found. Run replypilot setup first.');
-        process.exitCode = 1;
-        return;
-      }
-
-      const accountName = deps.getActiveWhatsAppAccount();
-      if (!accountName) {
-        deps.error('No WhatsApp account found. Run replypilot login first.');
-        process.exitCode = 1;
-        return;
-      }
-
-      try {
-        deps.output('Calibration started. This may take a few minutes on first run...');
-        const logger = createLogger('info');
-        const loginDelayMs = existingConfig.whatsapp?.loginDelayMs ?? 500;
-        await deps.calibrateWhatsApp(accountName, logger, loginDelayMs);
-        deps.output('Calibration complete. You can now use replypilot start.');
-      } catch (error) {
-        deps.error(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     });
@@ -379,8 +345,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       const accounts = deps.listWhatsAppAccounts();
 
       if (accounts.length === 0) {
-        deps.error('No WhatsApp accounts to logout.');
-        process.exitCode = 1;
+        deps.output('No WhatsApp accounts to logout.');
         return;
       }
 

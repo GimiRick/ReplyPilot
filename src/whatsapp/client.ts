@@ -71,9 +71,6 @@ export class WhatsAppClientAdapter {
         this.logger.warn({ reason }, 'WhatsApp client disconnected');
       }
     };
-    this.client.on('loading_screen', (_percent, message) => {
-      this.logger.info(`${message}...`);
-    });
   }
 
   private boundOnMessage: ((message: Message) => void) | undefined;
@@ -98,7 +95,6 @@ export class WhatsAppClientAdapter {
     this.client.on('message', this.boundOnMessage);
 
     try {
-      this.logger.info('Downloading browser and connecting to WhatsApp...');
       await this.client.initialize();
     } catch (error) {
       await this.client.destroy().catch(() => {});
@@ -358,18 +354,12 @@ function isBroadcastMessage(message: Message, chatId: string): boolean {
   );
 }
 
-type SessionMessages = {
-  ready: string;
-  timeout: string;
-  disconnect: string;
-};
-
-async function initializeAndFinalizeSession(
-  clientId: string,
+export async function loginWhatsAppAccount(
+  accountName: string,
   logger: Logger,
-  messages: SessionMessages,
-  loginDelayMs: number,
+  loginDelayMs: number = 500,
 ): Promise<void> {
+  const clientId = validateWhatsAppAccountName(accountName);
   const client = new Client({
     authStrategy: new LocalAuth({
       clientId,
@@ -395,7 +385,7 @@ async function initializeAndFinalizeSession(
       }
       settled = true;
       client.destroy().catch(() => {});
-      reject(new Error(messages.timeout));
+      reject(new Error('Login timed out after 120 seconds.'));
     }, 120_000);
 
     client.on('qr', (qr) => {
@@ -403,38 +393,17 @@ async function initializeAndFinalizeSession(
       qrcode.generate(qr, { small: true });
     });
 
-    client.on('loading_screen', (_percent, message) => {
-      logger.info(`${message}...`);
-    });
-
-    client.on('ready', async () => {
+    client.on('ready', () => {
       clearTimeout(timeout);
       authenticated = true;
-      logger.info(messages.ready);
-      setTimeout(async () => {
+      logger.info(`WhatsApp account "${clientId}" authenticated and saved.`);
+      setTimeout(() => {
         if (settled) {
           return;
         }
         settled = true;
-
-        // Flag to prevent the framenavigated handler from calling authStrategy.logout()
-        // which would delete the session directory
-        // @ts-expect-error - pendingLogout is a runtime patch on whatasapp-web.js Client
-        client.pendingLogout = true;
-
-        // Navigate to about:blank before destroying the browser to allow WhatsApp Web
-        // to cleanly unload and flush its internal state (IndexedDB, localStorage, etc.)
-        try {
-          const page = client.pupPage;
-          if (page) {
-            await page.goto('about:blank', { waitUntil: 'load', timeout: 10000 }).catch(() => {});
-          }
-        } catch {
-          // Navigate succeeded or page already closed; either way, continue with destroy
-        }
-
-        await client.destroy().catch(() => {});
         resolve();
+        client.destroy().catch(() => {});
       }, loginDelayMs);
     });
 
@@ -456,10 +425,9 @@ async function initializeAndFinalizeSession(
       settled = true;
       clearTimeout(timeout);
       client.destroy().catch(() => {});
-      reject(new Error(messages.disconnect + reason));
+      reject(new Error(`WhatsApp disconnected during login: ${reason}`));
     });
 
-    logger.info('Downloading browser and connecting to WhatsApp...');
     client.initialize().catch((err: unknown) => {
       if (settled) {
         return;
@@ -470,31 +438,4 @@ async function initializeAndFinalizeSession(
       reject(err instanceof Error ? err : new Error(String(err)));
     });
   });
-}
-
-export async function calibrateWhatsApp(
-  accountName: string | undefined,
-  logger: Logger,
-  loginDelayMs: number = 500,
-): Promise<void> {
-  const clientId = accountName ? validateWhatsAppAccountName(accountName) : 'default';
-  logger.info('Calibrating ReplyPilot. This may take a few minutes on first run...');
-  await initializeAndFinalizeSession(clientId, logger, {
-    ready: 'WhatsApp session ready.',
-    timeout: 'Calibration timed out after 120 seconds.',
-    disconnect: 'WhatsApp disconnected during calibration: ',
-  }, loginDelayMs);
-}
-
-export async function loginWhatsAppAccount(
-  accountName: string,
-  logger: Logger,
-  loginDelayMs: number = 500,
-): Promise<void> {
-  const clientId = validateWhatsAppAccountName(accountName);
-  await initializeAndFinalizeSession(clientId, logger, {
-    ready: `WhatsApp account "${clientId}" authenticated and saved.`,
-    timeout: 'Login timed out after 120 seconds.',
-    disconnect: 'WhatsApp disconnected during login: ',
-  }, loginDelayMs);
 }

@@ -150,7 +150,7 @@ describe('startAutomation', () => {
 
   it('exits with code 1 when shutdown times out', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
-    const processExit = vi.spyOn(process, 'exit').mockImplementation(() => {});
+    const processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as () => never);
 
     const stopMock = vi.fn().mockReturnValue(new Promise(() => {}));
     mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {

@@ -54,6 +54,8 @@ export type ReplyAutomationOptions = {
   metrics?: MetricsCollector;
 };
 
+const MAX_ACTIVE_BATCHES = 5_000;
+
 export class ReplyAutomation {
   private readonly config: AppConfig;
   private readonly llmProvider: LlmProvider;
@@ -71,7 +73,7 @@ export class ReplyAutomation {
     this.queue =
       options.queue ??
       new MessageQueue({
-        globalConcurrency: 2,
+        globalConcurrency: 1,
         perChatConcurrency: 1,
         maxCallsPerMinute: options.config.automation.maxCallsPerMinute,
       });
@@ -106,6 +108,15 @@ export class ReplyAutomation {
       this.metrics.recordMessageIgnored();
       this.logger.debug({ messageId: message.id }, 'Ignoring duplicate WhatsApp message');
       return Promise.resolve({ status: 'ignored', reason: 'duplicate' });
+    }
+
+    if (this.activeBatches.size >= MAX_ACTIVE_BATCHES) {
+      this.metrics.recordMessageIgnored();
+      this.logger.warn(
+        { chatId: message.chatId, activeBatches: this.activeBatches.size },
+        'Ignoring message, too many active chat batches',
+      );
+      return Promise.resolve({ status: 'ignored', reason: 'too_many_chats' });
     }
 
     const chatId = message.chatId;
@@ -349,6 +360,7 @@ export async function startAutomation(
       logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
       process.exit(0);
     }, config.automation.shutdownTimeoutMs);
+    forceExitTimer.unref();
 
     try {
       await automation.stop();

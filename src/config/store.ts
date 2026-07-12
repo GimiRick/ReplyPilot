@@ -111,6 +111,20 @@ export function hasConfig(
   return name in configs;
 }
 
+function applyEnvOverrides(config: AppConfig): AppConfig {
+  const envApiKey = process.env.OPENAI_API_KEY?.trim();
+  const envBaseUrl = process.env.OPENAI_BASE_URL?.trim();
+  if (!envApiKey && !envBaseUrl) return config;
+  return {
+    ...config,
+    llm: {
+      ...config.llm,
+      ...(envApiKey ? { apiKey: envApiKey } : {}),
+      ...(envBaseUrl ? { baseUrl: envBaseUrl } : {}),
+    },
+  };
+}
+
 export function loadConfig(
   configName?: string,
   store: ReplyPilotConfigStore = getConfigStore(),
@@ -126,7 +140,7 @@ export function loadConfig(
     throw new MissingConfigError();
   }
 
-  return parseAppConfig(configs[name]);
+  return applyEnvOverrides(parseAppConfig(configs[name]));
 }
 
 export function tryLoadConfig(

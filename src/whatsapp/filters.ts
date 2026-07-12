@@ -21,7 +21,8 @@ export type IgnoreReason =
   | 'voice_note_ignored'
   | 'status_broadcast'
   | 'archived'
-  | 'shutting_down';
+  | 'shutting_down'
+  | 'too_many_chats';
 
 export function getIgnoreReason(
   message: FilterableWhatsAppMessage,

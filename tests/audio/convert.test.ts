@@ -115,7 +115,7 @@ describe('oggToMp3', () => {
 
     ff.emitError(new Error('ENOENT'));
 
-    await expect(promise).rejects.toThrow('ffmpeg spawn failed: ENOENT');
+    await expect(promise).rejects.toThrow('ffmpeg not found. Install it');
   });
 
   it('rejects partial output when ffmpeg exits with non-zero after stdout end', async () => {

@@ -170,11 +170,20 @@ function withTimeout<T>(
     }, timeoutMs);
   });
 
-  promise.catch((err) => {
-    if (timedOut) {
-      logger?.warn({ err }, 'LLM response arrived after timeout, discarding');
-    }
-  });
+  const loser = promise
+    .then(
+      () => {
+        if (timedOut) {
+          logger?.warn('LLM response arrived after timeout, discarding');
+        }
+      },
+      (err) => {
+        if (timedOut) {
+          logger?.warn({ err }, 'LLM response arrived after timeout, discarding');
+        }
+      },
+    )
+    .catch(() => {});
 
   return Promise.race([promise, timeout]).finally(() => {
     if (timer) clearTimeout(timer);

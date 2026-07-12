@@ -81,6 +81,28 @@ describe('OpenAiCompatibleProvider', () => {
     await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderTimeoutError);
   });
 
+  it('discards LLM response that arrives after timeout without crashing', async () => {
+    const logger = { warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+    const create = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return { choices: [{ message: { content: 'Too late' } }] };
+    });
+    const provider = new OpenAiCompatibleProvider({
+      provider: 'custom',
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'secret',
+      timeoutMs: 1,
+      maxRetries: 0,
+      logger: logger as never,
+      client: { chat: { completions: { create } } },
+    });
+
+    await expect(provider.generateReply(makeInput())).rejects.toThrow(ProviderTimeoutError);
+
+    // Wait for late promise to settle — the loser chain must suppress it without crash
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+
   it('retries 429 rate-limited errors', async () => {
     const create = vi
       .fn()

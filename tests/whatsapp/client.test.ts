@@ -23,6 +23,16 @@ const mocks = vi.hoisted(() => {
       this.handlers.set(event, existing);
     }
 
+    removeListener(event: string, handler: ClientHandler): void {
+      const existing = this.handlers.get(event);
+      if (existing) {
+        const idx = existing.indexOf(handler);
+        if (idx !== -1) {
+          existing.splice(idx, 1);
+        }
+      }
+    }
+
     emit(event: string, ...args: unknown[]): void {
       for (const handler of this.handlers.get(event) ?? []) {
         handler(...args);
@@ -60,6 +70,29 @@ vi.mock('node:module', () => ({
     throw new Error(`Unexpected require: ${specifier}`);
   },
 }));
+
+describe('WhatsAppClientAdapter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    mocks.setLatestClient(undefined);
+  });
+
+  it('replaces message listener on duplicate start() calls instead of stacking', async () => {
+    const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+    const { makeConfig } = await import('../fixtures/app-config');
+    const adapter = new WhatsAppClientAdapter(makeConfig(), createLogger('error'), 'test');
+    const client = mocks.getLatestClient()!;
+
+    await adapter.start();
+    expect(client.handlers.get('message')?.length).toBe(1);
+
+    await adapter.start();
+    expect(client.handlers.get('message')?.length).toBe(1);
+
+    await adapter.stop();
+  });
+});
 
 describe('loginWhatsAppAccount', () => {
   beforeEach(() => {

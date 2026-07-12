@@ -415,6 +415,86 @@ describe('config store', () => {
     expect(loaded.personality.ownerStylePrompt).toBe(longPrompt);
     expect(loaded.personality.ownerStylePrompt.length).toBe(longPrompt.length);
   });
+
+  it('applies OPENAI_API_KEY and OPENAI_BASE_URL environment variables', () => {
+    const store = createTempStore();
+    const configKey = 'with-default-keys';
+    const defaultApiKey = 'default-key';
+    const defaultBaseUrl = 'https://default.example/v1';
+
+    saveConfig(
+      makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }),
+      configKey,
+      store,
+    );
+
+    process.env.OPENAI_API_KEY = 'env-override-key';
+    process.env.OPENAI_BASE_URL = 'https://env-override.example/v1';
+
+    try {
+      const loaded = loadConfig(configKey, store);
+
+      expect(loaded.llm.apiKey).toBe('env-override-key');
+      expect(loaded.llm.baseUrl).toBe('https://env-override.example/v1');
+    } finally {
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.OPENAI_BASE_URL;
+    }
+  });
+
+  it('applies only OPENAI_API_KEY env var when BASE_URL is not set', () => {
+    const store = createTempStore();
+    const defaultApiKey = 'default-key';
+    const defaultBaseUrl = 'https://default.example/v1';
+
+    saveConfig(makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }), 'key-only', store);
+
+    process.env.OPENAI_API_KEY = 'api-key-override';
+    delete process.env.OPENAI_BASE_URL;
+
+    try {
+      const loaded = loadConfig('key-only', store);
+
+      expect(loaded.llm.apiKey).toBe('api-key-override');
+      expect(loaded.llm.baseUrl).toBe(defaultBaseUrl);
+    } finally {
+      delete process.env.OPENAI_API_KEY;
+    }
+  });
+
+  it('skips env var overrides when neither variable is set', () => {
+    const store = createTempStore();
+    const defaultApiKey = 'default-key';
+    const defaultBaseUrl = 'https://default.example/v1';
+
+    saveConfig(makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }), 'no-env', store);
+
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_BASE_URL;
+
+    const loaded = loadConfig('no-env', store);
+
+    expect(loaded.llm.apiKey).toBe(defaultApiKey);
+    expect(loaded.llm.baseUrl).toBe(defaultBaseUrl);
+  });
+
+  it('trims whitespace from env var overrides', () => {
+    const store = createTempStore();
+    saveConfig(makeConfig({ llm: { apiKey: 'key', baseUrl: 'https://example.com/v1' } }), 'trim', store);
+
+    process.env.OPENAI_API_KEY = '  trimmed-key  ';
+    process.env.OPENAI_BASE_URL = '  https://trimmed.example/v1  ';
+
+    try {
+      const loaded = loadConfig('trim', store);
+
+      expect(loaded.llm.apiKey).toBe('trimmed-key');
+      expect(loaded.llm.baseUrl).toBe('https://trimmed.example/v1');
+    } finally {
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.OPENAI_BASE_URL;
+    }
+  });
 });
 
 let tempDirs: string[] = [];

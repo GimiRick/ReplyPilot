@@ -20,8 +20,14 @@ export type MetricsSnapshot = {
   };
 };
 
+const HR_TIME_ORIGIN = process.hrtime.bigint();
+
+function elapsedSeconds(origin: bigint = HR_TIME_ORIGIN): number {
+  return Number(process.hrtime.bigint() - origin) / 1e9;
+}
+
 export class MetricsCollector {
-  private startTime = Date.now();
+  private uptimeOrigin = HR_TIME_ORIGIN;
   private messagesReceived = 0;
   private messagesIgnored = 0;
   private messagesProcessed = 0;
@@ -79,7 +85,7 @@ export class MetricsCollector {
   }
 
   reset(): void {
-    this.startTime = Date.now();
+    this.uptimeOrigin = process.hrtime.bigint();
     this.messagesReceived = 0;
     this.messagesIgnored = 0;
     this.messagesProcessed = 0;
@@ -96,7 +102,7 @@ export class MetricsCollector {
   }
 
   snapshot(): MetricsSnapshot {
-    const uptime = Math.floor((Date.now() - this.startTime) / 1000);
+    const uptime = Math.floor(elapsedSeconds(this.uptimeOrigin));
     return {
       uptimeSeconds: uptime,
       messagesReceived: this.messagesReceived,

@@ -112,4 +112,30 @@ describe('MetricsCollector', () => {
     expect(snap.processingTimeMs.count).toBe(0);
     expect(snap.uptimeSeconds).toBeLessThanOrEqual(1);
   });
+
+  it('uptime is monotonic and never decreases between snapshots', async () => {
+    const metrics = new MetricsCollector();
+
+    const s1 = metrics.snapshot().uptimeSeconds;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const s2 = metrics.snapshot().uptimeSeconds;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const s3 = metrics.snapshot().uptimeSeconds;
+
+    expect(s2).toBeGreaterThanOrEqual(s1);
+    expect(s3).toBeGreaterThanOrEqual(s2);
+  });
+
+  it('reset makes uptime restart from near zero', () => {
+    const metrics = new MetricsCollector();
+
+    metrics.recordMessageReceived();
+    metrics.recordMessageReceived();
+    const beforeReset = metrics.snapshot().uptimeSeconds;
+    metrics.reset();
+    const afterReset = metrics.snapshot().uptimeSeconds;
+
+    expect(afterReset).toBeLessThanOrEqual(1);
+    expect(afterReset).toBeLessThanOrEqual(beforeReset);
+  });
 });

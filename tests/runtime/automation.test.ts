@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ReplyAutomation,
   processIncomingMessageBatch,
+  type AutomationResult,
   type RuntimeIncomingMessage,
 } from '../../src/runtime/automation';
 import { type GenerateReplyInput, type LlmProvider } from '../../src/llm/provider';
@@ -290,6 +291,56 @@ describe('runtime message processing', () => {
     ]);
 
     expect(maxActive).toBe(2);
+  });
+
+  it('limits concurrent processing to 1 by default when no custom queue', async () => {
+    let active = 0;
+    let maxActive = 0;
+    const provider: LlmProvider = {
+      generateReply: vi.fn(async (input) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        return { text: input.incomingMessage, provider: 'test', model: input.model };
+      }),
+    };
+    const automation = new ReplyAutomation({
+      config: makeConfig({ automation: { debounceMs: 0 } }),
+      llmProvider: provider,
+      logger: makeLogger(),
+    });
+
+    await Promise.all([
+      automation.handleIncomingMessage(makeMessage({ id: '1', body: 'one', chatId: 'chat-a' })),
+      automation.handleIncomingMessage(makeMessage({ id: '2', body: 'two', chatId: 'chat-b' })),
+      automation.handleIncomingMessage(makeMessage({ id: '3', body: 'three', chatId: 'chat-c' })),
+    ]);
+
+    expect(maxActive).toBe(1);
+  });
+
+  it('ignores messages when active batch limit is reached', { timeout: 30_000 }, async () => {
+    const automation = new ReplyAutomation({
+      config: makeConfig({ automation: { debounceMs: 0 } }),
+      llmProvider: makeProvider('ignored'),
+      logger: makeLogger(),
+    });
+
+    const promises: Promise<AutomationResult>[] = [];
+    for (let i = 0; i < 5_001; i++) {
+      promises.push(automation.handleIncomingMessage(makeMessage({ id: `m${i}`, chatId: `chat-${i}` })));
+    }
+
+    const results = await Promise.all(promises);
+
+    const tooManyChats = results.filter(
+      (r): r is { status: 'ignored'; reason: string } => r.status === 'ignored',
+    );
+    expect(tooManyChats.length).toBe(1);
+    expect(tooManyChats[0].reason).toBe('too_many_chats');
+
+    await automation.stop();
   });
 
   it('flushes pending debounced messages when stopped before timer fires', async () => {

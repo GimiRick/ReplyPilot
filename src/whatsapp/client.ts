@@ -59,19 +59,25 @@ export class WhatsAppClientAdapter {
     this.registerLifecycleEvents();
   }
 
+  private boundOnMessage: ((message: Message) => void) | undefined;
+
   onMessage(handler: WhatsAppMessageHandler): void {
     this.messageHandler = handler;
   }
 
   async start(): Promise<void> {
-    this.client.on('message', (message) => {
+    if (this.boundOnMessage) {
+      this.client.removeListener('message', this.boundOnMessage);
+    }
+    this.boundOnMessage = (message) => {
       this.handleMessage(message).catch((error) => {
         this.logger.error(
           { error, messageId: message.id?._serialized },
           'WhatsApp message handler failed',
         );
       });
-    });
+    };
+    this.client.on('message', this.boundOnMessage);
 
     try {
       await this.client.initialize();

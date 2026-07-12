@@ -52,7 +52,10 @@ export async function oggToMp3(oggBase64: string): Promise<string> {
     });
 
     ffmpeg.on('error', (err) => {
-      settle(() => reject(new Error(`ffmpeg spawn failed: ${err.message}`)));
+      const hint = err.message.includes('ENOENT')
+        ? 'ffmpeg not found. Install it: https://ffmpeg.org/download.html'
+        : `ffmpeg error: ${err.message}`;
+      settle(() => reject(new Error(hint)));
     });
 
     ffmpeg.on('close', (code, signal) => {

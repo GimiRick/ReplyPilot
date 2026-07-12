@@ -407,7 +407,7 @@ async function initializeAndFinalizeSession(
       logger.info(`${message}...`);
     });
 
-    client.on('ready', () => {
+    client.on('ready', async () => {
       clearTimeout(timeout);
       authenticated = true;
       logger.info(messages.ready);
@@ -416,6 +416,24 @@ async function initializeAndFinalizeSession(
           return;
         }
         settled = true;
+
+        // Flag to prevent the framenavigated handler from calling authStrategy.logout()
+        // which would delete the session directory
+        // @ts-expect-error - pendingLogout is a runtime patch on whatasapp-web.js Client
+        client.pendingLogout = true;
+
+        // Navigate to about:blank before destroying the browser to allow WhatsApp Web
+        // to cleanly unload and flush its internal state (IndexedDB, localStorage, etc.)
+        try {
+          // @ts-expect-error - pupPage is an internal property on whatasapp-web.js Client
+          const page = client.pupPage;
+          if (page) {
+            await page.goto('about:blank', { waitUntil: 'load', timeout: 10000 }).catch(() => {});
+          }
+        } catch {
+          // Navigate succeeded or page already closed; either way, continue with destroy
+        }
+
         await client.destroy().catch(() => {});
         resolve();
       }, loginDelayMs);

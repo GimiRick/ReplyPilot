@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.3.4-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.3.2-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/total](https://img.shields.io/npm/dt/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
@@ -45,14 +45,6 @@ npm uninstall gimirick-replypilot
 ```
 
 [npm package](https://www.npmjs.com/package/gimirick-replypilot)
-
-### Updating
-
-```bash
-npm update -g gimirick-replypilot
-```
-
-Updates the globally installed version to the latest release.
 
 ### Troubleshooting
 
@@ -479,16 +471,16 @@ These settings are not exposed in the setup wizard, but can be added directly to
 ```json
 {
   "whatsapp": {
-    "loginDelayMs": 5000
+    "loginDelayMs": 500
   }
 }
 ```
 
 Controls how long (in milliseconds) the app waits after WhatsApp confirms it's ready before completing the login process. This delay ensures the session data is saved to disk.
 
-- **Default:** `5000` (5 seconds)
+- **Default:** `500` (0.5 seconds)
 - **Range:** `0` – `30,000`
-- **Increase** (e.g., `10000`) if you keep getting QR code prompts on every login (slow I/O).
+- **Increase** (e.g., `2000`) if you keep getting QR code prompts on every login (slow I/O).
 - **Decrease** (e.g., `0`) to log in faster, at the risk of the session not persisting.
 
 ### Shutdown Timeout

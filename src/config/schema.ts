@@ -42,7 +42,7 @@ export const appConfigSchema = z
       allowGroups: z.boolean().default(false),
       allowBroadcasts: z.boolean().default(false),
       allowArchived: z.boolean().default(false),
-      loginDelayMs: z.number().int().min(0).max(30_000).default(5000),
+      loginDelayMs: z.number().int().min(0).max(30_000).default(500),
     }),
     llm: z.object({
       provider: providerSchema,
@@ -102,7 +102,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     allowGroups: false,
     allowBroadcasts: false,
     allowArchived: false,
-    loginDelayMs: 5000,
+    loginDelayMs: 500,
   },
   llm: {
     provider: 'lmstudio',

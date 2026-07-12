@@ -519,7 +519,7 @@ describe('CLI commands', () => {
     await program.parseAsync(['node', 'replypilot', 'calibrate']);
 
     expect(output).toContain('Connection refused');
-    expect(output).not.toContain('Calibration complete');
+    expect(output.join(' | ')).not.toContain('Calibration complete');
   });
 });
 

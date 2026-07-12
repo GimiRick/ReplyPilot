@@ -168,6 +168,129 @@ describe('loginWhatsAppAccount', () => {
   });
 });
 
+describe('calibrateWhatsApp', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    mocks.setLatestClient(undefined);
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('resolves when session is ready', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    const calibratePromise = calibrateWhatsApp('default', logger);
+    const client = mocks.getLatestClient();
+    expect(client).toBeDefined();
+
+    client!.emit('ready');
+    await vi.advanceTimersByTimeAsync(500);
+
+    await expect(calibratePromise).resolves.toBeUndefined();
+    expect(client!.destroy).toHaveBeenCalled();
+  });
+
+  it('rejects when disconnected happens before authentication', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    const calibratePromise = calibrateWhatsApp('default', logger);
+    const client = mocks.getLatestClient();
+
+    client!.emit('disconnected', 'NAVIGATION');
+
+    await expect(calibratePromise).rejects.toThrow('WhatsApp disconnected during calibration: NAVIGATION');
+  });
+
+  it('destroys client when initialize fails', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    mocks.Client.mockImplementationOnce(function Client(
+      this: InstanceType<typeof mocks.MockWhatsAppClient>,
+    ) {
+      const client = new mocks.MockWhatsAppClient();
+      client.initialize = vi.fn(async () => {
+        throw new Error('browser missing');
+      });
+      mocks.setLatestClient(client);
+      return client;
+    });
+
+    const calibratePromise = calibrateWhatsApp('default', logger);
+    const client = mocks.getLatestClient();
+
+    await expect(calibratePromise).rejects.toThrow('browser missing');
+    expect(client!.destroy).toHaveBeenCalled();
+  });
+
+  it('uses default clientId when accountName is undefined', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    const calibratePromise = calibrateWhatsApp(undefined, logger);
+    const client = mocks.getLatestClient();
+    expect(client).toBeDefined();
+
+    client!.emit('ready');
+    await vi.advanceTimersByTimeAsync(500);
+
+    await expect(calibratePromise).resolves.toBeUndefined();
+    expect(mocks.LocalAuth).toHaveBeenCalledWith(
+      expect.objectContaining({ clientId: 'default' }),
+    );
+  });
+
+  it('rejects on auth_failure', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    const calibratePromise = calibrateWhatsApp('default', logger);
+    const client = mocks.getLatestClient();
+
+    client!.emit('auth_failure', 'invalid_token');
+
+    await expect(calibratePromise).rejects.toThrow('WhatsApp authentication failed: invalid_token');
+  });
+
+  it('rejects unsafe account name before creating a WhatsApp client', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    await expect(calibrateWhatsApp('../outside', logger)).rejects.toThrow('may only contain');
+    expect(mocks.Client).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty account name before creating a WhatsApp client', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    await expect(calibrateWhatsApp('  ', logger)).rejects.toThrow('cannot be empty');
+    expect(mocks.Client).not.toHaveBeenCalled();
+  });
+
+  it('uses custom loginDelayMs when provided', async () => {
+    const { calibrateWhatsApp } = await import('../../src/whatsapp/client');
+    const logger = createLogger('error');
+
+    const calibratePromise = calibrateWhatsApp('default', logger, 2000);
+    const client = mocks.getLatestClient();
+    expect(client).toBeDefined();
+
+    client!.emit('ready');
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(client!.destroy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(calibratePromise).resolves.toBeUndefined();
+  });
+});
+
 describe('downloadMediaWithRetry', () => {
   beforeEach(() => {
     vi.useFakeTimers();

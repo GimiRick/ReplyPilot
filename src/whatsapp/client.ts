@@ -43,6 +43,7 @@ export class WhatsAppClientAdapter {
     private readonly config: AppConfig,
     private readonly logger: Logger,
     sessionName?: string,
+    private readonly warmupMs: number = 10000,
   ) {
     this.client = new Client({
       authStrategy: new LocalAuth({
@@ -81,6 +82,17 @@ export class WhatsAppClientAdapter {
 
   async start(): Promise<void> {
     this.registerLifecycleEvents();
+
+    try {
+      await this.client.initialize();
+    } catch (error) {
+      await this.client.destroy().catch(() => {});
+      throw error;
+    }
+
+    this.logger.info('Warming up WhatsApp Web connection...');
+    await new Promise((resolve) => setTimeout(resolve, this.warmupMs));
+
     if (this.boundOnMessage) {
       this.client.removeListener('message', this.boundOnMessage);
     }
@@ -93,13 +105,6 @@ export class WhatsAppClientAdapter {
       });
     };
     this.client.on('message', this.boundOnMessage);
-
-    try {
-      await this.client.initialize();
-    } catch (error) {
-      await this.client.destroy().catch(() => {});
-      throw error;
-    }
   }
 
   async stop(): Promise<void> {

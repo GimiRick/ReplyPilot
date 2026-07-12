@@ -85,7 +85,7 @@ describe('WhatsAppClientAdapter', () => {
   it('replaces message listener on duplicate start() calls instead of stacking', async () => {
     const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
     const { makeConfig } = await import('../fixtures/app-config');
-    const adapter = new WhatsAppClientAdapter(makeConfig(), createLogger('error'), 'test');
+    const adapter = new WhatsAppClientAdapter(makeConfig(), createLogger('error'), 'test', 0);
     const client = mocks.getLatestClient()!;
 
     await adapter.start();
@@ -119,7 +119,7 @@ describe('loginWhatsAppAccount', () => {
     expect(client).toBeDefined();
 
     client!.emit('ready');
-    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(500);  // matches login delay default
 
     await expect(loginPromise).resolves.toBeUndefined();
     expect(client!.destroy).toHaveBeenCalled();

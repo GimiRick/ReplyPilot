@@ -424,7 +424,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
         return;
       }
 
-      deps.removeWhatsAppCacheData();
+      await deps.removeWhatsAppCacheData();
       deps.output('WhatsApp web client cache removed.');
     });
 

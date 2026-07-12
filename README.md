@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.3.2-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.3.5-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/total](https://img.shields.io/npm/dt/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
@@ -45,6 +45,14 @@ npm uninstall gimirick-replypilot
 ```
 
 [npm package](https://www.npmjs.com/package/gimirick-replypilot)
+
+### Updating
+
+```bash
+npm update -g gimirick-replypilot
+```
+
+Updates the globally installed version to the latest release.
 
 ### Troubleshooting
 
@@ -809,10 +817,11 @@ replypilot start
        ├── if healthServerPort given:
        │       └── new HealthServer({port, host: '127.0.0.1', metrics})
        │           └── serve GET /health + /metrics
-       ├── whatsapp.start()
-       │       ├── client.on('message')  attach raw message listener
-       │       └── client.initialize()   Puppeteer + QR scan
-       └── [waiting for messages]
+        ├── whatsapp.start()
+        │       ├── client.initialize()   Puppeteer + QR scan
+        │       ├── warmup delay (10s)    let chat store finish syncing
+        │       └── client.on('message')  attach raw message listener
+        └── [waiting for messages]
 ```
 
 ### Component Responsibilities

@@ -411,13 +411,13 @@ async function initializeAndFinalizeSession(
       clearTimeout(timeout);
       authenticated = true;
       logger.info(messages.ready);
-      setTimeout(() => {
+      setTimeout(async () => {
         if (settled) {
           return;
         }
         settled = true;
+        await client.destroy().catch(() => {});
         resolve();
-        client.destroy().catch(() => {});
       }, loginDelayMs);
     });
 

@@ -89,7 +89,7 @@ export {
   type FilterableWhatsAppMessage,
   type IgnoreReason,
 } from './whatsapp/filters';
-export { loginWhatsAppAccount } from './whatsapp/client';
+export { calibrateWhatsApp, loginWhatsAppAccount } from './whatsapp/client';
 export {
   fetchChatContext,
   mediaTypeLabel,

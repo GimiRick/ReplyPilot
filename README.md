@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.2.8-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.2.9-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/total](https://img.shields.io/npm/dt/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-309%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-313%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-97%25%20v8-brightgreen)](package.json)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -106,6 +106,9 @@ replypilot login
 # Switch between authenticated WhatsApp accounts
 replypilot account switch
 
+# Download browser files, sync WhatsApp, and prepare for first use
+replypilot calibrate
+
 # Start automation (connects active WhatsApp + active config)
 replypilot start
 
@@ -163,6 +166,7 @@ All features via `npx`:
 npx replypilot setup
 npx replypilot login
 npx replypilot account switch
+npx replypilot calibrate
 npx replypilot start
 npx replypilot version
 npx replypilot doctor
@@ -202,6 +206,7 @@ npm run build
 node dist/cli.js setup
 node dist/cli.js login
 node dist/cli.js account switch
+node dist/cli.js calibrate
 node dist/cli.js start
 node dist/cli.js version
 node dist/cli.js doctor
@@ -226,6 +231,7 @@ npm run dev                    # tsx src/cli.ts start
 tsx src/cli.ts setup
 tsx src/cli.ts login
 tsx src/cli.ts account switch
+tsx src/cli.ts calibrate
 tsx src/cli.ts version
 tsx src/cli.ts doctor
 tsx src/cli.ts config show
@@ -411,8 +417,8 @@ Wipes everything: runs `npm cache clean --force`, deletes all saved configuratio
 
 1. **Create an AI config**: `replypilot setup` — pick your provider, model, and style prompt.
 2. **Log into WhatsApp**: `replypilot login` — give it a name and scan the QR code.
-3. **Start**: `replypilot start` — the tool connects the active WhatsApp account using the active config.
-4. **First-time calibration**: The first time you run the tool, it needs about **10 minutes to calibrate**. During this period, it downloads browser data, initializes the WhatsApp session, and syncs your chats. After 10 minutes it will start working normally. From the second time onward, it works instantly.
+3. **Calibrate** (one-time): `replypilot calibrate` — downloads browser data, initializes the WhatsApp session, and prepares everything. This takes about **10 minutes** the first time. Subsequent runs are instant.
+4. **Start**: `replypilot start` — connects the active WhatsApp account using the active config.
 
 To use a different account or a different AI setup later, just use `replypilot account switch` or `replypilot config switch` — they're independent.
 
@@ -509,6 +515,7 @@ Controls how long (in milliseconds) the app waits for a graceful shutdown before
 | `setup`               | ✓                   | ✓                   | ✓                      | ✓                     |
 | `login`               | ✓                   | ✓                   | ✓                      | ✓                     |
 | `account switch`      | ✓                   | ✓                   | ✓                      | ✓                     |
+| `calibrate`           | ✓                   | ✓                   | ✓                      | ✓                     |
 | `start`               | ✓                   | ✓                   | ✓ `npm start`          | ✓ `npm run dev`       |
 | `version`             | ✓                   | ✓                   | ✓                      | ✓                     |
 | `doctor`              | ✓                   | ✓                   | ✓                      | ✓                     |
@@ -623,8 +630,9 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 ```text
 ┌───────────────────────────────────────────────────────────────────┐
 │                        CLI (Commander)                            │
-│ setup   login   account switch   start   doctor   config show     │
-│ config reset   config switch   logout   cache   clear   version   │
+│ setup   login   account switch   calibrate   start   doctor       │
+│ config show   config reset   config switch   logout   cache       │
+│ clear   version                                                   │
 └────────────────────────┬──────────────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────────────┐
@@ -819,7 +827,7 @@ replypilot start
 
 | Layer        | File                   | Role                                                                                                                                                              |
 | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CLI**      | `cli.ts`               | Commander program, 12 commands, dependency injection for testability                                                                                              |
+| **CLI**      | `cli.ts`               | Commander program, 13 commands, dependency injection for testability                                                                                              |
 | **Config**   | `schema.ts`            | Zod schema, `AppConfig` type, defaults, `parseAppConfig` validation                                                                                               |
 | **Config**   | `store.ts`             | Persistent JSON store via `conf`, multi-config profiles, multi-WA account tracking, session dir management                                                        |
 | **Config**   | `setup.ts`             | Interactive `@inquirer/prompts` wizard (named configs, 3 providers + voice note flow)                                                                             |
@@ -832,7 +840,7 @@ replypilot start
 | **LLM**      | `provider.ts`          | `LlmProvider` interface, `ChatContextMessage` / `GenerateReplyInput` types                                                                                        |
 | **LLM**      | `openai-compatible.ts` | OpenAI SDK adapter, per-key client creation, key rotation on failure, transient-error retry with timeout race                                                     |
 | **LLM**      | `prompt.ts`            | Prompt construction (`buildReplyPrompt`), output cleanup (`cleanGeneratedReply`), `UserContentPart` (text/image/audio)                                            |
-| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter`, `loginWhatsAppAccount` (standalone auth flow), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
+| **WhatsApp** | `client.ts`            | `WhatsAppClientAdapter`, `loginWhatsAppAccount` / `calibrateWhatsApp` (standalone auth flows), lifecycle events, raw message → `RuntimeIncomingMessage` (includes voice note processing) |
 | **WhatsApp** | `context.ts`           | Chat history fetch (`fetchChatContext`), message normalization, media type labels                                                                                 |
 | **WhatsApp** | `filters.ts`           | `getIgnoreReason` (self, empty, group, broadcast, archived, voice_note, status_broadcast), `DuplicateMessageGuard` with FIFO pruning                              |
 | **Audio**    | `convert.ts`           | OGG-to-MP3 conversion via `ffmpeg` subprocess with timeout                                                                                                        |

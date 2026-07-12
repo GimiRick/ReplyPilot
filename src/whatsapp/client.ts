@@ -425,7 +425,6 @@ async function initializeAndFinalizeSession(
         // Navigate to about:blank before destroying the browser to allow WhatsApp Web
         // to cleanly unload and flush its internal state (IndexedDB, localStorage, etc.)
         try {
-          // @ts-expect-error - pupPage is an internal property on whatasapp-web.js Client
           const page = client.pupPage;
           if (page) {
             await page.goto('about:blank', { waitUntil: 'load', timeout: 10000 }).catch(() => {});

@@ -411,6 +411,7 @@ Wipes everything: runs `npm cache clean --force`, deletes all saved configuratio
 1. **Create an AI config**: `replypilot setup` — pick your provider, model, and style prompt.
 2. **Log into WhatsApp**: `replypilot login` — give it a name and scan the QR code.
 3. **Start**: `replypilot start` — the tool connects the active WhatsApp account using the active config.
+4. **First-time calibration**: The first time you run the tool, it needs about **10 minutes to calibrate**. During this period, it downloads browser data, initializes the WhatsApp session, and syncs your chats. After 10 minutes it will start working normally. From the second time onward, it works instantly.
 
 To use a different account or a different AI setup later, just use `replypilot account switch` or `replypilot config switch` — they're independent.
 

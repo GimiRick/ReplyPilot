@@ -170,7 +170,7 @@ function withTimeout<T>(
     }, timeoutMs);
   });
 
-  const loser = promise
+  promise
     .then(
       () => {
         if (timedOut) {

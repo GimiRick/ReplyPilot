@@ -303,6 +303,10 @@ export function clearActiveWhatsAppAccount(store: ReplyPilotConfigStore = getCon
   store.delete('activeWhatsAppAccount');
 }
 
+export function clearActiveConfigName(store: ReplyPilotConfigStore = getConfigStore()): void {
+  store.delete(ACTIVE_CONFIG_KEY);
+}
+
 export function getWhatsAppCacheDir(): string {
   return path.join(process.cwd(), '.wwebjs_cache');
 }

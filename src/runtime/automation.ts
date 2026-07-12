@@ -364,7 +364,7 @@ export async function startAutomation(
 
     const forceExitTimer = setTimeout(() => {
       logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
-      process.exit(0);
+      process.exit(1);
     }, config.automation.shutdownTimeoutMs);
     forceExitTimer.unref();
 

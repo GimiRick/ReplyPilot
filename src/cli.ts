@@ -11,6 +11,7 @@ import { formatDoctorReport, runDoctor } from './doctor/doctor';
 import { startAutomation } from './runtime/automation';
 import { ConfigValidationError, MissingConfigError } from './runtime/errors';
 import {
+  clearActiveConfigName,
   clearActiveWhatsAppAccount,
   deleteConfig,
   getActiveConfigName,
@@ -42,6 +43,7 @@ export type CliDependencies = {
   removeWhatsAppSessionData: typeof removeWhatsAppSessionData;
   removeWhatsAppSessionAccount: typeof removeWhatsAppSessionAccount;
   clearActiveWhatsAppAccount: typeof clearActiveWhatsAppAccount;
+  clearActiveConfigName: typeof clearActiveConfigName;
   removeWhatsAppCacheData: typeof removeWhatsAppCacheData;
   runDoctor: typeof runDoctor;
   loginWhatsAppAccount: typeof loginWhatsAppAccount;
@@ -75,6 +77,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
     removeWhatsAppSessionData,
     removeWhatsAppSessionAccount,
     clearActiveWhatsAppAccount,
+    clearActiveConfigName,
     removeWhatsAppCacheData,
     runDoctor,
     loginWhatsAppAccount,
@@ -136,6 +139,7 @@ export function buildCliProgram(overrides: Partial<CliDependencies> = {}): Comma
       for (const name of configNames) {
         deps.deleteConfig(name);
       }
+      deps.clearActiveConfigName();
       deps.clearActiveWhatsAppAccount();
       deps.output('All configurations deleted.');
 

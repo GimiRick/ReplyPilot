@@ -15,6 +15,8 @@ export {
   type PartialAppConfig,
 } from './config/schema';
 export {
+  clearActiveConfigName,
+  clearActiveWhatsAppAccount,
   createConfigStore,
   deleteConfig,
   getActiveConfigName,
@@ -28,7 +30,6 @@ export {
   listConfigNames,
   listWhatsAppAccounts,
   loadConfig,
-  clearActiveWhatsAppAccount,
   removeWhatsAppCacheData,
   removeWhatsAppSessionAccount,
   removeWhatsAppSessionData,

@@ -90,8 +90,20 @@ export class WhatsAppClientAdapter {
       throw error;
     }
 
-    this.logger.info('Warming up WhatsApp Web connection...');
-    await new Promise((resolve) => setTimeout(resolve, this.warmupMs));
+    this.logger.info('Waiting for WhatsApp Web ready...');
+    await new Promise<void>((resolve) => {
+      const onReady = () => {
+        this.client.off('ready', onReady);
+        resolve();
+      };
+      this.client.on('ready', onReady);
+      setTimeout(() => {
+        this.client.off('ready', onReady);
+        resolve();
+      }, this.warmupMs);
+    });
+
+    this.logger.info('WhatsApp Web connection ready');
 
     if (this.boundOnMessage) {
       this.client.removeListener('message', this.boundOnMessage);

@@ -26,6 +26,9 @@ export class HealthServer {
     this.server = http.createServer((req, res) => {
       this.handleRequest(req, res);
     });
+    this.server.on('error', (err: Error) => {
+      console.error('Health server error:', err.message);
+    });
   }
 
   setHealth(health: HealthInfo): void {
@@ -81,10 +84,14 @@ export class HealthServer {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));
     } catch {
-      if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
+      try {
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+      } catch {
+        // Socket may already be destroyed; nothing more we can do
       }
-      res.end(JSON.stringify({ error: 'Internal server error' }));
     }
   }
 }

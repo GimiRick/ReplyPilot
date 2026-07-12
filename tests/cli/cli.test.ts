@@ -326,6 +326,7 @@ describe('CLI commands', () => {
     expect(deps.exec).toHaveBeenCalledWith('npm cache clean --force');
     expect(deps.deleteConfig).toHaveBeenCalledWith('work');
     expect(deps.deleteConfig).toHaveBeenCalledWith('personal');
+    expect(deps.clearActiveConfigName).toHaveBeenCalled();
     expect(deps.clearActiveWhatsAppAccount).toHaveBeenCalled();
     expect(deps.removeWhatsAppSessionData).toHaveBeenCalled();
     expect(deps.removeWhatsAppCacheData).toHaveBeenCalled();
@@ -492,6 +493,7 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
     removeWhatsAppSessionData: vi.fn(),
     removeWhatsAppSessionAccount: vi.fn(),
     clearActiveWhatsAppAccount: vi.fn(),
+    clearActiveConfigName: vi.fn(),
     removeWhatsAppCacheData: vi.fn(),
     runDoctor: vi.fn(async () => ({
       ok: true,

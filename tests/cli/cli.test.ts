@@ -542,7 +542,7 @@ function makeProgram(overrides: Partial<CliDependencies> = {}) {
       ok: true,
       checks: [{ name: 'Node.js', status: 'pass' as const, message: 'Node is supported.' }],
     })),
-    calibrateWhatsApp: vi.fn(async (_name: string, _logger: Logger) => {
+    calibrateWhatsApp: vi.fn(async (_name: string | undefined, _logger: Logger) => {
       void _name;
       void _logger;
     }),

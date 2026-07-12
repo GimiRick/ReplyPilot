@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  clearActiveConfigName,
   clearActiveWhatsAppAccount,
   createConfigStore,
   deleteConfig,
@@ -151,6 +152,23 @@ describe('config store', () => {
     expect(getActiveWhatsAppAccount(store)).toBeUndefined();
     expect(() => clearActiveWhatsAppAccount(store)).not.toThrow();
     expect(getActiveWhatsAppAccount(store)).toBeUndefined();
+  });
+
+  it('clearActiveConfigName clears the active config name', () => {
+    const store = createTempStore();
+    saveConfig(makeConfig(), 'my-config', store);
+    setActiveConfigName('my-config', store);
+    expect(getActiveConfigName(store)).toBe('my-config');
+
+    clearActiveConfigName(store);
+    expect(getActiveConfigName(store)).toBeUndefined();
+  });
+
+  it('clearActiveConfigName is safe when no config is set', () => {
+    const store = createTempStore();
+    expect(getActiveConfigName(store)).toBeUndefined();
+    expect(() => clearActiveConfigName(store)).not.toThrow();
+    expect(getActiveConfigName(store)).toBeUndefined();
   });
 
   it('tracks active WhatsApp account', () => {

@@ -148,6 +148,39 @@ describe('startAutomation', () => {
     }
   });
 
+  it('exits with code 1 when shutdown times out', async () => {
+    const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
+    const processExit = vi.spyOn(process, 'exit').mockImplementation(() => {});
+
+    const stopMock = vi.fn().mockReturnValue(new Promise(() => {}));
+    mocks.WhatsAppClientAdapter.mockImplementation(function WhatsAppClientAdapterMock() {
+      return {
+        onMessage: mocks.onMessage,
+        start: mocks.start,
+        stop: stopMock,
+      };
+    });
+
+    try {
+      const { startAutomation } = await import('../../src/runtime/automation');
+      await startAutomation({ automation: { shutdownTimeoutMs: 1000 } });
+
+      const sigintCall = processOn.mock.calls.find((c) => c[0] === 'SIGINT');
+      expect(sigintCall).toBeDefined();
+
+      const shutdown = sigintCall![1] as () => Promise<void>;
+      vi.useFakeTimers();
+      shutdown();
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(processExit).toHaveBeenCalledWith(1);
+    } finally {
+      processExit.mockRestore();
+      processOn.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('handles errors during graceful shutdown', async () => {
     const processOn = vi.spyOn(process, 'on').mockImplementation(() => process);
 

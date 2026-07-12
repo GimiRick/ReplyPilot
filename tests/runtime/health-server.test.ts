@@ -121,6 +121,23 @@ describe('HealthServer', () => {
     }
   });
 
+  it('logs server errors without crashing', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const server = new HealthServer({
+      port: 0,
+      host: '127.0.0.1',
+      metrics: new MetricsCollector(),
+    });
+    await server.start();
+    servers.push(server);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (server as any).server.emit('error', new Error('test error'));
+
+    expect(consoleSpy).toHaveBeenCalledWith('Health server error:', 'test error');
+    consoleSpy.mockRestore();
+  });
+
   it('recovers from a client socket disconnect before a request is sent', async () => {
     const server = await createServer();
     const port = server.getPort();

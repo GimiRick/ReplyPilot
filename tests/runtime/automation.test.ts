@@ -335,7 +335,7 @@ describe('runtime message processing', () => {
     const results = await Promise.all(promises);
 
     const tooManyChats = results.filter(
-      (r): r is { status: 'ignored'; reason: string } => r.status === 'ignored',
+      (r): r is Extract<AutomationResult, { status: 'ignored' }> => r.status === 'ignored',
     );
     expect(tooManyChats.length).toBe(1);
     expect(tooManyChats[0].reason).toBe('too_many_chats');

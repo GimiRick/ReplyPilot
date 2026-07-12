@@ -83,11 +83,20 @@ export class WhatsAppClientAdapter {
   async start(): Promise<void> {
     this.registerLifecycleEvents();
 
-    try {
-      await this.client.initialize();
-    } catch (error) {
-      await this.client.destroy().catch(() => {});
-      throw error;
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await this.client.initialize();
+        break;
+      } catch (error) {
+        if (attempt < MAX_RETRIES && error instanceof Error && error.message.includes('detached Frame')) {
+          this.logger.warn({ attempt, maxRetries: MAX_RETRIES }, 'WhatsApp Web page frame detached during initialization, retrying...');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
+        await this.client.destroy().catch(() => {});
+        throw error;
+      }
     }
 
     // Warmup: wait for WhatsApp Web's internal message store to finish

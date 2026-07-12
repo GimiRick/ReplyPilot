@@ -509,7 +509,7 @@ describe('CLI commands', () => {
   });
 
   it('handles calibrate failure gracefully', async () => {
-    const { program, output, deps } = makeProgram({
+    const { program, output } = makeProgram({
       getActiveWhatsAppAccount: vi.fn(() => 'default'),
       calibrateWhatsApp: vi.fn(async () => {
         throw new Error('Connection refused');

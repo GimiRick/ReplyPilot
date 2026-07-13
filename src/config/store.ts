@@ -215,7 +215,14 @@ function resolveConfigName(
   if (configName) {
     return validateConfigName(configName);
   }
-  return store.get(ACTIVE_CONFIG_KEY) ?? (Object.keys(configs)[0] || undefined);
+  const active = store.get(ACTIVE_CONFIG_KEY);
+  if (active) return active;
+  const firstKey = Object.keys(configs)[0];
+  if (firstKey) {
+    store.set(ACTIVE_CONFIG_KEY, firstKey);
+    return firstKey;
+  }
+  return undefined;
 }
 
 export function getActiveWhatsAppAccount(

@@ -200,7 +200,10 @@ function isTransientProviderError(error: unknown): boolean {
     return true;
   }
 
-  if (error instanceof OpenAI.APIConnectionTimeoutError || error instanceof OpenAI.APIUserAbortError) {
+  if (
+    error instanceof OpenAI.APIConnectionTimeoutError ||
+    error instanceof OpenAI.APIUserAbortError
+  ) {
     return true;
   }
 

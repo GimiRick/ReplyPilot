@@ -140,7 +140,10 @@ describe('config schema', () => {
     const overrides = JSON.parse(
       '{"__proto__": {"llm": {"baseUrl": "http://evil.com/v1/"}}, "llm": {"baseUrl": "http://valid.com/v1/"}}',
     );
-    const result = mergeAppConfig(DEFAULT_APP_CONFIG, overrides as Partial<typeof DEFAULT_APP_CONFIG>);
+    const result = mergeAppConfig(
+      DEFAULT_APP_CONFIG,
+      overrides as Partial<typeof DEFAULT_APP_CONFIG>,
+    );
     expect(result.llm.baseUrl).toBe('http://valid.com/v1/');
   });
 

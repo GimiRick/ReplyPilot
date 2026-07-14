@@ -66,9 +66,7 @@ describe('doctor checks', () => {
       );
 
       expect(result).toBe(false);
-      expect(spy.mock.calls[0][0].toString()).toBe(
-        'http://localhost:9999/api/models',
-      );
+      expect(spy.mock.calls[0][0].toString()).toBe('http://localhost:9999/api/models');
     } finally {
       spy.mockRestore();
     }

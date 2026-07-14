@@ -329,7 +329,9 @@ describe('runtime message processing', () => {
 
     const promises: Promise<AutomationResult>[] = [];
     for (let i = 0; i < 5_001; i++) {
-      promises.push(automation.handleIncomingMessage(makeMessage({ id: `m${i}`, chatId: `chat-${i}` })));
+      promises.push(
+        automation.handleIncomingMessage(makeMessage({ id: `m${i}`, chatId: `chat-${i}` })),
+      );
     }
 
     const results = await Promise.all(promises);

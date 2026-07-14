@@ -32,7 +32,9 @@ function buildUserContent(input: GenerateReplyInput): string | UserContentPart[]
   }
 
   const msgLabel = input.isGroup ? 'Incoming group message' : 'Incoming message';
-  const fromPart = input.incomingMessageAuthorName ? ` from ${input.incomingMessageAuthorName}` : '';
+  const fromPart = input.incomingMessageAuthorName
+    ? ` from ${input.incomingMessageAuthorName}`
+    : '';
   userParts.push(`${msgLabel}${fromPart}: ${normalizeInlineText(input.incomingMessage)}`);
   userParts.push('');
   userParts.push(

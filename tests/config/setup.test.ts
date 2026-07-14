@@ -528,8 +528,12 @@ describe('setup wizard config creation', () => {
 
       expect(validate('work')).toBe('A configuration named "work" already exists.');
       expect(validate('new-config')).toBe(true);
-      expect(validate('')).toBe('Config name may only contain letters, numbers, hyphens, and underscores.');
-      expect(validate('invalid name')).toBe('Config name may only contain letters, numbers, hyphens, and underscores.');
+      expect(validate('')).toBe(
+        'Config name may only contain letters, numbers, hyphens, and underscores.',
+      );
+      expect(validate('invalid name')).toBe(
+        'Config name may only contain letters, numbers, hyphens, and underscores.',
+      );
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }

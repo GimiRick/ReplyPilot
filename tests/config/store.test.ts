@@ -195,7 +195,9 @@ describe('config store', () => {
 
     expect(() => setActiveWhatsAppAccount('../outside', store)).toThrow('may only contain');
     expect(() => setActiveWhatsAppAccount('my account', store)).toThrow('may only contain');
-    await expect(removeWhatsAppSessionAccount('../outside', store)).rejects.toThrow('may only contain');
+    await expect(removeWhatsAppSessionAccount('../outside', store)).rejects.toThrow(
+      'may only contain',
+    );
   });
 
   it('lists WhatsApp accounts from session directory', () => {
@@ -465,7 +467,11 @@ describe('config store', () => {
     const defaultApiKey = 'default-key';
     const defaultBaseUrl = 'https://default.example/v1';
 
-    saveConfig(makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }), 'key-only', store);
+    saveConfig(
+      makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }),
+      'key-only',
+      store,
+    );
 
     process.env.OPENAI_API_KEY = 'api-key-override';
     delete process.env.OPENAI_BASE_URL;
@@ -485,7 +491,11 @@ describe('config store', () => {
     const defaultApiKey = 'default-key';
     const defaultBaseUrl = 'https://default.example/v1';
 
-    saveConfig(makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }), 'no-env', store);
+    saveConfig(
+      makeConfig({ llm: { apiKey: defaultApiKey, baseUrl: defaultBaseUrl } }),
+      'no-env',
+      store,
+    );
 
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
@@ -498,7 +508,11 @@ describe('config store', () => {
 
   it('trims whitespace from env var overrides', () => {
     const store = createTempStore();
-    saveConfig(makeConfig({ llm: { apiKey: 'key', baseUrl: 'https://example.com/v1' } }), 'trim', store);
+    saveConfig(
+      makeConfig({ llm: { apiKey: 'key', baseUrl: 'https://example.com/v1' } }),
+      'trim',
+      store,
+    );
 
     process.env.OPENAI_API_KEY = '  trimmed-key  ';
     process.env.OPENAI_BASE_URL = '  https://trimmed.example/v1  ';

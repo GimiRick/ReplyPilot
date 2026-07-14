@@ -287,7 +287,9 @@ export function getWhatsAppSessionDir(store: ReplyPilotConfigStore = getConfigSt
   return path.join(getReplyPilotDataDir(store), 'whatsapp-sessions');
 }
 
-export async function removeWhatsAppSessionData(store: ReplyPilotConfigStore = getConfigStore()): Promise<void> {
+export async function removeWhatsAppSessionData(
+  store: ReplyPilotConfigStore = getConfigStore(),
+): Promise<void> {
   await rm(getWhatsAppSessionDir(store), { recursive: true, force: true });
 }
 
@@ -338,10 +340,7 @@ function accountNameFromSessionDirName(dirName: string): string | undefined {
   }
 }
 
-function normalizeStoredWhatsAppAccount(
-  accountName: string,
-  store: ReplyPilotConfigStore,
-): string {
+function normalizeStoredWhatsAppAccount(accountName: string, store: ReplyPilotConfigStore): string {
   const trimmed = validateWhatsAppAccountName(accountName);
 
   if (!trimmed.startsWith(LOCAL_AUTH_SESSION_PREFIX)) {

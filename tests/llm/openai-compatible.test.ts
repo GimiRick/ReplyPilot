@@ -50,7 +50,9 @@ describe('OpenAiCompatibleProvider', () => {
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Retried successfully' } }] });
     const provider = makeProvider(create, { maxRetries: 1 });
 
-    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Retried successfully' });
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({
+      text: 'Retried successfully',
+    });
     expect(create).toHaveBeenCalledTimes(2);
   });
 
@@ -354,7 +356,9 @@ describe('OpenAiCompatibleProvider', () => {
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Recovered after abort' } }] });
     const provider = makeProvider(create, { maxRetries: 1 });
 
-    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({ text: 'Recovered after abort' });
+    await expect(provider.generateReply(makeInput())).resolves.toMatchObject({
+      text: 'Recovered after abort',
+    });
     expect(create).toHaveBeenCalledTimes(2);
   });
 

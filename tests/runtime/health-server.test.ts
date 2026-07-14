@@ -101,14 +101,17 @@ describe('HealthServer', () => {
     const port = server.getPort();
 
     const origWriteHead = http.ServerResponse.prototype.writeHead;
-    const spy = vi.spyOn(http.ServerResponse.prototype, 'writeHead').mockImplementationOnce(
-      function (this: http.ServerResponse, ...args: Parameters<typeof http.ServerResponse.prototype.writeHead>) {
+    const spy = vi
+      .spyOn(http.ServerResponse.prototype, 'writeHead')
+      .mockImplementationOnce(function (
+        this: http.ServerResponse,
+        ...args: Parameters<typeof http.ServerResponse.prototype.writeHead>
+      ) {
         if (args[0] === 200) {
           throw new Error('writeHead failed');
         }
         return origWriteHead.call(this, ...args);
-      },
-    );
+      });
 
     try {
       const res = await new Promise<http.IncomingMessage>((resolve) => {

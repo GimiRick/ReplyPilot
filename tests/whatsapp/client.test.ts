@@ -119,7 +119,7 @@ describe('loginWhatsAppAccount', () => {
     expect(client).toBeDefined();
 
     client!.emit('ready');
-    await vi.advanceTimersByTimeAsync(500);  // matches login delay default
+    await vi.advanceTimersByTimeAsync(500); // matches login delay default
 
     await expect(loginPromise).resolves.toBeUndefined();
     expect(client!.destroy).toHaveBeenCalled();

@@ -6,8 +6,6 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
-    labels:
-      - dependencies
     commit-message:
       prefix: fix
       prefix-development: chore
@@ -27,8 +25,6 @@ updates:
     directory: /
     schedule:
       interval: monthly
-    labels:
-      - ci
     commit-message:
       prefix: chore
       include: scope

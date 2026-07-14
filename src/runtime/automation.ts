@@ -148,7 +148,11 @@ export class ReplyAutomation {
         if (this.stopped) {
           this.activeBatches.delete(chatId);
           for (const r of capturedBatch.resolvers) {
-            try { r({ status: 'ignored', reason: 'shutting_down' }); } catch { /* logs downstream */ }
+            try {
+              r({ status: 'ignored', reason: 'shutting_down' });
+            } catch {
+              /* logs downstream */
+            }
           }
           return;
         }
@@ -170,7 +174,11 @@ export class ReplyAutomation {
           )
           .then((result) => {
             for (const r of capturedBatch.resolvers) {
-              try { r(result); } catch { /* individual resolver errors handled downstream */ }
+              try {
+                r(result);
+              } catch {
+                /* individual resolver errors handled downstream */
+              }
             }
           })
           .catch((error) => {
@@ -211,11 +219,18 @@ export class ReplyAutomation {
           )
           .then((result) => {
             for (const r of batch.resolvers) {
-              try { r(result); } catch { /* individual resolver errors handled downstream */ }
+              try {
+                r(result);
+              } catch {
+                /* individual resolver errors handled downstream */
+              }
             }
           })
           .catch((error) => {
-            this.logger.error({ error, chatId }, 'Failed to resolve batch promises during shutdown');
+            this.logger.error(
+              { error, chatId },
+              'Failed to resolve batch promises during shutdown',
+            );
           }),
       );
     }
@@ -363,7 +378,10 @@ export async function startAutomation(
     logger.info('Shutting down ReplyPilot gracefully...');
 
     const forceExitTimer = setTimeout(() => {
-      logger.warn({ timeoutMs: config.automation.shutdownTimeoutMs }, 'Shutdown timed out, forcing exit');
+      logger.warn(
+        { timeoutMs: config.automation.shutdownTimeoutMs },
+        'Shutdown timed out, forcing exit',
+      );
       process.exit(1);
     }, config.automation.shutdownTimeoutMs);
     forceExitTimer.unref();

@@ -6,7 +6,7 @@ export default defineConfig({
   target: 'node22',
   platform: 'node',
   tsconfig: 'tsconfig.tsup.json',
-  dts: true,
+  dts: false,
   sourcemap: true,
   clean: true,
   splitting: false,

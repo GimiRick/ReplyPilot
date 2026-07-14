@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.tsup.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

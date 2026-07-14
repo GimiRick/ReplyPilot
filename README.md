@@ -626,6 +626,16 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 
 ## System Architecture
 
+```
+CLI (Commander) → Config (Zod + conf) → LLM Provider (OpenAI SDK) → WhatsApp Client (whatsapp-web.js)
+                     ↓                          ↓                           ↓
+                Doctor (health check)      Automation (debounce/batch)   Filters (ignore logic)
+                                            Audio (ffmpeg + Whisper)     Context (chat history)
+                                            Metrics (in-memory counters)
+                                            Queue (p-queue concurrency)
+                                            Health Server (/health, /metrics)
+```
+
 ### High-Level Layers
 
 ```text

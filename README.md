@@ -11,6 +11,7 @@
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-313%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-97%25%20v8-brightgreen)](package.json)
+[![DeepWiki](https://deepwiki.com/GimiRick/ReplyPilot/badge.svg)](https://deepwiki.com/GimiRick/ReplyPilot)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
 

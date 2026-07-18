@@ -151,7 +151,7 @@ export class ReplyAutomation {
             try {
               r({ status: 'ignored', reason: 'shutting_down' });
             } catch {
-              /* logs downstream */
+              /* already settled during shutdown, safe to ignore */
             }
           }
           return;
@@ -177,7 +177,7 @@ export class ReplyAutomation {
               try {
                 r(result);
               } catch {
-                /* individual resolver errors handled downstream */
+                /* individual resolver error should not break the batch */
               }
             }
           })
@@ -222,7 +222,7 @@ export class ReplyAutomation {
               try {
                 r(result);
               } catch {
-                /* individual resolver errors handled downstream */
+                /* individual resolver error should not break the batch */
               }
             }
           })
@@ -288,7 +288,7 @@ export async function processIncomingMessageBatch(options: {
     ? messages.find((m) => m.imageData)?.imageData
     : undefined;
   const audioData =
-    config.voiceNote.mode === 'native_audio'
+    config.voiceNote?.mode === 'native_audio'
       ? messages.find((m) => m.audioData)?.audioData
       : undefined;
 

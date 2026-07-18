@@ -1,7 +1,7 @@
 # ReplyPilot
 
 [![npm version](https://img.shields.io/npm/v/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
-[![repo version](https://img.shields.io/badge/repo%20version-0.3.8-blue?logo=git&logoColor=white)](package.json)
+[![repo version](https://img.shields.io/badge/repo%20version-0.3.9-blue?logo=git&logoColor=white)](package.json)
 [![npm downloads](https://img.shields.io/npm/dm/gimirick-replypilot?logo=npm&logoColor=white)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/week](https://img.shields.io/npm/dw/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
 [![npm downloads/total](https://img.shields.io/npm/dt/gimirick-replypilot)](https://www.npmjs.com/package/gimirick-replypilot)
@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-CC%20BY--NC--ND%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-313%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
+[![tests](https://img.shields.io/badge/tests-317%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
 [![coverage](https://img.shields.io/badge/coverage-97%25%20v8-brightgreen)](package.json)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/GimiRick/ReplyPilot)
 
@@ -627,7 +627,7 @@ import { ConfigNotFoundError } from 'gimirick-replypilot';
 
 ## System Architecture
 
-```
+```text
 CLI (Commander) → Config (Zod + conf) → LLM Provider (OpenAI SDK) → WhatsApp Client (whatsapp-web.js)
                      ↓                          ↓                           ↓
                 Doctor (health check)      Automation (debounce/batch)   Filters (ignore logic)

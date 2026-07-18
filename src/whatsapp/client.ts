@@ -146,11 +146,17 @@ export class WhatsAppClientAdapter {
     try {
       chat = await message.getChat();
     } catch (error) {
-      this.logger.error(
-        { error, messageId: message.id?._serialized },
-        'Failed to get chat for incoming message',
+      const chatId = message.fromMe ? message.to : message.from;
+      this.logger.warn(
+        { error, messageId: message.id?._serialized, chatId },
+        'Failed to load chat, proceeding with fallback chat data',
       );
-      return;
+      chat = {
+        id: { _serialized: chatId ?? '' },
+        isGroup: (chatId ?? '').endsWith('@g.us'),
+        archived: false,
+        name: chatId ?? '',
+      } as Chat;
     }
 
     const filterable = toFilterableMessage(message, chat);

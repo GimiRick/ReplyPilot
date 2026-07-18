@@ -96,6 +96,175 @@ describe('WhatsAppClientAdapter', () => {
 
     await adapter.stop();
   });
+
+  it('processes message with fallback chat data when getChat() fails', async () => {
+    const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+    const { makeConfig } = await import('../fixtures/app-config');
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+    const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+    const client = mocks.getLatestClient()!;
+
+    const messageHandler = vi.fn();
+    adapter.onMessage(messageHandler);
+
+    await adapter.start();
+
+    const message = {
+      id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+      from: '551199999@c.us',
+      to: '551188888@c.us',
+      fromMe: false,
+      timestamp: 1000,
+      body: 'hello',
+      hasMedia: false,
+      type: 'chat',
+      getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+    } as unknown as Message;
+
+    client.emit('message', message);
+
+    await vi.waitFor(() => {
+      expect(messageHandler).toHaveBeenCalledTimes(1);
+    });
+
+    const result = messageHandler.mock.calls[0][0];
+    expect(result.chatId).toBe('551199999@c.us');
+    expect(result.isGroup).toBe(false);
+    expect(result.archived).toBe(false);
+    expect(result.chatName).toBe('551199999@c.us');
+    expect(result.body).toBe('hello');
+    expect(result.fromMe).toBe(false);
+    expect(result.timestamp).toBe(1000);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: { name: 'r' },
+        messageId: 'true_user@c.us_3EB0B2A1ABCD',
+        chatId: '551199999@c.us',
+      }),
+      'Failed to load chat, proceeding with fallback chat data',
+    );
+    expect(logger.error).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'Failed to get chat for incoming message',
+    );
+  });
+
+  it('derives chatId from message.to when fromMe is true in fallback', async () => {
+    const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+    const { makeConfig } = await import('../fixtures/app-config');
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+    const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+    const client = mocks.getLatestClient()!;
+
+    const messageHandler = vi.fn();
+    adapter.onMessage(messageHandler);
+
+    await adapter.start();
+
+    const message = {
+      id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+      from: '551199999@c.us',
+      to: '551188888@c.us',
+      fromMe: true,
+      timestamp: 1000,
+      body: 'outgoing',
+      hasMedia: false,
+      type: 'chat',
+      getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+    } as unknown as Message;
+
+    client.emit('message', message);
+
+    await vi.waitFor(() => {
+      expect(messageHandler).toHaveBeenCalledTimes(1);
+    });
+
+    const result = messageHandler.mock.calls[0][0];
+    expect(result.chatId).toBe('551188888@c.us');
+    expect(result.chatName).toBe('551188888@c.us');
+  });
+
+  it('detects group chat from @g.us suffix in fallback chatId', async () => {
+    const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+    const { makeConfig } = await import('../fixtures/app-config');
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+    const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+    const client = mocks.getLatestClient()!;
+
+    const messageHandler = vi.fn();
+    adapter.onMessage(messageHandler);
+
+    await adapter.start();
+
+    const message = {
+      id: { _serialized: 'group@g.us_3EB0B2A1ABCD' },
+      from: '551199999@g.us',
+      to: '551188888@c.us',
+      fromMe: false,
+      timestamp: 1000,
+      body: 'group message',
+      hasMedia: false,
+      type: 'chat',
+      getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+    } as unknown as Message;
+
+    client.emit('message', message);
+
+    await vi.waitFor(() => {
+      expect(messageHandler).toHaveBeenCalledTimes(1);
+    });
+
+    const result = messageHandler.mock.calls[0][0];
+    expect(result.chatId).toBe('551199999@g.us');
+    expect(result.isGroup).toBe(true);
+  });
+
+  it('processes message normally when getChat() succeeds', async () => {
+    const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+    const { makeConfig } = await import('../fixtures/app-config');
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+    const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+    const client = mocks.getLatestClient()!;
+
+    const messageHandler = vi.fn();
+    adapter.onMessage(messageHandler);
+
+    await adapter.start();
+
+    const message = {
+      id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+      from: '551199999@c.us',
+      to: '551188888@c.us',
+      fromMe: false,
+      timestamp: 1000,
+      body: 'hello',
+      hasMedia: false,
+      type: 'chat',
+      getChat: vi.fn().mockResolvedValue({
+        id: { _serialized: '551199999@c.us' },
+        isGroup: false,
+        archived: false,
+        name: 'John Doe',
+      }),
+    } as unknown as Message;
+
+    client.emit('message', message);
+
+    await vi.waitFor(() => {
+      expect(messageHandler).toHaveBeenCalledTimes(1);
+    });
+
+    const result = messageHandler.mock.calls[0][0];
+    expect(result.chatId).toBe('551199999@c.us');
+    expect(result.chatName).toBe('John Doe');
+    expect(result.isGroup).toBe(false);
+    expect(result.archived).toBe(false);
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining('proceeding with fallback'),
+    );
+  });
 });
 
 describe('loginWhatsAppAccount', () => {

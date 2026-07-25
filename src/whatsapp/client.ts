@@ -53,7 +53,12 @@ export class WhatsAppClientAdapter {
       userAgent: getPlatformUserAgent(),
       puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+        ],
       },
       webVersionCache: {
         type: 'none',
@@ -147,8 +152,9 @@ export class WhatsAppClientAdapter {
       chat = await message.getChat();
     } catch (error) {
       const chatId = message.fromMe ? message.to : message.from;
+      const errMsg = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        { error, messageId: message.id?._serialized, chatId },
+        { errMsg, messageId: message.id?._serialized, chatId },
         'Failed to load chat, proceeding with fallback chat data',
       );
       chat = {
@@ -156,7 +162,8 @@ export class WhatsAppClientAdapter {
         isGroup: (chatId ?? '').endsWith('@g.us'),
         archived: false,
         name: chatId ?? '',
-      } as Chat;
+        fetchMessages: async () => [],
+      } as unknown as Chat;
     }
 
     const filterable = toFilterableMessage(message, chat);
@@ -391,7 +398,12 @@ export async function loginWhatsAppAccount(
     userAgent: getPlatformUserAgent(),
     puppeteer: {
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+      ],
     },
     webVersionCache: {
       type: 'none',

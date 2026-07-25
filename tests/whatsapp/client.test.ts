@@ -138,7 +138,7 @@ describe('WhatsAppClientAdapter', () => {
 
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: { name: 'r' },
+        errMsg: '[object Object]',
         messageId: 'true_user@c.us_3EB0B2A1ABCD',
         chatId: '551199999@c.us',
       }),

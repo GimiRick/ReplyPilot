@@ -528,9 +528,7 @@ describe('setup wizard config creation', () => {
 
       expect(validate('work')).toBe('A configuration named "work" already exists.');
       expect(validate('new-config')).toBe(true);
-      expect(validate('')).toBe(
-        'Config name may only contain letters, numbers, hyphens, and underscores.',
-      );
+      expect(validate('')).toBe('Config name cannot be empty.');
       expect(validate('invalid name')).toBe(
         'Config name may only contain letters, numbers, hyphens, and underscores.',
       );

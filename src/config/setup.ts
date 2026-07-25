@@ -427,8 +427,8 @@ export async function runSetupWizard(
         if (existingNames.includes(trimmed)) {
           return `A configuration named "${trimmed}" already exists.`;
         }
-      } catch {
-        return 'Config name may only contain letters, numbers, hyphens, and underscores.';
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid config name.';
       }
       return true;
     },

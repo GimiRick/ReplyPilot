@@ -183,6 +183,13 @@ export class ReplyAutomation {
           })
           .catch((error) => {
             this.logger.error({ error, chatId }, 'Failed to resolve batch promises');
+            for (const r of capturedBatch.resolvers) {
+              try {
+                r({ status: 'failed' as const, error });
+              } catch {
+                /* individual resolver error should not break the batch */
+              }
+            }
           });
       }, this.config.automation.debounceMs);
     });
@@ -231,6 +238,13 @@ export class ReplyAutomation {
               { error, chatId },
               'Failed to resolve batch promises during shutdown',
             );
+            for (const r of batch.resolvers) {
+              try {
+                r({ status: 'failed' as const, error });
+              } catch {
+                /* individual resolver error should not break the batch */
+              }
+            }
           }),
       );
     }

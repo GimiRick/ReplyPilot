@@ -141,23 +141,46 @@ export class WhatsAppClientAdapter {
     this.client.off('disconnected', this.onLifecycleDisconnected);
   }
 
-  private async handleMessage(message: Message): Promise<void> {
-    if (!this.messageHandler) {
-      return;
-    }
-
-    let chat: Chat;
+  private async getChatWithFallback(message: Message): Promise<Chat> {
+    const chatId = message.fromMe ? message.to : message.from;
 
     try {
-      chat = await message.getChat();
-    } catch (error) {
-      const chatId = message.fromMe ? message.to : message.from;
-      const errMsg = error instanceof Error ? error.message : String(error);
+      return await message.getChat();
+    } catch (primaryError) {
+      const tryGetChatById = async (id: string): Promise<Chat | undefined> => {
+        try {
+          return await this.client.getChatById(id);
+        } catch {
+          return undefined;
+        }
+      };
+
+      try {
+        const contact = await message.getContact();
+        if (contact && !contact.isMe && contact.id?._serialized) {
+          const contactChat = await tryGetChatById(contact.id._serialized);
+          if (contactChat) return contactChat;
+        }
+      } catch {
+        /* contact resolution fallback failed */
+      }
+
+      if (chatId?.endsWith('@lid')) {
+        const cusChat = await tryGetChatById(chatId.replace('@lid', '@c.us'));
+        if (cusChat) return cusChat;
+      }
+
       this.logger.warn(
-        { errMsg, messageId: message.id?._serialized, chatId },
+        {
+          errMsg: primaryError instanceof Error ? primaryError.message : String(primaryError),
+          errName: primaryError instanceof Error ? primaryError.name : typeof primaryError,
+          messageId: message.id?._serialized,
+          chatId,
+        },
         'Failed to load chat, proceeding with fallback chat data',
       );
-      chat = {
+
+      return {
         id: { _serialized: chatId ?? '' },
         isGroup: (chatId ?? '').endsWith('@g.us'),
         archived: false,
@@ -165,6 +188,14 @@ export class WhatsAppClientAdapter {
         fetchMessages: async () => [],
       } as unknown as Chat;
     }
+  }
+
+  private async handleMessage(message: Message): Promise<void> {
+    if (!this.messageHandler) {
+      return;
+    }
+
+    const chat = await this.getChatWithFallback(message);
 
     const filterable = toFilterableMessage(message, chat);
     const skipMediaProcessing = getIgnoreReason(filterable, this.config) !== undefined;
@@ -258,18 +289,34 @@ async function toRuntimeMessage(
   let quotedMessage: RuntimeIncomingMessage['quotedMessage'] | undefined;
 
   if (message.hasQuotedMsg) {
-    try {
-      const quoted = await message.getQuotedMessage();
-      const quotedBody = formatBody(quoted.body, quoted.hasMedia, quoted.type);
-      if (quotedBody) {
-        quotedMessage = {
-          id: typeof quoted.id?._serialized === 'string' ? quoted.id._serialized : undefined,
-          body: quotedBody,
-          fromMe: quoted.fromMe,
-        };
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const quoted = await message.getQuotedMessage();
+        const quotedBody = formatBody(quoted.body, quoted.hasMedia, quoted.type);
+        if (quotedBody) {
+          quotedMessage = {
+            id: typeof quoted.id?._serialized === 'string' ? quoted.id._serialized : undefined,
+            body: quotedBody,
+            fromMe: quoted.fromMe,
+          };
+        }
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
       }
-    } catch (error) {
-      logger.warn({ error }, 'Failed to fetch quoted message, continuing without it');
+    }
+    if (!quotedMessage && lastError) {
+      logger.warn(
+        {
+          error: lastError,
+          errName: lastError instanceof Error ? lastError.name : typeof lastError,
+        },
+        'Failed to fetch quoted message, continuing without it',
+      );
     }
   }
 
@@ -358,7 +405,12 @@ export async function downloadMediaWithRetry(
       }
     } catch (error) {
       logger.warn(
-        { error, errMsg: error instanceof Error ? error.message : String(error), attempt },
+        {
+          error,
+          errMsg: error instanceof Error ? error.message : String(error),
+          errName: error instanceof Error ? error.name : typeof error,
+          attempt,
+        },
         `${label} media download failed, retrying...`,
       );
       if (attempt < 2) {

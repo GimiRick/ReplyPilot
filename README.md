@@ -10,7 +10,7 @@
 [![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen?logo=node.js&logoColor=white)](package.json)
 [![CI](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GimiRick/ReplyPilot/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-317%20vitest-brightgreen?logo=vitest&logoColor=white)](tests/)
-[![coverage](https://img.shields.io/badge/coverage-97%25%20v8-brightgreen)](package.json)
+[![coverage](https://img.shields.io/badge/coverage-96%25%20v8-brightgreen)](package.json)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/GimiRick/ReplyPilot)
 
 ReplyPilot is a TypeScript CLI for automating WhatsApp replies with LM Studio, Ollama, or any OpenAI-compatible chat completions endpoint.
@@ -447,15 +447,15 @@ message.getChat() → chat.archived === true
          ↓
 toFilterableMessage() → filterable.archived = true
          ↓
-client.ts:123 getIgnoreReason() → 'archived' → skipMediaProcessing = true
+client.ts getIgnoreReason() → 'archived' → skipMediaProcessing = true
          ↓
 toLightweightRuntimeMessage() → runtimeMessage.archived = true
          ↓
 messageHandler(runtimeMessage) → automation.handleIncomingMessage()
          ↓
-automation.ts:92 getIgnoreReason(message, config)
+automation.ts getIgnoreReason(message, config)
          ↓
-filters.ts:42 message.archived && !config.whatsapp.allowArchived
+filters.ts message.archived && !config.whatsapp.allowArchived
          ↓  true && true  =  true
          ↓
 returns 'archived' → message IGNORED → LLM does NOT reply

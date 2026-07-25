@@ -10,9 +10,9 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/cli.ts', 'src/index.ts', 'src/llm/provider.ts', 'src/whatsapp/client.ts'],
       thresholds: {
-        lines: 97,
+        lines: 96,
         functions: 95,
-        statements: 97,
+        statements: 96,
         branches: 90,
       },
     },

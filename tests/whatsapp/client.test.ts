@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
     destroy = vi.fn(async () => {
       this.emit('disconnected', 'LOGOUT');
     });
+    pupPage: { evaluate: ReturnType<typeof vi.fn> } | undefined;
 
     on(event: string, handler: ClientHandler): void {
       const existing = this.handlers.get(event) ?? [];
@@ -267,7 +268,243 @@ describe('WhatsAppClientAdapter', () => {
   });
 });
 
-describe('loginWhatsAppAccount', () => {
+  describe('pupPage fallback for @lid chats', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.resetModules();
+      mocks.setLatestClient(undefined);
+    });
+
+    it('recovers chat from pupPage evaluate when getChat() fails for @lid', async () => {
+      const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+      const { makeConfig } = await import('../fixtures/app-config');
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+      const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+      const client = mocks.getLatestClient()!;
+
+      client.pupPage = {
+        evaluate: vi.fn().mockImplementation(async (_fn: Function, prefix: string) => {
+          if (prefix === '2534181740646') {
+            return {
+              id: { _serialized: '2534181740646@lid' },
+              isGroup: false,
+              archived: false,
+              name: 'Test Contact',
+            };
+          }
+          return null;
+        }),
+      };
+
+      const messageHandler = vi.fn();
+      adapter.onMessage(messageHandler);
+
+      await adapter.start();
+
+      const message = {
+        id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+        from: '2534181740646@lid',
+        to: '551188888@c.us',
+        fromMe: false,
+        timestamp: 1000,
+        body: 'hello from lid contact',
+        hasMedia: false,
+        type: 'chat',
+        getChat: vi.fn().mockRejectedValue({ name: 'r', message: 'r' }),
+      } as unknown as Message;
+
+      client.emit('message', message);
+
+      await vi.waitFor(() => {
+        expect(messageHandler).toHaveBeenCalledTimes(1);
+      });
+
+      const result = messageHandler.mock.calls[0][0];
+      expect(result.chatId).toBe('2534181740646@lid');
+      expect(result.chatName).toBe('Test Contact');
+      expect(result.isGroup).toBe(false);
+      expect(result.archived).toBe(false);
+      expect(result.body).toBe('hello from lid contact');
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('proceeding with fallback'),
+      );
+    });
+
+    it('recovers group chat from pupPage evaluate when getChat() fails', async () => {
+      const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+      const { makeConfig } = await import('../fixtures/app-config');
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+      const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+      const client = mocks.getLatestClient()!;
+
+      client.pupPage = {
+        evaluate: vi.fn().mockImplementation(async (_fn: Function, prefix: string) => {
+          if (prefix === '120363427994798284') {
+            return {
+              id: { _serialized: '120363427994798284@g.us' },
+              isGroup: true,
+              archived: false,
+              name: 'Test Group',
+            };
+          }
+          return null;
+        }),
+      };
+
+      const messageHandler = vi.fn();
+      adapter.onMessage(messageHandler);
+
+      await adapter.start();
+
+      const message = {
+        id: { _serialized: 'group@g.us_3EB0B2A1ABCD' },
+        from: '120363427994798284@g.us',
+        to: '551188888@c.us',
+        fromMe: false,
+        timestamp: 1000,
+        body: 'group message',
+        hasMedia: false,
+        type: 'chat',
+        getChat: vi.fn().mockRejectedValue({ name: 'r', message: 'r' }),
+      } as unknown as Message;
+
+      client.emit('message', message);
+
+      await vi.waitFor(() => {
+        expect(messageHandler).toHaveBeenCalledTimes(1);
+      });
+
+      const result = messageHandler.mock.calls[0][0];
+      expect(result.chatId).toBe('120363427994798284@g.us');
+      expect(result.chatName).toBe('Test Group');
+      expect(result.isGroup).toBe(true);
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('proceeding with fallback'),
+      );
+    });
+
+    it('falls through to synthetic chat when pupPage.evaluate returns null', async () => {
+      const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+      const { makeConfig } = await import('../fixtures/app-config');
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+      const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+      const client = mocks.getLatestClient()!;
+
+      client.pupPage = {
+        evaluate: vi.fn().mockResolvedValue(null),
+      };
+
+      const messageHandler = vi.fn();
+      adapter.onMessage(messageHandler);
+
+      await adapter.start();
+
+      const message = {
+        id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+        from: '2534181740646@lid',
+        to: '551188888@c.us',
+        fromMe: false,
+        timestamp: 1000,
+        body: 'not found',
+        hasMedia: false,
+        type: 'chat',
+        getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+      } as unknown as Message;
+
+      client.emit('message', message);
+
+      await vi.waitFor(() => {
+        expect(messageHandler).toHaveBeenCalledTimes(1);
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: '2534181740646@lid' }),
+        'Failed to load chat, proceeding with fallback chat data',
+      );
+    });
+
+    it('falls through to synthetic chat when pupPage is undefined', async () => {
+      const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+      const { makeConfig } = await import('../fixtures/app-config');
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+      const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+      const client = mocks.getLatestClient()!;
+
+      client.pupPage = undefined;
+
+      const messageHandler = vi.fn();
+      adapter.onMessage(messageHandler);
+
+      await adapter.start();
+
+      const message = {
+        id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+        from: '54275602395263@lid',
+        to: '551188888@c.us',
+        fromMe: false,
+        timestamp: 1000,
+        body: 'no pupPage',
+        hasMedia: false,
+        type: 'chat',
+        getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+      } as unknown as Message;
+
+      client.emit('message', message);
+
+      await vi.waitFor(() => {
+        expect(messageHandler).toHaveBeenCalledTimes(1);
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: '54275602395263@lid' }),
+        'Failed to load chat, proceeding with fallback chat data',
+      );
+    });
+
+    it('falls through to synthetic chat when pupPage.evaluate throws', async () => {
+      const { WhatsAppClientAdapter } = await import('../../src/whatsapp/client');
+      const { makeConfig } = await import('../fixtures/app-config');
+      const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as Logger;
+      const adapter = new WhatsAppClientAdapter(makeConfig(), logger, 'test', 0);
+      const client = mocks.getLatestClient()!;
+
+      client.pupPage = {
+        evaluate: vi.fn().mockRejectedValue(new Error('evaluate crashed')),
+      };
+
+      const messageHandler = vi.fn();
+      adapter.onMessage(messageHandler);
+
+      await adapter.start();
+
+      const message = {
+        id: { _serialized: 'true_user@c.us_3EB0B2A1ABCD' },
+        from: '2534181740646@lid',
+        to: '551188888@c.us',
+        fromMe: false,
+        timestamp: 1000,
+        body: 'evaluate error',
+        hasMedia: false,
+        type: 'chat',
+        getChat: vi.fn().mockRejectedValue({ name: 'r' }),
+      } as unknown as Message;
+
+      client.emit('message', message);
+
+      await vi.waitFor(() => {
+        expect(messageHandler).toHaveBeenCalledTimes(1);
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: '2534181740646@lid' }),
+        'Failed to load chat, proceeding with fallback chat data',
+      );
+    });
+  });
+
+  describe('loginWhatsAppAccount', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();

@@ -179,13 +179,34 @@ export class WhatsAppClientAdapter {
 
       try {
         const idPrefix = (chatId ?? '').replace(/@.*$/, '');
-        if (idPrefix) {
-          const chats = await this.client.getChats();
-          const match = chats.find((c: Chat) => c.id?._serialized?.startsWith(idPrefix));
-          if (match) return match;
+        if (idPrefix && this.client.pupPage) {
+          const raw = await this.client.pupPage.evaluate((prefix: string) => {
+            const models = window.require('WAWebCollections').Chat.getModelsArray();
+            for (const m of models) {
+              if (m.id._serialized && m.id._serialized.startsWith(prefix)) {
+                const data = m.serialize();
+                return {
+                  id: data.id,
+                  isGroup: Boolean(data.groupMetadata),
+                  archived: Boolean(data.archived),
+                  name: data.formattedTitle ?? data.name ?? data.id._serialized,
+                };
+              }
+            }
+            return null;
+          }, idPrefix);
+          if (raw) {
+            return {
+              id: { _serialized: raw.id._serialized },
+              isGroup: raw.isGroup,
+              archived: raw.archived,
+              name: raw.name,
+              fetchMessages: async () => [],
+            } as unknown as Chat;
+          }
         }
       } catch {
-        /* cached chat search failed */
+        /* direct chat store lookup failed */
       }
 
       this.logger.warn(

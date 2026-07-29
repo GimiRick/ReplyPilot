@@ -165,9 +165,27 @@ export class WhatsAppClientAdapter {
         /* contact resolution fallback failed */
       }
 
-      if (chatId?.endsWith('@lid')) {
-        const cusChat = await tryGetChatById(chatId.replace('@lid', '@c.us'));
-        if (cusChat) return cusChat;
+      if (chatId) {
+        const numericId = chatId.replace(/@.*$/, '');
+        const suffixes = ['@c.us', '@lid', '@s.whatsapp.net'];
+        for (const suffix of suffixes) {
+          const candidate = `${numericId}${suffix}`;
+          if (candidate !== chatId) {
+            const altChat = await tryGetChatById(candidate);
+            if (altChat) return altChat;
+          }
+        }
+      }
+
+      try {
+        const idPrefix = (chatId ?? '').replace(/@.*$/, '');
+        if (idPrefix) {
+          const chats = await this.client.getChats();
+          const match = chats.find((c: Chat) => c.id?._serialized?.startsWith(idPrefix));
+          if (match) return match;
+        }
+      } catch {
+        /* cached chat search failed */
       }
 
       this.logger.warn(

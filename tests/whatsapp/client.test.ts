@@ -283,7 +283,7 @@ describe('WhatsAppClientAdapter', () => {
       const client = mocks.getLatestClient()!;
 
       client.pupPage = {
-        evaluate: vi.fn().mockImplementation(async (_fn: Function, prefix: string) => {
+        evaluate: vi.fn().mockImplementation(async (_fn: (...args: unknown[]) => unknown, prefix: string) => {
           if (prefix === '2534181740646') {
             return {
               id: { _serialized: '2534181740646@lid' },
@@ -339,7 +339,7 @@ describe('WhatsAppClientAdapter', () => {
       const client = mocks.getLatestClient()!;
 
       client.pupPage = {
-        evaluate: vi.fn().mockImplementation(async (_fn: Function, prefix: string) => {
+        evaluate: vi.fn().mockImplementation(async (_fn: (...args: unknown[]) => unknown, prefix: string) => {
           if (prefix === '120363427994798284') {
             return {
               id: { _serialized: '120363427994798284@g.us' },
